@@ -19,8 +19,8 @@ Um produto do Grupo Semeia Digital. Módulo pronto: **SOS Birra** (R$ 47, pagame
 
 ## Publicar na Cloudflare (uma vez)
     npm install
-    npx wrangler d1 create family-pilot          # copie o database_id para wrangler.jsonc
-    npm run db:remote                            # cria as tabelas
+    # banco "family-pilot" já criado e com a migração 0001 aplicada (id em wrangler.jsonc)
+    npm run db:remote                            # só para migrações futuras (0002…)
     npx wrangler secret put ASAAS_API_KEY        # chave da Asaas (teste: $aact_hmlg_… usa o sandbox sozinha)
     npx wrangler secret put ASAAS_WEBHOOK_TOKEN  # texto secreto qualquer; o mesmo vai na Asaas
     npm run deploy
