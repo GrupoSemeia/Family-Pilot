@@ -1,21 +1,18 @@
 # FamilyPilot — app dos pais
 
-PWA estático (HTML + CSS + JS puro, sem build). Funciona offline e se instala na tela inicial do celular.
-Os registros ficam só no aparelho (`localStorage`, chave `familypilot.v1`).
+PWA (HTML + CSS + JS puro, sem build). Funciona offline e se instala na tela inicial do celular.
+Exige conta e acesso ativo: `js/auth.js` faz login e pagamento e só então busca o conteúdo no servidor.
+Os registros ficam só no aparelho (`localStorage`, uma chave por conta).
 
 ## Rodar
-    python3 -m http.server 8080 --directory app   # abrir http://localhost:8080
+Use o Worker (veja o README da raiz): `npm run dev`.
 
 ## Estrutura
-- `js/data.js` — todo o conteúdo (motivos, locais, frases por idade, gatilhos). Edite aqui para mudar textos.
+- `../worker/conteudo.ts` — todo o conteúdo (motivos, locais, frases por idade, gatilhos). Edite lá para mudar textos.
+- `js/auth.js` — login, cadastro, pagamento e liberação do conteúdo.
 - `js/app.js` — telas, roteador por hash e armazenamento.
-- `sw.js` — cache offline. Troque `V` ao mudar arquivos.
+- `sw.js` — cache offline do app (a API nunca passa pelo cache). Troque `V` ao mudar arquivos.
 
 ## SOS Birra (pronto)
 Plano SOS (idade → motivo → local → o que fazer, evitar, frases, depois), Frase Certa, Pausa de Emergência (60 s),
 Radar de Gatilhos (padrões nos registros, sem diagnóstico) e Diário SOS (registro e o que mais ajudou).
-
-## Falta
-- **Acesso pago por 12 meses**: hoje o app é aberto. Precisa de login/compra e liberação por prazo (servidor).
-- **Demais módulos** (cada um vira um bloco em `data.js` + telas): SOS Sono, Telas, Alimentação, Limites, Escola, Adolescência.
-- Revisão do conteúdo por profissional de psicologia/pediatria antes de lançar.

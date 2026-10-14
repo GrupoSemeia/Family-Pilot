@@ -98,3 +98,9 @@ a{color:inherit}
 #toast{position:fixed;left:50%;bottom:92px;transform:translateX(-50%) translateY(20px);background:var(--deep);color:#fff;padding:10px 18px;border-radius:999px;font-size:.9rem;opacity:0;pointer-events:none;transition:.25s;z-index:30}
 #toast.show{opacity:1;transform:translateX(-50%)}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* login e pagamento */
+.msg{min-height:1.2rem;font-size:.9rem;color:#b3213f;margin-top:8px}
+.msg.ok{color:var(--ok)}
+.preco .valor{font-family:Nunito,sans-serif;font-weight:900;font-size:2.6rem;color:var(--deep);margin:4px 0}
+.btn[disabled]{opacity:.5}

@@ -1,12 +1,12 @@
 /* FamilyPilot — app dos pais. Sem servidor: tudo fica salvo no aparelho (localStorage). */
-(function () {
-  const D = window.FP_DATA;
+/* Chamado por auth.js depois do login, com o conteúdo liberado pelo servidor e os dados da conta. */
+window.FamilyPilot = { start: function (D, conta) {
   const $ = (s, r) => (r || document).querySelector(s);
   const byId = (arr, id) => arr.find((x) => x.id === id);
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
   /* ---------- armazenamento ---------- */
-  const KEY = 'familypilot.v1';
+  const KEY = 'familypilot.v1.' + conta.usuario.email; // registros separados por conta neste aparelho
   const vazio = () => ({ diario: [], radar: [], idade: '4-5' });
   let db = vazio();
   try { db = Object.assign(vazio(), JSON.parse(localStorage.getItem(KEY) || '{}')); } catch (e) { db = vazio(); }
@@ -171,11 +171,16 @@
     modulos() {
       return `${voltar('#/', 'Início')}<h1>Módulos FamilyPilot</h1>
       <p class="lead">Seu filho cresce, os desafios mudam. Você começa pelo problema que precisa resolver hoje.</p>
-      <ul class="mods">${D.MODULOS.map((m) => `<li class="mod${m.pronto ? ' on' : ''}">
+      ${contaCard()}<ul class="mods">${D.MODULOS.map((m) => `<li class="mod${m.pronto ? ' on' : ''}">
         <span class="ico">${m.icone}</span><div><b>${esc(m.nome)}</b><p>${esc(m.frase)}</p>${m.detalhe ? `<small>${esc(m.detalhe)}</small>` : ''}
         ${m.pronto ? '<a class="btn mini-btn" href="#/">Abrir</a>' : '<span class="status">Em breve</span>'}</div></li>`).join('')}</ul>${aviso}`;
     },
   };
+
+  function contaCard() {
+    const ate = conta.acesso.livre ? 'acesso liberado pela equipe' : conta.acesso.ate ? 'acesso até ' + new Date(conta.acesso.ate).toLocaleDateString('pt-BR') : '';
+    return `<div class="card"><b>${esc(conta.usuario.nome)}</b><p>${esc(conta.usuario.email)}${ate ? ' · ' + ate : ''}</p><button class="mini" data-act="sair">Sair da conta</button></div>`;
+  }
 
   function itemDiario(e) {
     const m = byId(D.MOTIVOS, e.motivo), l = byId(D.LOCAIS, e.local), r = byId(D.RESULTADOS, e.res);
@@ -333,6 +338,7 @@
       case 'plano-refazer': W = { step: 0, idade: null, motivo: null, local: null, risco: false }; reRender(); break;
       case 'pick-frase': if (k === 'idade') { F.idade = v; db.idade = v; salvar(); } else F.comp = v; reRender(); break;
       case 'copiar': copiar(el.dataset.t); break;
+      case 'sair': window.FamilyAuth.sair(); break;
       case 'pausa-iniciar': pausaIniciar(); break;
       case 'pausa-parar': pausaParar(); break;
       case 'tag': { const q = $('#r-quando'); if (q) R.quando = q.value; toggle(R.tags, v); reRender(); break; }
@@ -373,7 +379,8 @@
   });
 
   /* ---------- início ---------- */
+  $('#tabs').hidden = false;
   $('#tabs').innerHTML = nav.map(([h, t, i]) => `<a href="${h}"><span aria-hidden="true">${i}</span>${t}</a>`).join('');
   render();
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => {});
-})();
+} };
