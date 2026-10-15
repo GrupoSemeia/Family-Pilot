@@ -48,7 +48,7 @@
     };
   }
 
-  function itemBirra() { return { id: 'birra', nome: 'SOS Birra + 4 bônus interativos', preco: (me.precos && me.precos.birra) || me.preco }; }
+  function itemBirra() { return { id: 'birra', nome: 'SOS Birra + 4 bônus interativos', preco: (me.precos && me.precos.birra) || me.preco, precoCheio: me.precosCheios && me.precosCheios.birra }; }
 
   function telaAssinar(item) {
     item = item || itemBirra(); atual = item;
@@ -58,6 +58,7 @@
       <h1>${dentro ? 'Liberar ' + esc(item.nome) : renovar ? 'Seu acesso terminou' : 'Falta só liberar o acesso'}</h1>
       <p>${renovar ? 'Renove para continuar usando o SOS Birra.' : 'Pagamento único, sem mensalidade.'}</p></section>
       <div class="card preco"><b>${esc(item.nome)}</b>
+        ${item.precoCheio ? `<div class="de"><s>de ${brl(item.precoCheio)}</s> <span class="selo-lanc">preço de lançamento</span></div>` : ''}
         <div class="valor">${brl(item.preco)}</div>
         <p>Pagamento único. Acesso por 12 meses a partir da confirmação do pagamento. Pix, boleto ou cartão.</p></div>
       ${me.pagamentoOnline ? `<form id="f-pag" class="form" novalidate>
@@ -104,7 +105,7 @@
     if (/[?&]comprar=pacote/.test(location.search) && me.precos && me.precos.pacote) {
       const todos = Object.values((me.acesso && me.acesso.modulos) || {});
       history.replaceState(null, '', location.pathname + location.hash);
-      if (!(todos.length >= 7 && todos.every((m) => m.ativo))) return telaAssinar({ id: 'pacote', nome: 'Pacote Família: todos os 7 módulos', preco: me.precos.pacote });
+      if (!(todos.length >= 7 && todos.every((m) => m.ativo))) return telaAssinar({ id: 'pacote', nome: 'Pacote Família: todos os 7 módulos', preco: me.precos.pacote, precoCheio: me.precosCheios && me.precosCheios.pacote });
     }
     if (!me.acesso.ativo) return telaAssinar();
     try {
@@ -140,6 +141,6 @@
   // ao voltar da página de pagamento, confere sozinho
   document.addEventListener('visibilitychange', () => { if (!document.hidden && me && me.usuario && $('#ja-paguei')) verificar(); });
 
-  window.FamilyAuth = { sair, comprar: (item) => { if (item) telaAssinar({ id: item.id, nome: item.nome, preco: item.preco, oferta: !!item.oferta }); } };
+  window.FamilyAuth = { sair, comprar: (item) => { if (item) telaAssinar({ id: item.id, nome: item.nome, preco: item.preco, precoCheio: item.precoCheio, oferta: !!item.oferta }); } };
   iniciar();
 })();

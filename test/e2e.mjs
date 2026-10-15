@@ -21,7 +21,7 @@ const mock = createServer((req, res) => {
   })
 }).listen(MOCK)
 
-const wr = spawn('npx', ['wrangler', 'dev', '--port', String(PORTA), '--var', `ASAAS_URL:http://127.0.0.1:${MOCK}`, '--var', 'ASAAS_API_KEY:chave-teste', '--var', `ASAAS_WEBHOOK_TOKEN:${TOKEN}`, '--var', 'ACESSO_LIVRE:', '--var', 'PRECOS_MODULOS:{"sono":3700,"adolescencia":4700,"pacote":9900}', '--var', 'OFERTA_POS_COMPRA:{"modulo":"sono","preco":2700,"horas":72}'], { stdio: 'pipe' })
+const wr = spawn('npx', ['wrangler', 'dev', '--port', String(PORTA), '--var', `ASAAS_URL:http://127.0.0.1:${MOCK}`, '--var', 'ASAAS_API_KEY:chave-teste', '--var', `ASAAS_WEBHOOK_TOKEN:${TOKEN}`, '--var', 'ACESSO_LIVRE:', '--var', 'PRECOS_MODULOS:{"sono":3700,"adolescencia":4700,"pacote":9900}', '--var', 'PRECOS_DE:{"sono":7700,"telas":100}', '--var', 'OFERTA_POS_COMPRA:{"modulo":"sono","preco":2700,"horas":72}'], { stdio: 'pipe' })
 let log = ''; wr.stdout.on('data', d => (log += d)); wr.stderr.on('data', d => (log += d))
 const fim = (cod) => {  wr.kill('SIGTERM'); mock.close(); process.exit(cod) }
 
@@ -70,6 +70,8 @@ try {
 
   // oferta de boas-vindas: aparece logo depois de pagar o SOS Birra, com preço especial para o SOS Sono
   assert.deepEqual([r.d.oferta.modulo, r.d.oferta.preco, r.d.oferta.precoNormal], ['sono', 2700, 3700], 'oferta pós-compra')
+  assert.equal(r.d.catalogo.find(m => m.id === 'sono').precoCheio, 7700, 'preço "de" do sono')
+  assert.equal(r.d.catalogo.find(m => m.id === 'telas').precoCheio, null, '"de" menor que o preço atual é ignorado')
   const pacote = r.d.catalogo.find(m => m.id === 'pacote')
   assert.deepEqual([pacote.estado, pacote.preco], ['a-venda', 9900], 'pacote à venda')
 

@@ -9,6 +9,8 @@ export type Env = {
   PRECOS_MODULOS?: string
   /** Oferta de boas-vindas depois de comprar o SOS Birra. JSON: {"modulo":"sono","preco":2700,"horas":72}. Vazio = sem oferta. */
   OFERTA_POS_COMPRA?: string
+  /** Preço "cheio" (o "de"), em centavos, que será cobrado depois do lançamento. Só é mostrado se for maior que o preço atual. */
+  PRECOS_DE?: string
 }
 export type Sessao = { usuarioId: string; nome: string; email: string }
 export type App = { Bindings: Env; Variables: { sessao: Sessao } }
@@ -111,6 +113,16 @@ export const exigirLogin: MiddlewareHandler<App> = async (c, next) => {
 /* ---------- acesso pago ---------- */
 export const acessoLivre = (env: Env, email: string) =>
   (env.ACESSO_LIVRE ?? '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean).includes(email.toLowerCase())
+
+/** Preço "de" de cada produto (valor cheio, mostrado riscado ao lado do preço de lançamento). Ex.: {"sono":7700}. */
+export function precosCheios(env: Env): Record<string, number> {
+  const atual = precosDe(env), out: Record<string, number> = {}
+  try {
+    const x = JSON.parse(env.PRECOS_DE || '{}')
+    for (const id of PRODUTOS_IDS) if (Number.isInteger(x[id]) && atual[id] && x[id] > atual[id]) out[id] = x[id]
+  } catch { /* JSON inválido: nenhum preço "de" */ }
+  return out
+}
 
 export type AcessoModulo = { ativo: boolean; ate: string | null }
 export type Acesso = { ativo: boolean; ate: string | null; livre: boolean; modulos: Record<string, AcessoModulo> }

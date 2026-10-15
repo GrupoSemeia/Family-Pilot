@@ -120,3 +120,6 @@ a.alerta:hover{filter:brightness(.97)}
 
 .card.oferta,.card.pacote{border:2px solid var(--gold);background:#fff9ea}
 .card.oferta s,.card.pacote s{color:var(--muted)}
+
+.preco .de{color:var(--muted)}
+.selo-lanc{display:inline-block;background:var(--gold);color:var(--deep);font-weight:700;font-size:.72rem;padding:2px 10px;border-radius:999px;vertical-align:middle}

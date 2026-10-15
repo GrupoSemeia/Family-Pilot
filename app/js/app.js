@@ -184,7 +184,7 @@ window.FamilyPilot = { _on: false, start: function (C, conta) {
       ${contaCard()}${ofertaCard()}${pacoteCard()}<ul class="mods">${CAT.filter((m) => m.id !== 'pacote').map((m) => `<li class="mod${m.estado === 'liberado' ? ' on' : ''}">
         <span class="ico">${m.icone}</span><div><b>${esc(m.nome)}</b><p>${esc(m.frase)}</p><small>${esc(m.detalhe)}</small>
         ${m.estado === 'liberado' ? `<a class="btn mini-btn" href="${m.id === 'birra' ? '#/' : '#/m/' + m.id}">Abrir</a>${m.ate ? `<small> Acesso até ${new Date(m.ate).toLocaleDateString('pt-BR')}</small>` : ''}`
-          : m.estado === 'a-venda' ? `<button class="btn mini-btn" data-act="comprar" data-id="${m.id}">Liberar por ${preco(m.preco)}</button><small> Pagamento único, 12 meses de acesso.</small>`
+          : m.estado === 'a-venda' ? `<button class="btn mini-btn" data-act="comprar" data-id="${m.id}">Liberar por ${preco(m.preco)}</button><small> ${m.precoCheio ? `<s>de ${preco(m.precoCheio)}</s> · preço de lançamento. ` : ''}Pagamento único, 12 meses de acesso.</small>`
           : '<span class="status">Em breve</span>'}</div></li>`).join('')}</ul>${aviso}`;
     },
   };
