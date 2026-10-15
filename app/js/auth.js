@@ -32,9 +32,11 @@
         <p id="msg" class="msg" role="alert"></p>
         <button class="btn" type="submit">${criar ? 'Criar conta' : 'Entrar'}</button>
       </form>
-      <button class="voltar" id="troca" style="margin-top:14px">${criar ? 'Já tenho conta. Entrar' : 'Ainda não tenho conta. Criar agora'}</button>
+      ${criar ? '' : '<button class="voltar" id="esqueci" style="margin-top:14px">Esqueci minha senha</button><br>'}
+      <button class="voltar" id="troca" style="margin-top:6px">${criar ? 'Já tenho conta. Entrar' : 'Ainda não tenho conta. Criar agora'}</button>
       <p class="nota">Um produto Grupo Semeia Digital. Orientações educativas para pais e responsáveis.</p>`);
     $('#troca').onclick = () => { modo = criar ? 'entrar' : 'criar'; telaEntrar(); };
+    if (!criar) $('#esqueci').onclick = telaEsqueci;
     $('#f-auth').onsubmit = async (ev) => {
       ev.preventDefault();
       const btn = ev.target.querySelector('button[type=submit]'), t = btn.textContent;
@@ -45,6 +47,49 @@
         me = await api('POST', criar ? '/api/auth/cadastro' : '/api/auth/entrar', corpo);
         seguir();
       } catch (e) { msg(e.message); ocupado(btn, false, t); }
+    };
+  }
+
+  /* ---------- esqueci minha senha ---------- */
+  function telaEsqueci() {
+    const ativo = !(me && me.emailAtivo === false);
+    tela(`<section class="hero-app"><p class="eyebrow">FamilyPilot</p><h1>Esqueci minha senha</h1>
+      <p>${ativo ? 'Informe o e-mail da sua conta e enviaremos um link para criar uma nova senha.' : 'A recuperação por e-mail ainda não está ativa.'}</p></section>
+      ${ativo ? `<form id="f-esq" class="form" novalidate>
+        <label class="campo">E-mail<input id="e-email" type="email" inputmode="email" autocomplete="email" maxlength="160" required></label>
+        <p id="msg" class="msg" role="alert"></p>
+        <button class="btn" type="submit">Enviar link</button></form>`
+        : '<div class="alerta">Fale com o Grupo Semeia Digital para recuperar o acesso à sua conta.</div>'}
+      <button class="voltar" id="volta" style="margin-top:14px">← Voltar para entrar</button>`);
+    $('#volta').onclick = () => { modo = 'entrar'; telaEntrar(); };
+    if (!ativo) return;
+    $('#f-esq').onsubmit = async (ev) => {
+      ev.preventDefault();
+      const btn = ev.target.querySelector('button[type=submit]'), t = btn.textContent;
+      ocupado(btn, true, 'Enviando…'); msg('');
+      try {
+        await api('POST', '/api/auth/esqueci', { email: $('#e-email').value });
+        // a resposta é sempre a mesma, exista a conta ou não
+        ev.target.innerHTML = '<div class="card"><b>Pedido recebido</b><p>Se houver uma conta com esse e-mail, o link chega em alguns minutos. Olhe também a caixa de spam. O link vale por 1 hora.</p></div>';
+      } catch (e) { msg(e.message); ocupado(btn, false, t); }
+    };
+  }
+
+  function telaNovaSenha(token) {
+    tela(`<section class="hero-app"><p class="eyebrow">FamilyPilot</p><h1>Crie uma nova senha</h1><p>Mínimo de 8 caracteres.</p></section>
+      <form id="f-nova" class="form" novalidate>
+        <label class="campo">Nova senha<input id="n-senha" type="password" autocomplete="new-password" maxlength="100" required></label>
+        <label class="campo">Repita a nova senha<input id="n-senha2" type="password" autocomplete="new-password" maxlength="100" required></label>
+        <p id="msg" class="msg" role="alert"></p>
+        <button class="btn" type="submit">Salvar e entrar</button></form>`);
+    $('#f-nova').onsubmit = async (ev) => {
+      ev.preventDefault();
+      const s1 = $('#n-senha').value;
+      if (s1 !== $('#n-senha2').value) return msg('As duas senhas precisam ser iguais.');
+      const btn = ev.target.querySelector('button[type=submit]'), t = btn.textContent;
+      ocupado(btn, true, 'Salvando…'); msg('');
+      try { me = await api('POST', '/api/auth/nova-senha', { token, senha: s1 }); seguir(); }
+      catch (e) { msg(e.message); ocupado(btn, false, t); }
     };
   }
 
@@ -136,6 +181,9 @@
 
   async function iniciar() {
     try { me = await api('GET', '/api/auth/eu'); } catch (e) { return offline(); }
+    // veio do link do e-mail: o token fica no fragmento (não vai para o servidor) e sai da barra de endereço na hora
+    const m = /^#\/nova-senha\/([\w-]+)/.exec(location.hash);
+    if (m) { history.replaceState(null, '', location.pathname); return telaNovaSenha(m[1]); }
     seguir();
   }
   // ao voltar da página de pagamento, confere sozinho

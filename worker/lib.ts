@@ -11,6 +11,8 @@ export type Env = {
   OFERTA_POS_COMPRA?: string
   /** Preço "cheio" (o "de"), em centavos, que será cobrado depois do lançamento. Só é mostrado se for maior que o preço atual. */
   PRECOS_DE?: string
+  /** E-mail (Resend): chave da API (segredo), remetente com domínio verificado e, se quiser, o endereço público do app. */
+  RESEND_API_KEY?: string; EMAIL_DE?: string; APP_URL?: string; RESEND_URL?: string
 }
 export type Sessao = { usuarioId: string; nome: string; email: string }
 export type App = { Bindings: Env; Variables: { sessao: Sessao } }
@@ -111,6 +113,9 @@ export const exigirLogin: MiddlewareHandler<App> = async (c, next) => {
 }
 
 /* ---------- acesso pago ---------- */
+/** A recuperação de senha por e-mail só funciona com a chave do Resend e um remetente configurados. */
+export const emailAtivo = (env: Env) => !!(env.RESEND_API_KEY && env.EMAIL_DE)
+
 export const acessoLivre = (env: Env, email: string) =>
   (env.ACESSO_LIVRE ?? '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean).includes(email.toLowerCase())
 

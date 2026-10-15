@@ -43,11 +43,18 @@ Ferramentas disponíveis: `situacoes`, `rotinaSono`, `combinado`, `ideias`, `mod
     npm run db:remote                            # migrações novas (0001 e 0002 já estão aplicadas no banco criado)
     npx wrangler secret put ASAAS_API_KEY        # chave da Asaas (teste: $aact_hmlg_… usa o sandbox sozinha)
     npx wrangler secret put ASAAS_WEBHOOK_TOKEN  # texto secreto qualquer; o mesmo vai na Asaas
+    npx wrangler secret put RESEND_API_KEY       # chave do Resend, para o "Esqueci minha senha" (veja abaixo)
     npm run deploy
 
 Na Asaas (Integrações → Webhooks): URL `https://SEU-DOMINIO/api/asaas/webhook`, o mesmo token no campo de
 autenticação e os eventos de **Cobranças** (confirmada, recebida, estornada/reembolsada, chargeback, removida).
 `ACESSO_LIVRE` em `wrangler.jsonc` lista e-mails com acesso grátis (equipe e testadores).
+
+## Esqueci minha senha (e-mail pelo Resend)
+Link de uso único, válido por 1 hora, no máximo 3 por hora por conta. A resposta é sempre a mesma, exista a conta ou não.
+Ao trocar a senha, todas as sessões antigas caem e a pessoa já entra. O token vai no fragmento da URL (`#/nova-senha/...`) e o banco guarda só o hash.
+Para ativar: crie a conta no Resend, verifique o domínio de envio, cadastre o segredo `RESEND_API_KEY` e preencha
+`EMAIL_DE` (ex.: `FamilyPilot <nao-responda@seudominio.com.br>`) e, se quiser, `APP_URL` em `wrangler.jsonc`. Sem isso o app avisa que o recurso não está ativo.
 
 ## Desenvolver
     npm run db:local && npm run dev    # http://localhost:8787
@@ -55,6 +62,6 @@ autenticação e os eventos de **Cobranças** (confirmada, recebida, estornada/r
     npm run typecheck
 
 ## Falta
-- Esqueci minha senha (precisa de envio de e-mail, por exemplo Resend como no AroCerto).
+- Ativar o e-mail (conta no Resend, domínio verificado, `RESEND_API_KEY` e `EMAIL_DE`).
 - Domínio próprio. Depois, preencher `APP_URL` no fim da landing: os botões passam a levar à criação de conta (`/?criar=1`; o do pacote usa `&comprar=pacote`).
 - Revisão do conteúdo de todos os módulos por psicólogo ou pediatra antes do lançamento.
