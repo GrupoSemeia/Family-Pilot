@@ -295,6 +295,39 @@ try {
   r = await cliente()('POST', '/api/auth/nova-senha', { token: tokenEq, senha: 'senha-equipe-2' })
   assert.equal(r.d.acesso.livre, true, 'depois de confirmar o e-mail pelo link, o acesso da equipe vale')
 
+  // "ver como usuário": o super usuário escolhe os módulos para ver o app como um cliente veria
+  assert.equal((await a('POST', '/api/admin/visao', { modulos: ['birra'] })).status, 404, 'quem não é super não tem essa rota')
+  assert.equal((await a('GET', '/api/auth/eu')).d.admin, false)
+  let eu = (await dono('GET', '/api/auth/eu')).d
+  assert.equal(eu.admin, true); assert.equal(eu.visao, null); assert.equal(eu.acesso.livre, true)
+  r = await dono('POST', '/api/admin/visao', { modulos: ['sono', 'birra', 'xyz'] })
+  assert.deepEqual(r.d.visao, { modulos: ['birra', 'sono'], oferta: false }, 'só ids conhecidos, na ordem do catálogo')
+  eu = (await dono('GET', '/api/auth/eu')).d
+  assert.equal(eu.acesso.simulado, true); assert.equal(eu.acesso.livre, false); assert.deepEqual(Object.keys(eu.acesso.modulos).sort(), ['birra', 'sono'])
+  assert.equal(eu.admin, true, 'continua podendo sair da visão')
+  r = await dono('GET', '/api/conteudo')
+  assert.ok(r.d.birra); assert.deepEqual(Object.keys(r.d.modulos), ['sono'], 'só o que o cliente simulado teria')
+  const est2 = Object.fromEntries(r.d.catalogo.map(m => [m.id, m.estado]))
+  assert.deepEqual([est2.birra, est2.sono, est2.telas, est2.adolescencia, est2.pacote], ['liberado', 'liberado', 'em-breve', 'a-venda', 'a-venda'], 'a vitrine aparece como o cliente veria')
+  assert.equal(r.d.oferta, null)
+  await dono('POST', '/api/admin/visao', { modulos: ['birra'], oferta: true })
+  r = await dono('GET', '/api/conteudo')
+  assert.deepEqual([r.d.oferta.modulo, r.d.oferta.preco], ['sono', 2700], 'simula a oferta de boas-vindas')
+  assert.equal((await dono('POST', '/api/pagamento', { cpfCnpj: '52998224725', modulo: 'sono' })).status, 409, 'no modo "ver como usuário" não há cobrança de verdade')
+  await dono('POST', '/api/admin/visao', { modulos: ['sono'] })
+  assert.equal((await dono('GET', '/api/conteudo')).d.birra, null, 'sem o SOS Birra na visão')
+  await dono('POST', '/api/admin/visao', { modulos: [] })
+  assert.equal((await dono('GET', '/api/conteudo')).status, 402, 'cliente sem nenhum módulo não vê conteúdo')
+  assert.equal((await dono('GET', '/api/auth/eu')).d.acesso.ativo, false)
+  // a visão vale só para a sessão onde foi escolhida
+  const dono2 = cliente()
+  r = await dono2('POST', '/api/auth/google', { credential: tokenGoogle({ sub: 'sub-super-' + S, email: emailAdm, name: 'Grupo Semeia' }) })
+  assert.equal(r.d.acesso.livre, true, 'outra sessão do administrador segue com acesso total')
+  await dono('POST', '/api/admin/visao', { modulos: null })
+  eu = (await dono('GET', '/api/auth/eu')).d
+  assert.equal(eu.visao, null); assert.equal(eu.acesso.livre, true, 'voltou à visão de administrador')
+  assert.equal((await dono('POST', '/api/admin/visao', { modulos: 'x' })).status, 400, 'lista inválida')
+
   // logout
   await rec('POST', '/api/auth/sair', {}); assert.equal((await rec('GET', '/api/conteudo')).status, 401)
   console.log('OK: todos os testes passaram'); fim(0)

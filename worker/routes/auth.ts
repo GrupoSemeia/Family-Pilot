@@ -1,15 +1,22 @@
 import { Hono } from 'hono'
 import { verificarGoogle } from '../google'
 import { enviarEmail } from '../email'
-import { type App, type Env, erro, novoId, limpar, hashSenha, conferirSenha, criarSessao, encerrarSessao, lerSessao, acessoDe, precosDe, precosCheios, emailAtivo, sha256, tokenAleatorio, paraBanco, agoraBanco, VERSAO_TERMOS } from '../lib'
+import { type App, type Env, type Sessao, erro, novoId, limpar, hashSenha, conferirSenha, criarSessao, encerrarSessao, lerSessao, acessoDe, acessoDaSessao, ehSuper, visaoValida, precosDe, precosCheios, emailAtivo, sha256, tokenAleatorio, paraBanco, agoraBanco, VERSAO_TERMOS } from '../lib'
 
 export const auth = new Hono<App>()
 
 const emailValido = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e) && e.length <= 160
 const MAX_FALHAS = 8   // por e-mail, em 15 minutos
 
-async function resposta(c: any, s: { usuarioId: string; nome: string; email: string }) {
-  return { usuario: { nome: s.nome, email: s.email }, acesso: await acessoDe(c.env, s.usuarioId, s.email), preco: precosDe(c.env).birra, precos: precosDe(c.env), precosCheios: precosCheios(c.env), pagamentoOnline: !!c.env.ASAAS_API_KEY, emailAtivo: emailAtivo(c.env), googleClientId: c.env.GOOGLE_CLIENT_ID || '' }
+/** Resposta de login/cadastro/"quem sou eu". Com a sessão em mãos, vale a visão "ver como usuário" do administrador. */
+async function resposta(c: any, s: { usuarioId: string; nome: string; email: string; sessaoId?: string; visao?: any }) {
+  const sessao = s.sessaoId ? (s as Sessao) : null
+  const [acesso, admin, visao] = await Promise.all([
+    sessao ? acessoDaSessao(c.env, sessao) : acessoDe(c.env, s.usuarioId, s.email),
+    ehSuper(c.env, s.usuarioId, s.email),
+    sessao ? visaoValida(c.env, sessao) : Promise.resolve(null),
+  ])
+  return { usuario: { nome: s.nome, email: s.email }, acesso, admin, visao, preco: precosDe(c.env).birra, precos: precosDe(c.env), precosCheios: precosCheios(c.env), pagamentoOnline: !!c.env.ASAAS_API_KEY, emailAtivo: emailAtivo(c.env), googleClientId: c.env.GOOGLE_CLIENT_ID || '' }
 }
 
 auth.post('/cadastro', async c => {

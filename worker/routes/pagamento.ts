@@ -1,6 +1,6 @@
 import { Hono } from 'hono'
 import {
-  type App, type Env, erro, novoId, digitos, paraBanco, agoraBanco, acessoDe, exigirLogin,
+  type App, type Env, erro, novoId, digitos, paraBanco, agoraBanco, acessoDe, exigirLogin, visaoValida,
   precosDe, ofertaDe, DIAS_ACESSO, MODULO_BASE, PRODUTOS_IDS,
 } from '../lib'
 import { CATALOGO } from '../modulos'
@@ -47,6 +47,11 @@ export async function conceder(env: Env, pedido: { id: string; usuario_id: strin
 
 export const pagamento = new Hono<App>()
 pagamento.use('*', exigirLogin)
+// No modo "ver como usuário" o administrador só olha: nada de cobrança de verdade.
+pagamento.use('*', async (c, next) => {
+  if (await visaoValida(c.env, c.get('sessao'))) return c.json({ erro: 'Você está no modo "ver como usuário". Saia dessa visão para fazer pagamentos de verdade.' }, 409)
+  await next()
+})
 
 /** Cria (ou reaproveita) a cobrança de R$ 47 e devolve o link da página de pagamento. */
 pagamento.post('/', async c => {

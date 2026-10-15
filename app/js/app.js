@@ -216,8 +216,21 @@ window.FamilyPilot = { _on: false, start: function (C, conta) {
   }
 
   function contaCard() {
-    const ate = conta.acesso.livre ? 'acesso liberado pela equipe' : conta.acesso.ate ? 'acesso até ' + new Date(conta.acesso.ate).toLocaleDateString('pt-BR') : '';
-    return `<div class="card"><b>${esc(conta.usuario.nome)}</b><p>${esc(conta.usuario.email)}${ate ? ' · ' + ate : ''}</p><button class="mini" data-act="sair">Sair da conta</button> <small><a href="/termos" target="_blank" rel="noopener">Termos</a> · <a href="/privacidade" target="_blank" rel="noopener">Privacidade</a></small></div>`;
+    const ate = conta.acesso.livre ? 'acesso total (administrador)' : conta.acesso.ate ? 'acesso até ' + new Date(conta.acesso.ate).toLocaleDateString('pt-BR') : '';
+    return `<div class="card"><b>${esc(conta.usuario.nome)}</b><p>${esc(conta.usuario.email)}${ate ? ' · ' + ate : ''}${conta.visao ? ' · <b>visão de usuário</b>' : ''}</p><button class="mini" data-act="sair">Sair da conta</button> <small><a href="/termos" target="_blank" rel="noopener">Termos</a> · <a href="/privacidade" target="_blank" rel="noopener">Privacidade</a></small></div>${conta.admin ? adminPanel() : ''}`;
+  }
+
+  /** Só para o administrador: escolhe os módulos para ver o app como um cliente veria. */
+  function adminPanel() {
+    const sel = conta.visao ? conta.visao.modulos : null;
+    const mods = CAT.filter((m) => m.id !== 'pacote');
+    return `<div class="card admin"><b>🛠️ Ver como usuário</b>
+      <p>Marque os módulos que o cliente teria e veja o app como ele vê. Nada é cobrado nem alterado nesse modo.</p>
+      <div class="predef"><button class="mini" data-act="adm-preset" data-v="nenhum">Nenhum</button><button class="mini" data-act="adm-preset" data-v="birra">Só SOS Birra</button><button class="mini" data-act="adm-preset" data-v="todos">Todos</button></div>
+      ${mods.map((m) => `<label class="opt"><input type="checkbox" class="adm-mod" value="${m.id}" ${sel && sel.includes(m.id) ? 'checked' : ''}><span>${m.icone} ${esc(m.nome)}</span></label>`).join('')}
+      <label class="opt"><input type="checkbox" id="adm-oferta" ${conta.visao && conta.visao.oferta ? 'checked' : ''}><span>Mostrar a oferta de boas-vindas (cliente que acabou de comprar o SOS Birra)</span></label>
+      <button class="btn mini-btn" data-act="adm-ver">Ver como usuário</button>
+      ${conta.visao ? '<button class="mini" data-act="adm-sair">Voltar à minha visão</button>' : ''}</div>`;
   }
 
   function itemDiario(e) {
@@ -386,6 +399,9 @@ window.FamilyPilot = { _on: false, start: function (C, conta) {
       case 'pick-frase': if (k === 'idade') { F.idade = v; db.idade = v; salvar(); } else F.comp = v; reRender(); break;
       case 'copiar': copiar(el.dataset.t); break;
       case 'sair': window.FamilyAuth.sair(); break;
+      case 'adm-preset': { const v = el.dataset.v; document.querySelectorAll('.adm-mod').forEach((c) => { c.checked = v === 'todos' || (v === 'birra' && c.value === 'birra'); }); break; }
+      case 'adm-ver': window.FamilyAuth.verComo([...document.querySelectorAll('.adm-mod:checked')].map((c) => c.value), $('#adm-oferta').checked); break;
+      case 'adm-sair': window.FamilyAuth.sairVisao(); break;
       case 'comprar': window.FamilyAuth.comprar(CAT.find((m) => m.id === el.dataset.id)); break;
       case 'comprar-oferta': { const m = CAT.find((x) => x.id === OFERTA.modulo); window.FamilyAuth.comprar({ id: m.id, nome: m.nome + ' (oferta de boas-vindas)', preco: OFERTA.preco, oferta: true }); break; }
       case 'pausa-iniciar': pausaIniciar(); break;

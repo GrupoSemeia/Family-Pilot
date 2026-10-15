@@ -18,7 +18,9 @@ export type Env = {
   /** Entrar com o Google: Client ID público do tipo "Aplicativo da Web" (vazio = botão escondido). GOOGLE_CERTS_URL só para testes. */
   GOOGLE_CLIENT_ID?: string; GOOGLE_CERTS_URL?: string
 }
-export type Sessao = { usuarioId: string; nome: string; email: string }
+/** Visão de administrador: ver o app como um usuário com só estes módulos (e, se pedido, com a oferta de boas-vindas). */
+export type Visao = { modulos: string[]; oferta: boolean }
+export type Sessao = { usuarioId: string; nome: string; email: string; sessaoId: string; visao: Visao | null }
 export type App = { Bindings: Env; Variables: { sessao: Sessao } }
 export type C = Context<App>
 
@@ -106,10 +108,12 @@ export async function lerSessao(c: C): Promise<Sessao | null> {
   const token = getCookie(c, COOKIE)
   if (!token) return null
   const r = await c.env.DB.prepare(
-    `SELECT s.usuario_id, s.expira_em, u.nome, u.email FROM sessoes s JOIN usuarios u ON u.id = s.usuario_id WHERE s.id = ?`)
+    `SELECT s.id AS sid, s.usuario_id, s.expira_em, s.ver_como, u.nome, u.email FROM sessoes s JOIN usuarios u ON u.id = s.usuario_id WHERE s.id = ?`)
     .bind(await sha256(token)).first<any>()
   if (!r || new Date(r.expira_em) < new Date()) return null
-  return { usuarioId: r.usuario_id, nome: r.nome, email: r.email }
+  let visao: Visao | null = null
+  try { const v = r.ver_como ? JSON.parse(r.ver_como) : null; if (v && Array.isArray(v.modulos)) visao = { modulos: v.modulos.filter((m: unknown) => MODULOS_IDS.includes(String(m))), oferta: !!v.oferta } } catch { visao = null }
+  return { usuarioId: r.usuario_id, nome: r.nome, email: r.email, sessaoId: r.sid, visao }
 }
 export const exigirLogin: MiddlewareHandler<App> = async (c, next) => {
   const s = await lerSessao(c)
@@ -136,9 +140,35 @@ export function precosCheios(env: Env): Record<string, number> {
 }
 
 export type AcessoModulo = { ativo: boolean; ate: string | null }
-export type Acesso = { ativo: boolean; ate: string | null; livre: boolean; modulos: Record<string, AcessoModulo>; livrePendente?: boolean }
+export type Acesso = { ativo: boolean; ate: string | null; livre: boolean; modulos: Record<string, AcessoModulo>; livrePendente?: boolean; simulado?: boolean }
 /** Por módulo, o acesso vale até o maior "acesso_ate" dos pedidos pagos (reembolsados não contam).
     "ativo"/"ate" do topo valem para qualquer módulo (quem tem algum módulo entra no app). */
+/** Super usuário de verdade: e-mail na lista ACESSO_LIVRE **e** confirmado. */
+export async function ehSuper(env: Env, usuarioId: string, email: string): Promise<boolean> {
+  if (!acessoLivre(env, email)) return false
+  const v = await env.DB.prepare('SELECT email_verificado_em AS v FROM usuarios WHERE id=?').bind(usuarioId).first<{ v: string | null }>()
+  return !!v?.v
+}
+
+/** Acesso como um usuário comum com só estes módulos teria (para o administrador conferir a experiência). */
+export function acessoSimulado(visao: Visao): Acesso {
+  const ate = paraISO(paraBanco(new Date(Date.now() + DIAS_ACESSO * 864e5)))
+  const modulos: Record<string, AcessoModulo> = {}
+  for (const id of visao.modulos) modulos[id] = { ativo: true, ate }
+  return { ativo: visao.modulos.length > 0, ate: visao.modulos.length ? ate : null, livre: false, modulos, simulado: true }
+}
+
+/** A visão só vale para super usuário confirmado; para qualquer outro, ignora. */
+export async function visaoValida(env: Env, s: Sessao): Promise<Visao | null> {
+  return s.visao && await ehSuper(env, s.usuarioId, s.email) ? s.visao : null
+}
+
+/** Acesso da sessão: o real, ou o simulado quando o super usuário está no modo "ver como usuário". */
+export async function acessoDaSessao(env: Env, s: Sessao): Promise<Acesso> {
+  const v = await visaoValida(env, s)
+  return v ? acessoSimulado(v) : acessoDe(env, s.usuarioId, s.email)
+}
+
 export async function acessoDe(env: Env, usuarioId: string, email: string): Promise<Acesso> {
   // Acesso liberado pela equipe (super usuário): todos os módulos, sem prazo e sem pagamento. Só vale se o e-mail foi confirmado
   // (login com o Google ou "Esqueci minha senha"): sem isso, qualquer pessoa poderia criar conta com o e-mail de alguém da equipe.
@@ -166,23 +196,36 @@ export async function acessoDe(env: Env, usuarioId: string, email: string): Prom
 /** Oferta de boas-vindas: quem acabou de pagar o SOS Birra pode levar um módulo por preço especial, por tempo limitado.
     Vale uma vez, só para quem ainda não tem o módulo nem o pacote. */
 export type Oferta = { modulo: string; preco: number; precoNormal: number; ate: string }
-export async function ofertaDe(env: Env, usuarioId: string): Promise<Oferta | null> {
+function ofertaConfig(env: Env): { modulo: string; preco: number; normal: number; horas: number } | null {
   let cfg: any
   try { cfg = JSON.parse(env.OFERTA_POS_COMPRA || 'null') } catch { return null }
   const normal = precosDe(env)[cfg?.modulo]
   if (!cfg || !MODULOS_IDS.includes(cfg.modulo) || cfg.modulo === MODULO_BASE || !Number.isInteger(cfg.preco) || cfg.preco < 500 || !normal || cfg.preco >= normal) return null
   const horas = Number.isFinite(cfg.horas) && cfg.horas > 0 ? Math.min(cfg.horas, 24 * 14) : 72
+  return { modulo: cfg.modulo, preco: cfg.preco, normal, horas }
+}
+
+/** Oferta como o usuário a veria, para o modo "ver como usuário" (sem consultar compras). */
+export function ofertaSimulada(env: Env, visao: Visao): Oferta | null {
+  const cfg = ofertaConfig(env)
+  if (!cfg || !visao.oferta || !visao.modulos.includes(MODULO_BASE) || visao.modulos.includes(cfg.modulo)) return null
+  return { modulo: cfg.modulo, preco: cfg.preco, precoNormal: cfg.normal, ate: paraISO(paraBanco(new Date(Date.now() + cfg.horas * 36e5))) }
+}
+
+export async function ofertaDe(env: Env, usuarioId: string): Promise<Oferta | null> {
+  const cfg = ofertaConfig(env)
+  if (!cfg) return null
   const compra = await env.DB.prepare(`SELECT MAX(pago_em) AS em FROM pedidos WHERE usuario_id=? AND modulo=? AND status='pago'`).bind(usuarioId, MODULO_BASE).first<{ em: string | null }>()
   if (!compra?.em) return null
-  const fim = paraBanco(new Date(new Date(paraISO(compra.em)).getTime() + horas * 36e5))
+  const fim = paraBanco(new Date(new Date(paraISO(compra.em)).getTime() + cfg.horas * 36e5))
   if (fim <= agoraBanco()) return null
   const ja = await env.DB.prepare(`SELECT 1 FROM pedidos WHERE usuario_id=? AND modulo IN (?, ?) AND status='pago' LIMIT 1`).bind(usuarioId, cfg.modulo, PACOTE).first()
   if (ja) return null
-  return { modulo: cfg.modulo, preco: cfg.preco, precoNormal: normal, ate: paraISO(fim) }
+  return { modulo: cfg.modulo, preco: cfg.preco, precoNormal: cfg.normal, ate: paraISO(fim) }
 }
 export const exigirAcesso: MiddlewareHandler<App> = async (c, next) => {
   const s = c.get('sessao')
-  const a = await acessoDe(c.env, s.usuarioId, s.email)
+  const a = await acessoDaSessao(c.env, s)
   if (!a.ativo) return c.json({ erro: 'Seu acesso expirou ou ainda não foi liberado.', acesso: false }, 402)
   await next()
 }

@@ -17,7 +17,16 @@
   const guardar = (v) => { try { v === null ? localStorage.removeItem(CK) : localStorage.setItem(CK, JSON.stringify(v)); } catch (e) { /* sem armazenamento */ } };
   const lerCache = () => { try { return JSON.parse(localStorage.getItem(CK) || 'null'); } catch (e) { return null; } };
   const sairVisivel = (v) => { $('#btn-sair').hidden = !v; };   // botão "Sair" do topo: aparece em toda tela de quem está logado
-  const tela = (html) => { sairVisivel(!!(me && me.usuario)); $('#tabs').hidden = true; $('#app').innerHTML = html; $('#app').focus({ preventScroll: true }); window.scrollTo(0, 0); };
+  const NOMES = { birra: 'SOS Birra', sono: 'SOS Sono', telas: 'SOS Telas', alimentacao: 'SOS Alimentação', limites: 'SOS Limites', escola: 'SOS Escola', adolescencia: 'SOS Adolescência' };
+  /** Faixa fixa no topo quando o administrador está no modo "ver como usuário". */
+  function faixa() {
+    const f = $('#faixa-adm'), v = me && me.visao;
+    f.hidden = !v;
+    if (!v) return;
+    const lista = v.modulos.length ? v.modulos.map((m) => NOMES[m] || m).join(', ') : 'nenhum módulo';
+    $('#faixa-txt').textContent = 'Visão de usuário: ' + lista + (v.oferta ? ' + oferta de boas-vindas' : '');
+  }
+  const tela = (html) => { sairVisivel(!!(me && me.usuario)); faixa(); $('#tabs').hidden = true; $('#app').innerHTML = html; $('#app').focus({ preventScroll: true }); window.scrollTo(0, 0); };
   const msg = (t, ok) => { const e = $('#msg'); if (e) { e.textContent = t || ''; e.className = 'msg' + (ok ? ' ok' : ''); } };
   const ocupado = (btn, on, txt) => { btn.disabled = on; if (txt) btn.textContent = txt; };
 
@@ -191,7 +200,7 @@
       const conteudo = await api('GET', '/api/conteudo');
       guardar({ me, conteudo });
       history.replaceState(null, '', location.pathname + location.hash);
-      sairVisivel(true);
+      sairVisivel(true); faixa();
       window.FamilyPilot.start(conteudo, me);
     } catch (e) {
       if (e.status === 402) { me.acesso.ativo = false; return telaAssinar(); }
@@ -204,7 +213,7 @@
   function offline() {
     const c = lerCache();
     if (c && c.me && c.me.acesso && (c.me.acesso.livre || (c.me.acesso.ate && new Date(c.me.acesso.ate) > new Date()))) {
-      sairVisivel(true); window.FamilyPilot.start(c.conteudo, c.me); return;
+      sairVisivel(true); faixa(); window.FamilyPilot.start(c.conteudo, c.me); return;
     }
     tela('<section class="hero-app"><h1>Sem conexão</h1><p>Conecte-se à internet para entrar.</p></section><button class="btn" onclick="location.reload()">Tentar de novo</button>');
   }
@@ -229,6 +238,16 @@
   document.addEventListener('visibilitychange', () => { if (!document.hidden && me && me.usuario && $('#ja-paguei')) verificar(); });
 
   $('#btn-sair').onclick = sair;
-  window.FamilyAuth = { sair, comprar: (item) => { if (item) telaAssinar({ id: item.id, nome: item.nome, preco: item.preco, precoCheio: item.precoCheio, oferta: !!item.oferta }); } };
+  // Administrador: escolher a visão de usuário e voltar à própria visão
+  async function verComo(modulos, oferta) {
+    try { await api('POST', '/api/admin/visao', { modulos, oferta: !!oferta }); location.reload(); }
+    catch (e) { alert(e.message); }
+  }
+  async function sairVisao() {
+    try { await api('POST', '/api/admin/visao', { modulos: null }); location.reload(); }
+    catch (e) { alert(e.message); }
+  }
+  $('#faixa-sair').onclick = sairVisao;
+  window.FamilyAuth = { sair, verComo, sairVisao, comprar: (item) => { if (item) telaAssinar({ id: item.id, nome: item.nome, preco: item.preco, precoCheio: item.precoCheio, oferta: !!item.oferta }); } };
   iniciar();
 })();

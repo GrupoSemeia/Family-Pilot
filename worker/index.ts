@@ -1,7 +1,8 @@
 import { Hono } from 'hono'
-import { type App, ErroApp, exigirLogin, exigirAcesso, lerSessao, acessoDe, precosDe, precosCheios, ofertaDe, MODULOS_IDS, PACOTE } from './lib'
+import { type App, ErroApp, exigirLogin, exigirAcesso, lerSessao, acessoDaSessao, visaoValida, precosDe, precosCheios, ofertaDe, ofertaSimulada, MODULOS_IDS, PACOTE } from './lib'
 import { auth } from './routes/auth'
 import { pagamento, asaasWebhook } from './routes/pagamento'
+import { admin } from './routes/admin'
 import { CONTEUDO } from './conteudo'
 import { redirecionarSemWww } from './dominio'
 import { MODULOS, CATALOGO } from './modulos'
@@ -31,12 +32,13 @@ app.use('/api/*', async (c, next) => {
 
 app.route('/api/auth', auth)
 app.route('/api/pagamento', pagamento)
+app.route('/api/admin', admin)
 app.route('/api/asaas/webhook', asaasWebhook)
 
 // O conteúdo só sai do servidor para quem está logado, e só dos módulos com acesso ativo.
 // "catalogo" mostra todos os módulos com o estado de cada um: liberado, à venda (com preço) ou em breve.
 app.get('/api/conteudo', exigirLogin, exigirAcesso, async c => {
-  const s = c.get('sessao'), ac = await acessoDe(c.env, s.usuarioId, s.email), precos = precosDe(c.env), cheios = precosCheios(c.env)
+  const s = c.get('sessao'), ac = await acessoDaSessao(c.env, s), visao = await visaoValida(c.env, s), precos = precosDe(c.env), cheios = precosCheios(c.env)
   const liberado = (id: string) => !!ac.modulos[id]?.ativo
   const catalogo: any[] = MODULOS_IDS.map(id => ({
     id, ...CATALOGO[id], estado: liberado(id) ? 'liberado' : precos[id] ? 'a-venda' : 'em-breve',
@@ -49,7 +51,7 @@ app.get('/api/conteudo', exigirLogin, exigirAcesso, async c => {
     birra: liberado('birra') ? CONTEUDO : null,
     modulos: Object.fromEntries(Object.entries(MODULOS).filter(([id]) => liberado(id))),
     catalogo,
-    oferta: await ofertaDe(c.env, s.usuarioId),
+    oferta: visao ? ofertaSimulada(c.env, visao) : await ofertaDe(c.env, s.usuarioId),
   })
 })
 

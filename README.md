@@ -46,7 +46,7 @@ O endereço sem `www` (`familypilot.com.br`) também é atendido pelo Worker e r
 ## Publicar na Cloudflare (uma vez)
     npm install
     # banco "family-pilot" já criado (id em wrangler.jsonc)
-    npm run db:remote                            # migrações novas (0001 a 0006 já estão aplicadas no banco criado)
+    npm run db:remote                            # migrações novas (0001 a 0006 já estão aplicadas; a 0007 — visão de usuário — é nova)
     npx wrangler secret put ASAAS_API_KEY        # chave da Asaas (teste: $aact_hmlg_… usa o sandbox sozinha)
     npx wrangler secret put ASAAS_WEBHOOK_TOKEN  # texto secreto qualquer; o mesmo vai na Asaas
     npm run deploy
@@ -56,6 +56,10 @@ autenticação e os eventos de **Cobranças** (confirmada, recebida, estornada/r
 `ACESSO_LIVRE` em `wrangler.jsonc` lista os **super usuários** (hoje `gruposemeiadigital@gmail.com`): veem todos os módulos, sem prazo e sem pagar.
 O acesso só vale com o **e-mail confirmado**, para ninguém ganhar acesso criando conta com o e-mail da equipe: entre com o **Google** (que já confirma) ou conclua o **"Esqueci minha senha"**.
 Enquanto não confirmar, a pessoa vê um aviso explicando o que fazer (`livrePendente`).
+
+### Ver como usuário (administrador)
+Quem está em `ACESSO_LIVRE` (com e-mail confirmado) vê, na aba **Módulos**, o painel "Ver como usuário": escolhe quais módulos simular, se quer ver a oferta de boas-vindas, e o app passa a se comportar como para um cliente (catálogo, cadeados, tela de pagamento).
+A escolha fica só na sessão atual (`sessoes.ver_como`, migração 0007); uma faixa no topo traz o botão "Voltar à minha visão". Nesse modo os pagamentos ficam bloqueados (409). Rotas em `worker/routes/admin.ts`; quem não é super usuário recebe 404.
 
 ## Termos de Uso e Política de Privacidade
 Páginas públicas `/termos` e `/privacidade` (`app/termos.html` e `app/privacidade.html`), com a empresa **Semeia Digital Consultoria em TI LTDA, CNPJ 69.290.380/0001-42**,
