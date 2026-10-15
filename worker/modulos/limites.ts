@@ -1,0 +1,132 @@
+import { type Modulo, FAIXAS_INFANCIA } from './tipos'
+
+export const limites: Modulo = {
+  id: 'limites', nome: 'SOS Limites', icone: '❤️',
+  resumo: 'Frases e estratégias para dizer não e manter limites adequados à idade.',
+  faixas: FAIXAS_INFANCIA,
+  ferramentas: [
+    {
+      id: 'limite', tipo: 'situacoes', icone: '🆘', nome: 'SOS Limite',
+      descricao: 'Quando você precisa dizer não, mas não sabe como.',
+      porFaixa: {
+        '2-3': { expectativa: 'Aos 2 e 3 anos, ele testa tudo para entender o mundo. Limites curtos, repetidos com calma e as mesmas palavras ajudam mais do que explicações.', dica: 'Diga o que PODE fazer ("os pés ficam no chão") em vez de só o que não pode. Seja breve e repita.' },
+        '4-5': { expectativa: 'Ele já entende regras simples, mas esquece com facilidade. Lembretes visuais e escolhas pequenas funcionam bem.', dica: 'Antes da situação difícil, combine a regra em uma frase e peça para ele repetir.' },
+        '6-7': { expectativa: 'Ele entende o porquê das regras e quer participar. Combinar junto reduz o confronto.', dica: 'Explique o motivo em uma frase e deixe ele escolher dentro do possível.' },
+        '8-10': { expectativa: 'A criança quer justiça e respeito. Limites firmes, mas explicados e respeitosos, funcionam melhor do que ordens secas.', dica: 'Ouça o ponto de vista dele, mantenha o limite e combine a consequência antes, não depois do conflito.' },
+      },
+      situacoes: [
+        {
+          id: 'ignora', nome: 'Ignora o que você pede',
+          leitura: 'Pedidos repetidos sem consequência viram ruído. Muitas vezes a criança não está desafiando, está absorta.',
+          fazer: ['Aproxime-se, abaixe-se e diga o nome dele antes de pedir.', 'Peça uma coisa de cada vez, em uma frase curta.', 'Espere alguns segundos. Se não fizer, ajude-o a fazer, com calma.', 'Dê aviso antes de trocas de atividade.', 'Elogie quando ele atender de primeira.'],
+          evitar: ['Repetir o pedido de longe e cada vez mais alto', 'Ameaçar sem cumprir', 'Fazer várias ordens de uma vez'],
+          frases: {
+            '2-3': { a: 'Você está brincando.', l: 'Agora é hora de guardar. Eu ajudo.' },
+            '4-5': { a: 'Você está no meio de uma brincadeira.', l: 'Preciso que guarde os brinquedos agora. Eu conto até 5 e ajudo.' },
+            '6-7': { a: 'Eu sei que você estava ocupado.', l: 'Preciso que venha agora. Se não vier, eu vou buscar.' },
+            '8-10': { a: 'Percebi que você estava concentrado.', l: 'Eu preciso que venha em 2 minutos. Depois disso, o combinado é pausar o que está fazendo.' },
+          },
+          depois: ['Elogie quando ele atende, dizendo o que ele fez.', 'Pense: o pedido era claro e possível? Dê aviso antes da próxima vez.'],
+        },
+        {
+          id: 'responde-mal', nome: 'Responde mal ou desrespeita',
+          leitura: 'Muitas vezes é cansaço, frustração ou imitação do que vê. A criança ainda aprende a expressar o que sente.',
+          fazer: ['Não responda no mesmo tom. Respire antes.', 'Diga que ouviu a emoção e que o jeito não vale.', 'Dê a chance de dizer de novo de forma respeitosa.', 'Se continuar, interrompa a conversa e retome depois.', 'Seja modelo: peça desculpa quando você erra.'],
+          evitar: ['Revidar com ironia ou humilhação', 'Discutir no auge da raiva', 'Dar sermão longo'],
+          frases: {
+            '2-3': { a: 'Você está bravo.', l: 'Gritar não pode. Pode dizer "estou bravo".' },
+            '4-5': { a: 'Você está com raiva de mim.', l: 'Não falo assim com você, e você não fala assim comigo. Tente de novo.' },
+            '6-7': { a: 'Percebi que ficou chateado.', l: 'Eu te ouço quando você falar com respeito. Pode tentar de novo?' },
+            '8-10': { a: 'Você parece muito irritado com isso.', l: 'Eu quero te ouvir, mas não com esse tom. Vamos pausar e voltamos em 10 minutos.' },
+          },
+          depois: ['Volte ao assunto quando estiverem calmos.', 'Ensine palavras para a raiva ("estou bravo porque...").'],
+        },
+        {
+          id: 'mentiu', nome: 'Mentiu para você',
+          leitura: 'Até certa idade, a mentira é imaginação ou medo da bronca. Ela diminui quando contar a verdade é seguro.',
+          fazer: ['Mantenha a calma e não faça interrogatório.', 'Se você já sabe a verdade, diga ("eu sei que foi você") em vez de testar.', 'Valorize a verdade quando ela vier, mesmo que o erro tenha sido grande.', 'Combine a reparação do erro, não o castigo pela mentira.', 'Evite perguntas que obriguem a mentir.'],
+          evitar: ['Chamar de mentiroso', 'Castigar pesado a verdade', 'Pegar na mentira de propósito'],
+          frases: {
+            '2-3': { a: 'Você inventou uma história.', l: 'Eu vi que foi você. Vamos limpar juntos.' },
+            '4-5': { a: 'Imagino que deu medo contar.', l: 'Eu prefiro a verdade. Vamos arrumar juntos o que aconteceu.' },
+            '6-7': { a: 'Dá medo de levar bronca, eu sei.', l: 'Eu sei que não foi verdade. Se você me contar, a gente resolve junto.' },
+            '8-10': { a: 'Entendo que você ficou com medo da minha reação.', l: 'Prefiro a verdade, mesmo difícil. Vamos pensar como reparar.' },
+          },
+          depois: ['Agradeça quando ele contar uma verdade difícil.', 'Revise: sua reação costuma ser calma o suficiente para ele contar?'],
+        },
+        {
+          id: 'nao-ajuda', nome: 'Não ajuda em casa nem cumpre tarefas',
+          leitura: 'Participar de tarefas ensina responsabilidade. A criança colabora mais quando a tarefa é clara e adequada.',
+          fazer: ['Escolha tarefas pequenas e claras, adequadas à idade.', 'Faça junto no começo e vá se afastando.', 'Mostre uma lista visual (quadro ou desenhos).', 'Elogie o esforço, não só o resultado.', 'Mantenha a regra "primeiro a tarefa, depois a brincadeira".'],
+          evitar: ['Refazer na frente dele', 'Pagar por todas as tarefas', 'Exigir perfeição'],
+          frases: {
+            '2-3': { a: 'Você está cansado.', l: 'Vamos guardar juntos. Eu ajudo.' },
+            '4-5': { a: 'Guardar é chato, eu sei.', l: 'Todo mundo ajuda em casa. A sua tarefa é guardar os brinquedos.' },
+            '6-7': { a: 'Eu sei que você preferia brincar.', l: 'Primeiro arrumar a cama, depois a brincadeira. Combinado?' },
+            '8-10': { a: 'Entendo que tarefas não são divertidas.', l: 'Em casa todos colaboram. A sua parte é esta. Se não fizer, não saímos para brincar até cumprir.' },
+          },
+          depois: ['Revise a lista de tarefas junto, aumentando aos poucos.', 'Agradeça sempre pela ajuda.'],
+        },
+        {
+          id: 'insiste', nome: 'Insiste e testa a regra várias vezes',
+          leitura: 'Testar é natural: a criança confere se o limite é firme. Se for, ela se sente mais segura.',
+          fazer: ['Repita a mesma frase calma, sem argumentar de novo.', 'Mantenha a regra mesmo se ele chorar.', 'Acolha a frustração sem mudar a decisão.', 'Seja consistente entre os adultos da casa.', 'Elogie quando ele aceitar o limite.'],
+          evitar: ['Ceder depois de muita insistência', 'Mudar a regra conforme seu cansaço', 'Brigar longamente'],
+          frases: {
+            '2-3': { a: 'Você quer muito.', l: 'Não. Eu te ajudo a brincar com outra coisa.' },
+            '4-5': { a: 'Você quer e eu entendo.', l: 'A resposta continua sendo não. Posso ajudar você a escolher outra coisa.' },
+            '6-7': { a: 'Eu sei que você queria.', l: 'Eu já respondi e a resposta é a mesma. Se quiser, a gente conversa sobre isso depois.' },
+            '8-10': { a: 'Eu ouvi o que você disse.', l: 'Minha decisão continua a mesma. Posso explicar o motivo uma vez, mas não vou rever agora.' },
+          },
+          depois: ['Se a regra precisa mudar, mude em outro momento, de forma calma e combinada.'],
+        },
+      ],
+    },
+    {
+      id: 'combinado', tipo: 'combinado', icone: '🏠', nome: 'Regras da Casa',
+      descricao: 'Monte as regras da família de forma clara.',
+      titulo: 'Regras da nossa casa',
+      intro: 'Nossa família combina estas regras para que todos se sintam respeitados e seguros.',
+      fecho: 'As regras valem para todos. Quando alguém erra, conversamos e reparamos, sem humilhação.',
+      secoes: [
+        { id: 'respeito', titulo: 'Respeito', modo: 'multi', itens: [{ id: 'r1', texto: 'Falamos com respeito, sem gritos, xingamentos ou agressões.', padrao: true }, { id: 'r2', texto: 'Pedimos "por favor" e agradecemos.', padrao: true }, { id: 'r3', texto: 'Respeitamos o espaço e as coisas dos outros.', padrao: true }, { id: 'r4', texto: 'Quando erramos, pedimos desculpas e reparamos.', padrao: true }] },
+        { id: 'casa', titulo: 'Colaboração', modo: 'multi', itens: [{ id: 'c1', texto: 'Guardamos os brinquedos depois de brincar.', padrao: true, faixas: ['2-3', '4-5', '6-7'] }, { id: 'c2', texto: 'Cada um tem uma tarefa na casa.', padrao: true, faixas: ['4-5', '6-7', '8-10'] }, { id: 'c3', texto: 'Arrumamos a cama e o quarto.', faixas: ['6-7', '8-10'] }, { id: 'c4', texto: 'Levamos o prato para a pia depois de comer.', faixas: ['4-5', '6-7', '8-10'] }] },
+        { id: 'rotina', titulo: 'Rotina', modo: 'multi', itens: [{ id: 'o1', texto: 'Horários de dormir, comer e tomar banho são combinados.', padrao: true }, { id: 'o2', texto: 'Primeiro as obrigações, depois a diversão.', padrao: true, faixas: ['4-5', '6-7', '8-10'] }, { id: 'o3', texto: 'Dever de casa antes da tela.', faixas: ['6-7', '8-10'] }] },
+        { id: 'seguranca', titulo: 'Segurança', modo: 'multi', itens: [{ id: 's1', texto: 'Não ficamos sozinhos perto de piscina, escada ou fogão.', padrao: true, faixas: ['2-3', '4-5'] }, { id: 's2', texto: 'Avisamos aonde vamos e com quem.', padrao: true, faixas: ['6-7', '8-10'] }, { id: 's3', texto: 'Ninguém machuca ninguém. Se alguém estiver bravo, fala ou pede um tempo.', padrao: true }] },
+        { id: 'conseq', titulo: 'Quando uma regra não é cumprida', modo: 'escolha', itens: [{ id: 'q1', texto: 'Conversamos, reparamos o que aconteceu (arrumar, pedir desculpa) e voltamos ao normal.', padrao: true }, { id: 'q2', texto: 'Perde, por um curto tempo, algo ligado à regra (ex.: o brinquedo que foi mal usado). Nada que humilhe ou assuste.' }] },
+      ],
+    },
+    {
+      id: 'conseq', tipo: 'ideias', icone: '🧭', nome: 'Consequências que funcionam',
+      descricao: 'Alternativas a gritos e castigos exagerados.',
+      categorias: [{ id: 'logica', nome: 'Consequência lógica' }, { id: 'reparar', nome: 'Reparar o erro' }, { id: 'escolha', nome: 'Dar escolha' }],
+      itens: [
+        { texto: 'Se jogou o brinquedo, o brinquedo descansa até amanhã.', categoria: 'logica', faixas: ['2-3', '4-5', '6-7'] },
+        { texto: 'Se não guardou, a gente não começa outra brincadeira até guardar.', categoria: 'logica', faixas: ['4-5', '6-7', '8-10'] },
+        { texto: 'Se não quer sentar com o cinto, o carro não anda.', categoria: 'logica', faixas: ['2-3', '4-5', '6-7', '8-10'] },
+        { texto: 'Se atrasou na hora combinada, amanhã sai mais cedo.', categoria: 'logica', faixas: ['8-10'] },
+        { texto: 'Ajudar a limpar o que sujou, sem humilhar.', categoria: 'reparar', faixas: ['2-3', '4-5', '6-7', '8-10'] },
+        { texto: 'Pedir desculpa com palavras ou um desenho.', categoria: 'reparar', faixas: ['4-5', '6-7'] },
+        { texto: 'Fazer algo gentil pela pessoa que se machucou ou ficou chateada.', categoria: 'reparar', faixas: ['4-5', '6-7', '8-10'] },
+        { texto: 'Perguntar: "Você prefere guardar agora ou daqui a 5 minutos?"', categoria: 'escolha', faixas: ['2-3', '4-5', '6-7'] },
+        { texto: '"Você decide: o dever antes do lanche ou depois?"', categoria: 'escolha', faixas: ['6-7', '8-10'] },
+        { texto: 'Dar a escolha entre duas opções que você aceita.', categoria: 'escolha', faixas: ['2-3', '4-5', '6-7', '8-10'] },
+      ],
+    },
+    {
+      id: 'diario', tipo: 'registro', icone: '📓', nome: 'Diário de Limites',
+      descricao: 'Registre situações de limite e o que funcionou.',
+      campos: [
+        { id: 'data', rotulo: 'Dia', tipo: 'data' },
+        { id: 'situacao', rotulo: 'Situação', tipo: 'escolha', insight: true, opcoes: [{ id: 'ignora', nome: 'Ignorou o pedido' }, { id: 'resposta', nome: 'Respondeu mal' }, { id: 'mentira', nome: 'Mentiu' }, { id: 'tarefa', nome: 'Não fez a tarefa' }, { id: 'insiste', nome: 'Insistiu na regra' }, { id: 'outra', nome: 'Outra' }] },
+        { id: 'feito', rotulo: 'O que eu fiz', tipo: 'texto' },
+        { id: 'resultado', rotulo: 'Como terminou', tipo: 'escolha', insight: true, opcoes: [{ id: 'ajudou', nome: 'Ajudou' }, { id: 'mais-ou-menos', nome: 'Mais ou menos' }, { id: 'nao-ajudou', nome: 'Não ajudou' }] },
+      ],
+    },
+    {
+      id: 'ajuda', tipo: 'ajuda', icone: '🩺', nome: 'Quando procurar ajuda',
+      descricao: 'Sinais de que vale conversar com um profissional.',
+      blocos: [{ titulo: 'Converse com o pediatra ou um psicólogo se:', itens: ['Há agressões frequentes que machucam pessoas ou animais.', 'Quebra objetos de propósito com frequência.', 'Os conflitos são diários, intensos e duram semanas, apesar de combinados claros.', 'Há mudanças fortes de comportamento, tristeza ou isolamento.', 'Você tem medo do seu filho ou perde o controle ao reagir.'] }],
+    },
+  ],
+}

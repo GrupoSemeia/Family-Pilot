@@ -1,6 +1,9 @@
 /* FamilyPilot — app dos pais. Sem servidor: tudo fica salvo no aparelho (localStorage). */
 /* Chamado por auth.js depois do login, com o conteúdo liberado pelo servidor e os dados da conta. */
-window.FamilyPilot = { start: function (D, conta) {
+window.FamilyPilot = { _on: false, start: function (C, conta) {
+  window.FamilyPilot._on = true;
+  const D = C.birra || null;                 // SOS Birra (telas próprias); null se a conta não tem esse módulo
+  const CAT = C.catalogo || [];              // vitrine: liberado, à venda ou em breve
   const $ = (s, r) => (r || document).querySelector(s);
   const byId = (arr, id) => arr.find((x) => x.id === id);
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -26,10 +29,13 @@ window.FamilyPilot = { start: function (D, conta) {
   let DRAFT = null;
   let timer = null;
 
-  const nav = [
+  const nav = D ? [
     ['#/', 'Início', '🏠'],
     ['#/plano', 'Plano SOS', '🆘'],
     ['#/diario', 'Diário', '📓'],
+    ['#/modulos', 'Módulos', '🧭'],
+  ] : [
+    ['#/', 'Início', '🏠'],
     ['#/modulos', 'Módulos', '🧭'],
   ];
 
@@ -44,6 +50,7 @@ window.FamilyPilot = { start: function (D, conta) {
   /* ---------- telas ---------- */
   const views = {
     home() {
+      if (!D) return homeGeral();
       return `
       <section class="hero-app">
         <p class="eyebrow">FamilyPilot · SOS Birra</p>
@@ -58,7 +65,8 @@ window.FamilyPilot = { start: function (D, conta) {
         <a class="tool" href="#/radar"><b>📡 Radar de Gatilhos</b><span>Perceba o que costuma acontecer antes da birra.</span></a>
         <a class="tool" href="#/diario"><b>📓 Diário SOS</b><span>Registre episódios e o que funcionou.</span></a>
       </div>
-      <a class="outros" href="#/modulos">Conheça os outros módulos FamilyPilot →</a>
+      ${meusModulos()}
+      <a class="outros" href="#/modulos">${CAT.some((m) => m.estado !== 'liberado') ? 'Conheça os outros módulos FamilyPilot →' : 'Ver todos os módulos →'}</a>
       ${aviso}`;
     },
 
@@ -169,13 +177,26 @@ window.FamilyPilot = { start: function (D, conta) {
     },
 
     modulos() {
+      const preco = (c) => (c / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
       return `${voltar('#/', 'Início')}<h1>Módulos FamilyPilot</h1>
       <p class="lead">Seu filho cresce, os desafios mudam. Você começa pelo problema que precisa resolver hoje.</p>
-      ${contaCard()}<ul class="mods">${D.MODULOS.map((m) => `<li class="mod${m.pronto ? ' on' : ''}">
-        <span class="ico">${m.icone}</span><div><b>${esc(m.nome)}</b><p>${esc(m.frase)}</p>${m.detalhe ? `<small>${esc(m.detalhe)}</small>` : ''}
-        ${m.pronto ? '<a class="btn mini-btn" href="#/">Abrir</a>' : '<span class="status">Em breve</span>'}</div></li>`).join('')}</ul>${aviso}`;
+      ${contaCard()}<ul class="mods">${CAT.map((m) => `<li class="mod${m.estado === 'liberado' ? ' on' : ''}">
+        <span class="ico">${m.icone}</span><div><b>${esc(m.nome)}</b><p>${esc(m.frase)}</p><small>${esc(m.detalhe)}</small>
+        ${m.estado === 'liberado' ? `<a class="btn mini-btn" href="${m.id === 'birra' ? '#/' : '#/m/' + m.id}">Abrir</a>${m.ate ? `<small> Acesso até ${new Date(m.ate).toLocaleDateString('pt-BR')}</small>` : ''}`
+          : m.estado === 'a-venda' ? `<button class="btn mini-btn" data-act="comprar" data-id="${m.id}">Liberar por ${preco(m.preco)}</button><small> Pagamento único, 12 meses de acesso.</small>`
+          : '<span class="status">Em breve</span>'}</div></li>`).join('')}</ul>${aviso}`;
     },
   };
+
+  function meusModulos() {
+    const ok = CAT.filter((m) => m.estado === 'liberado' && m.id !== 'birra');
+    if (!ok.length) return '';
+    return `<h2 class="sec">Seus outros módulos</h2><div class="grid">${ok.map((m) => `<a class="tool" href="#/m/${m.id}"><b>${m.icone} ${esc(m.nome)}</b><span>${esc(m.frase)}</span></a>`).join('')}</div>`;
+  }
+  function homeGeral() {
+    return `<section class="hero-app"><p class="eyebrow">FamilyPilot</p><h1>Olá, ${esc(conta.usuario.nome.split(' ')[0])}</h1><p>Escolha por onde começar hoje.</p></section>
+    ${meusModulos()}<a class="outros" href="#/modulos">Ver todos os módulos →</a>${aviso}`;
+  }
 
   function contaCard() {
     const ate = conta.acesso.livre ? 'acesso liberado pela equipe' : conta.acesso.ate ? 'acesso até ' + new Date(conta.acesso.ate).toLocaleDateString('pt-BR') : '';
@@ -309,14 +330,23 @@ window.FamilyPilot = { start: function (D, conta) {
   function render() {
     pausaParar();
     const r = rotaAtual();
-    $('#app').innerHTML = views[MAPA[r] || 'home']();
-    document.querySelectorAll('.tabs a').forEach((a) => a.classList.toggle('on', a.getAttribute('href') === '#' + (r === '/' ? '/' : r.startsWith('/diario') ? '/diario' : r)));
+    // sem o SOS Birra na conta, as telas dele não existem: volta para o início
+    if (!D && r !== '/' && r !== '/modulos' && !r.startsWith('/m/')) { location.hash = '#/'; return; }
+    $('#app').innerHTML = htmlDaRota(r);
+    const selo = document.querySelector('.selo'), cm = r.startsWith('/m/') && CAT.find((x) => x.id === r.split('/')[2]);
+    if (selo) selo.textContent = cm ? cm.nome : D ? 'SOS Birra' : 'FamilyPilot';
+    document.querySelectorAll('.tabs a').forEach((a) => a.classList.toggle('on', a.getAttribute('href') === '#' + (r === '/' ? '/' : r.startsWith('/diario') ? '/diario' : r.startsWith('/m/') ? '/modulos' : r)));
     window.scrollTo(0, 0);
     $('#app').focus({ preventScroll: true });
   }
-  function reRender() { const y = window.scrollY; $('#app').innerHTML = views[MAPA[rotaAtual()] || 'home'](); window.scrollTo(0, y); }
+  function htmlDaRota(r) {
+    if (r.startsWith('/m/')) { const h = window.FPModulo.view(r); if (h !== null) return h; }
+    return views[MAPA[r] || 'home']();
+  }
+  function reRender() { const y = window.scrollY; $('#app').innerHTML = htmlDaRota(rotaAtual()); window.scrollTo(0, y); }
 
   window.addEventListener('hashchange', () => {
+    window.FPModulo.reset();
     if (rotaAtual() === '/plano') W = { step: 0, idade: null, motivo: null, local: null, risco: false };
     if (rotaAtual() !== '/diario/novo' && rotaAtual() !== '/plano') DRAFT = null;
     render();
@@ -339,6 +369,7 @@ window.FamilyPilot = { start: function (D, conta) {
       case 'pick-frase': if (k === 'idade') { F.idade = v; db.idade = v; salvar(); } else F.comp = v; reRender(); break;
       case 'copiar': copiar(el.dataset.t); break;
       case 'sair': window.FamilyAuth.sair(); break;
+      case 'comprar': window.FamilyAuth.comprar(CAT.find((m) => m.id === el.dataset.id)); break;
       case 'pausa-iniciar': pausaIniciar(); break;
       case 'pausa-parar': pausaParar(); break;
       case 'tag': { const q = $('#r-quando'); if (q) R.quando = q.value; toggle(R.tags, v); reRender(); break; }
@@ -379,6 +410,7 @@ window.FamilyPilot = { start: function (D, conta) {
   });
 
   /* ---------- início ---------- */
+  window.FPModulo.init({ esc, toast, copiar, reRender, aviso, email: conta.usuario.email }, C.modulos);
   $('#tabs').hidden = false;
   $('#tabs').innerHTML = nav.map(([h, t, i]) => `<a href="${h}"><span aria-hidden="true">${i}</span>${t}</a>`).join('');
   render();

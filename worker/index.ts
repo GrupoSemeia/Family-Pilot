@@ -1,8 +1,9 @@
 import { Hono } from 'hono'
-import { type App, ErroApp, exigirLogin, exigirAcesso } from './lib'
+import { type App, ErroApp, exigirLogin, exigirAcesso, acessoDe, precosDe, MODULOS_IDS } from './lib'
 import { auth } from './routes/auth'
 import { pagamento, asaasWebhook } from './routes/pagamento'
 import { CONTEUDO } from './conteudo'
+import { MODULOS, CATALOGO } from './modulos'
 
 const app = new Hono<App>()
 
@@ -24,8 +25,21 @@ app.route('/api/auth', auth)
 app.route('/api/pagamento', pagamento)
 app.route('/api/asaas/webhook', asaasWebhook)
 
-// O conteúdo do app só sai do servidor para quem está logado e com acesso ativo.
-app.get('/api/conteudo', exigirLogin, exigirAcesso, c => c.json(CONTEUDO))
+// O conteúdo só sai do servidor para quem está logado, e só dos módulos com acesso ativo.
+// "catalogo" mostra todos os módulos com o estado de cada um: liberado, à venda (com preço) ou em breve.
+app.get('/api/conteudo', exigirLogin, exigirAcesso, async c => {
+  const s = c.get('sessao'), ac = await acessoDe(c.env, s.usuarioId, s.email), precos = precosDe(c.env)
+  const liberado = (id: string) => !!ac.modulos[id]?.ativo
+  const catalogo = MODULOS_IDS.map(id => ({
+    id, ...CATALOGO[id], estado: liberado(id) ? 'liberado' : precos[id] ? 'a-venda' : 'em-breve',
+    preco: precos[id] ?? null, ate: ac.modulos[id]?.ate ?? null,
+  }))
+  return c.json({
+    birra: liberado('birra') ? CONTEUDO : null,
+    modulos: Object.fromEntries(Object.entries(MODULOS).filter(([id]) => liberado(id))),
+    catalogo,
+  })
+})
 
 app.all('/api/*', c => c.json({ erro: 'Rota não encontrada.' }, 404))
 export default app

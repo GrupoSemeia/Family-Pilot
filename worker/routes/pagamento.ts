@@ -1,8 +1,9 @@
 import { Hono } from 'hono'
 import {
   type App, type Env, erro, novoId, digitos, paraBanco, agoraBanco, acessoDe, exigirLogin,
-  PRECO_CENTAVOS, DIAS_ACESSO, DESCRICAO,
+  precosDe, DIAS_ACESSO, MODULO_BASE, MODULOS_IDS,
 } from '../lib'
+import { CATALOGO } from '../modulos'
 
 /* ---------- Pagamento pela Asaas (pagamento único de R$ 47) ----------
    O usuário informa CPF/CNPJ → criamos cliente + cobrança (billingType UNDEFINED: Pix, boleto ou cartão na página da
@@ -33,8 +34,8 @@ const dataBR = (dias: number) => new Date(Date.now() - 3 * 36e5 + dias * 864e5).
 const centavos = (v: unknown) => Math.round(Number(v || 0) * 100)
 
 /** Libera o acesso do pedido (uma vez só). Se o usuário renova antes de vencer, os 12 meses somam ao que resta. */
-export async function conceder(env: Env, pedido: { id: string; usuario_id: string }, forma?: string): Promise<boolean> {
-  const atual = await env.DB.prepare(`SELECT MAX(acesso_ate) AS ate FROM pedidos WHERE usuario_id=? AND status='pago'`).bind(pedido.usuario_id).first<{ ate: string | null }>()
+export async function conceder(env: Env, pedido: { id: string; usuario_id: string; modulo: string }, forma?: string): Promise<boolean> {
+  const atual = await env.DB.prepare(`SELECT MAX(acesso_ate) AS ate FROM pedidos WHERE usuario_id=? AND modulo=? AND status='pago'`).bind(pedido.usuario_id, pedido.modulo).first<{ ate: string | null }>()
   const agora = agoraBanco()
   const base = atual?.ate && atual.ate > agora ? new Date(atual.ate.replace(' ', 'T') + 'Z') : new Date()
   const ate = paraBanco(new Date(base.getTime() + DIAS_ACESSO * 864e5))
@@ -52,11 +53,15 @@ pagamento.post('/', async c => {
   const s = c.get('sessao'), db = c.env.DB
   const b = await c.req.json<any>().catch(() => ({}))
   const doc = digitos(b.cpfCnpj)
+  const modulo = String(b.modulo ?? MODULO_BASE)
+  if (!MODULOS_IDS.includes(modulo)) throw erro(400, 'Módulo inválido.')
+  const valor = precosDe(c.env)[modulo]
+  if (!valor) throw erro(503, 'Este módulo ainda não está à venda.')
   if (doc.length !== 11 && doc.length !== 14) throw erro(400, 'Informe um CPF (11 números) ou CNPJ (14 números) válido.')
   if (!c.env.ASAAS_API_KEY) throw erro(503, 'O pagamento online ainda não foi ativado. Fale com o Grupo Semeia Digital.')
 
   // já existe cobrança em aberto e ainda válida? reaproveita
-  const aberto = await db.prepare(`SELECT id, url FROM pedidos WHERE usuario_id=? AND status='pendente' AND url IS NOT NULL ORDER BY criado_em DESC LIMIT 1`).bind(s.usuarioId).first<any>()
+  const aberto = await db.prepare(`SELECT id, url FROM pedidos WHERE usuario_id=? AND modulo=? AND valor=? AND status='pendente' AND url IS NOT NULL ORDER BY criado_em DESC LIMIT 1`).bind(s.usuarioId, modulo, valor).first<any>()
   if (aberto) return c.json({ url: aberto.url })
 
   const u = await db.prepare('SELECT nome, email, asaas_cliente FROM usuarios WHERE id=?').bind(s.usuarioId).first<any>()
@@ -68,18 +73,18 @@ pagamento.post('/', async c => {
 
   const pedidoId = novoId()
   const p = exigir(await asaas(c.env, 'POST', 'payments', {
-    customer: cliente, billingType: 'UNDEFINED', value: PRECO_CENTAVOS / 100, dueDate: dataBR(3),
-    description: DESCRICAO, externalReference: pedidoId,
+    customer: cliente, billingType: 'UNDEFINED', value: valor / 100, dueDate: dataBR(3),
+    description: `FamilyPilot · ${CATALOGO[modulo].nome} (acesso por 12 meses)`, externalReference: pedidoId,
   }))
-  await db.prepare('INSERT INTO pedidos (id, usuario_id, asaas_pagamento, valor, url) VALUES (?,?,?,?,?)')
-    .bind(pedidoId, s.usuarioId, String(p.id), PRECO_CENTAVOS, String(p.invoiceUrl ?? '')).run()
+  await db.prepare('INSERT INTO pedidos (id, usuario_id, asaas_pagamento, valor, url, modulo) VALUES (?,?,?,?,?,?)')
+    .bind(pedidoId, s.usuarioId, String(p.id), valor, String(p.invoiceUrl ?? ''), modulo).run()
   return c.json({ url: p.invoiceUrl ?? null })
 })
 
 /** Botão "Já paguei": confere na Asaas (caso o webhook demore) e libera o acesso. */
 pagamento.post('/verificar', async c => {
   const s = c.get('sessao'), db = c.env.DB
-  const pend = await db.prepare(`SELECT id, usuario_id, asaas_pagamento, valor FROM pedidos WHERE usuario_id=? AND status='pendente' AND asaas_pagamento IS NOT NULL`).bind(s.usuarioId).all<any>()
+  const pend = await db.prepare(`SELECT id, usuario_id, asaas_pagamento, valor, modulo FROM pedidos WHERE usuario_id=? AND status='pendente' AND asaas_pagamento IS NOT NULL`).bind(s.usuarioId).all<any>()
   for (const pedido of pend.results) {
     const r = await asaas(c.env, 'GET', `payments/${pedido.asaas_pagamento}`)
     if (r.ok && PAGO.includes(r.dados.status) && centavos(r.dados.value) === pedido.valor) await conceder(c.env, pedido, r.dados.billingType)
@@ -97,7 +102,7 @@ asaasWebhook.post('/', async c => {
   if (!p?.id) return c.json({ ok: true })
   const db = c.env.DB
   // só cobranças criadas por este app (a conta Asaas pode ter outras)
-  const pedido = await db.prepare('SELECT id, usuario_id, valor, status FROM pedidos WHERE asaas_pagamento=?').bind(String(p.id)).first<any>()
+  const pedido = await db.prepare('SELECT id, usuario_id, valor, status, modulo FROM pedidos WHERE asaas_pagamento=?').bind(String(p.id)).first<any>()
   if (!pedido) return c.json({ ok: true })
 
   if (PAGO.includes(p.status) && (ev === 'PAYMENT_CONFIRMED' || ev === 'PAYMENT_RECEIVED' || ev === 'PAYMENT_RECEIVED_IN_CASH')) {

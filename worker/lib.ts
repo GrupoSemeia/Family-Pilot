@@ -5,15 +5,28 @@ export type Env = {
   DB: D1Database; ASSETS: Fetcher
   ASAAS_URL?: string; ASAAS_API_KEY?: string; ASAAS_WEBHOOK_TOKEN?: string
   ACESSO_LIVRE?: string
+  /** Preços dos módulos à venda, em centavos, em JSON. Ex.: {"sono":2700}. Módulo sem preço aparece como "em breve". */
+  PRECOS_MODULOS?: string
 }
 export type Sessao = { usuarioId: string; nome: string; email: string }
 export type App = { Bindings: Env; Variables: { sessao: Sessao } }
 export type C = Context<App>
 
 /* ---------- produto ---------- */
-export const PRECO_CENTAVOS = 4700          // R$ 47, pagamento único
+export const PRECO_CENTAVOS = 4700          // R$ 47, SOS Birra, pagamento único
 export const DIAS_ACESSO = 365              // acesso por 12 meses a partir da confirmação do pagamento
-export const DESCRICAO = 'FamilyPilot · SOS Birra (acesso por 12 meses)'
+export const MODULO_BASE = 'birra'
+export const MODULOS_IDS = ['birra', 'sono', 'telas', 'alimentacao', 'limites', 'escola', 'adolescencia']
+
+/** Preço de cada módulo em centavos. O SOS Birra é fixo; os demais vêm de PRECOS_MODULOS (indefinido = ainda não está à venda). */
+export function precosDe(env: Env): Record<string, number> {
+  const out: Record<string, number> = { [MODULO_BASE]: PRECO_CENTAVOS }
+  try {
+    const extra = JSON.parse(env.PRECOS_MODULOS || '{}')
+    for (const id of MODULOS_IDS) if (id !== MODULO_BASE && Number.isInteger(extra[id]) && extra[id] >= 500) out[id] = extra[id]
+  } catch { /* JSON inválido: nenhum módulo extra à venda */ }
+  return out
+}
 
 /* ---------- utilidades ---------- */
 export const novoId = () => crypto.randomUUID()
@@ -94,13 +107,23 @@ export const exigirLogin: MiddlewareHandler<App> = async (c, next) => {
 export const acessoLivre = (env: Env, email: string) =>
   (env.ACESSO_LIVRE ?? '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean).includes(email.toLowerCase())
 
-export type Acesso = { ativo: boolean; ate: string | null; livre: boolean }
-/** O acesso vale até o maior "acesso_ate" entre os pedidos pagos (reembolsados não contam). */
+export type AcessoModulo = { ativo: boolean; ate: string | null }
+export type Acesso = { ativo: boolean; ate: string | null; livre: boolean; modulos: Record<string, AcessoModulo> }
+/** Por módulo, o acesso vale até o maior "acesso_ate" dos pedidos pagos (reembolsados não contam).
+    "ativo"/"ate" do topo valem para qualquer módulo (quem tem algum módulo entra no app). */
 export async function acessoDe(env: Env, usuarioId: string, email: string): Promise<Acesso> {
-  if (acessoLivre(env, email)) return { ativo: true, ate: null, livre: true }
-  const r = await env.DB.prepare(`SELECT MAX(acesso_ate) AS ate FROM pedidos WHERE usuario_id=? AND status='pago'`).bind(usuarioId).first<{ ate: string | null }>()
-  const ate = r?.ate ?? null
-  return { ativo: !!ate && ate > agoraBanco(), ate: ate ? paraISO(ate) : null, livre: false }
+  if (acessoLivre(env, email)) {
+    return { ativo: true, ate: null, livre: true, modulos: Object.fromEntries(MODULOS_IDS.map(id => [id, { ativo: true, ate: null }])) }
+  }
+  const rs = await env.DB.prepare(`SELECT modulo, MAX(acesso_ate) AS ate FROM pedidos WHERE usuario_id=? AND status='pago' GROUP BY modulo`).bind(usuarioId).all<{ modulo: string; ate: string }>()
+  const agora = agoraBanco()
+  const modulos: Record<string, AcessoModulo> = {}
+  let maior: string | null = null
+  for (const m of rs.results) {
+    modulos[m.modulo] = { ativo: m.ate > agora, ate: paraISO(m.ate) }
+    if (!maior || m.ate > maior) maior = m.ate
+  }
+  return { ativo: !!maior && maior > agora, ate: maior ? paraISO(maior) : null, livre: false, modulos }
 }
 export const exigirAcesso: MiddlewareHandler<App> = async (c, next) => {
   const s = c.get('sessao')

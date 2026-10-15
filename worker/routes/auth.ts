@@ -1,5 +1,5 @@
 import { Hono } from 'hono'
-import { type App, erro, novoId, limpar, hashSenha, conferirSenha, criarSessao, encerrarSessao, lerSessao, acessoDe, PRECO_CENTAVOS } from '../lib'
+import { type App, erro, novoId, limpar, hashSenha, conferirSenha, criarSessao, encerrarSessao, lerSessao, acessoDe, precosDe } from '../lib'
 
 export const auth = new Hono<App>()
 
@@ -7,7 +7,7 @@ const emailValido = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e) && e.
 const MAX_FALHAS = 8   // por e-mail, em 15 minutos
 
 async function resposta(c: any, s: { usuarioId: string; nome: string; email: string }) {
-  return { usuario: { nome: s.nome, email: s.email }, acesso: await acessoDe(c.env, s.usuarioId, s.email), preco: PRECO_CENTAVOS, pagamentoOnline: !!c.env.ASAAS_API_KEY }
+  return { usuario: { nome: s.nome, email: s.email }, acesso: await acessoDe(c.env, s.usuarioId, s.email), preco: precosDe(c.env).birra, precos: precosDe(c.env), pagamentoOnline: !!c.env.ASAAS_API_KEY }
 }
 
 auth.post('/cadastro', async c => {
@@ -47,6 +47,6 @@ auth.post('/sair', async c => { await encerrarSessao(c); return c.json({ ok: tru
 /** Quem sou eu e se o acesso está ativo (o app consulta isso ao abrir). */
 auth.get('/eu', async c => {
   const s = await lerSessao(c)
-  if (!s) return c.json({ usuario: null, preco: PRECO_CENTAVOS, pagamentoOnline: !!c.env.ASAAS_API_KEY })
+  if (!s) return c.json({ usuario: null, preco: precosDe(c.env).birra, precos: precosDe(c.env), pagamentoOnline: !!c.env.ASAAS_API_KEY })
   return c.json(await resposta(c, s))
 })

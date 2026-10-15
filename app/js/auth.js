@@ -6,6 +6,7 @@
   const brl = (c) => (c / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   let modo = /criar=1/.test(location.search) ? 'criar' : 'entrar';
   let me = null;
+  let atual = null; // módulo em compra (tela de pagamento)
 
   async function api(metodo, url, corpo) {
     const r = await fetch(url, { method: metodo, credentials: 'same-origin', headers: corpo ? { 'content-type': 'application/json' } : {}, body: corpo ? JSON.stringify(corpo) : undefined });
@@ -47,13 +48,17 @@
     };
   }
 
-  function telaAssinar() {
-    const renovar = !!(me.acesso && me.acesso.ate);
+  function itemBirra() { return { id: 'birra', nome: 'SOS Birra + 4 bônus interativos', preco: (me.precos && me.precos.birra) || me.preco }; }
+
+  function telaAssinar(item) {
+    item = item || itemBirra(); atual = item;
+    const dentro = !!(window.FamilyPilot && window.FamilyPilot._on);   // compra de outro módulo, já dentro do app
+    const renovar = !dentro && !!(me.acesso && me.acesso.ate);
     tela(`<section class="hero-app"><p class="eyebrow">Olá, ${esc(me.usuario.nome.split(' ')[0])}</p>
-      <h1>${renovar ? 'Seu acesso terminou' : 'Falta só liberar o acesso'}</h1>
+      <h1>${dentro ? 'Liberar ' + esc(item.nome) : renovar ? 'Seu acesso terminou' : 'Falta só liberar o acesso'}</h1>
       <p>${renovar ? 'Renove para continuar usando o SOS Birra.' : 'Pagamento único, sem mensalidade.'}</p></section>
-      <div class="card preco"><b>SOS Birra + 4 bônus interativos</b>
-        <div class="valor">${brl(me.preco)}</div>
+      <div class="card preco"><b>${esc(item.nome)}</b>
+        <div class="valor">${brl(item.preco)}</div>
         <p>Pagamento único. Acesso por 12 meses a partir da confirmação do pagamento. Pix, boleto ou cartão.</p></div>
       ${me.pagamentoOnline ? `<form id="f-pag" class="form" novalidate>
         <label class="campo">CPF ou CNPJ (exigido pela empresa de pagamento)<input id="p-doc" inputmode="numeric" autocomplete="off" maxlength="18" placeholder="Somente números"></label>
@@ -62,14 +67,14 @@
         <button class="btn claro" id="ja-paguei">Já paguei. Liberar meu acesso</button>`
         : '<div class="alerta">O pagamento online ainda não está ativo. Fale com o Grupo Semeia Digital para liberar seu acesso.</div>'}
       <p class="nota">Garantia incondicional de 7 dias: se não gostar, peça o reembolso integral dentro desse prazo.</p>
-      <button class="voltar" id="sair" style="margin-top:10px">Sair da conta (${esc(me.usuario.email)})</button>`);
-    $('#sair').onclick = sair;
+      ${dentro ? '<button class="voltar" id="sair" style="margin-top:10px">← Voltar ao app</button>' : `<button class="voltar" id="sair" style="margin-top:10px">Sair da conta (${esc(me.usuario.email)})</button>`}`);
+    $('#sair').onclick = dentro ? () => location.reload() : sair;
     if (!me.pagamentoOnline) return;
     $('#f-pag').onsubmit = async (ev) => {
       ev.preventDefault();
       const btn = ev.target.querySelector('button[type=submit]'), t = btn.textContent;
       ocupado(btn, true, 'Abrindo o pagamento…'); msg('');
-      try { const r = await api('POST', '/api/pagamento', { cpfCnpj: $('#p-doc').value }); if (!r.url) throw new Error('Não foi possível abrir o pagamento. Tente de novo.'); location.href = r.url; }
+      try { const r = await api('POST', '/api/pagamento', { cpfCnpj: $('#p-doc').value, modulo: item.id }); if (!r.url) throw new Error('Não foi possível abrir o pagamento. Tente de novo.'); location.href = r.url; }
       catch (e) { msg(e.message); ocupado(btn, false, t); }
     };
     $('#ja-paguei').onclick = verificar;
@@ -80,7 +85,11 @@
     try {
       const r = await api('POST', '/api/pagamento/verificar');
       me.acesso = r.acesso;
-      if (r.acesso.ativo) return seguir();
+      const id = (atual || itemBirra()).id;
+      if (r.acesso.modulos && r.acesso.modulos[id] && r.acesso.modulos[id].ativo) {
+        if (window.FamilyPilot && window.FamilyPilot._on) return location.reload();   // recarrega com o módulo novo
+        return seguir();
+      }
       msg('Ainda não recebemos a confirmação. Pix costuma levar poucos segundos; boleto pode levar 1 a 2 dias úteis.');
     } catch (e) { msg(e.message); }
     if (btn) ocupado(btn, false, 'Já paguei. Liberar meu acesso');
@@ -121,8 +130,8 @@
     seguir();
   }
   // ao voltar da página de pagamento, confere sozinho
-  document.addEventListener('visibilitychange', () => { if (!document.hidden && me && me.usuario && !me.acesso.ativo && $('#ja-paguei')) verificar(); });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && me && me.usuario && $('#ja-paguei')) verificar(); });
 
-  window.FamilyAuth = { sair };
+  window.FamilyAuth = { sair, comprar: (item) => { if (item) telaAssinar({ id: item.id, nome: item.nome, preco: item.preco }); } };
   iniciar();
 })();

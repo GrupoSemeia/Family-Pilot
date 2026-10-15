@@ -11,7 +11,8 @@
   ],
   // ACESSO_LIVRE: e-mails com acesso liberado sem pagar (equipe, testadores), separados por vírgula.
   // ASAAS_URL: produção. Chave de teste da Asaas ($aact_hmlg_…) usa o sandbox sozinha.
-  "vars": { "ASAAS_URL": "https://api.asaas.com/v3", "ACESSO_LIVRE": "gruposemeiadigital@gmail.com" },
+  // PRECOS_MODULOS: preço (em centavos) dos módulos à venda, em JSON. Ex.: {"sono":2700,"telas":2700}. Módulo sem preço aparece como "em breve".
+  "vars": { "ASAAS_URL": "https://api.asaas.com/v3", "ACESSO_LIVRE": "gruposemeiadigital@gmail.com", "PRECOS_MODULOS": "{}" },
   // segredos (não ficam no código):  npx wrangler secret put ASAAS_API_KEY   e   npx wrangler secret put ASAAS_WEBHOOK_TOKEN
   "observability": { "enabled": true }
 }

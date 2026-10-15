@@ -1,0 +1,141 @@
+import { type Modulo, FAIXAS_ADOLESCENCIA } from './tipos'
+
+export const adolescencia: Modulo = {
+  id: 'adolescencia', nome: 'SOS Adolescência', icone: '🌱', ajudaDestaque: true,
+  resumo: 'Conversas sobre autonomia, conflitos familiares e vida digital.',
+  faixas: FAIXAS_ADOLESCENCIA,
+  ferramentas: [
+    {
+      id: 'conversa', tipo: 'situacoes', icone: '🆘', nome: 'SOS Conversa',
+      descricao: 'Quando conversar com seu filho parece cada vez mais difícil.',
+      porFaixa: {
+        '11-12': { expectativa: 'É o início das mudanças do corpo e das emoções. Ele ainda precisa de você, mas já quer mais espaço. Oscilações de humor são esperadas.', dica: 'Pergunte menos e esteja mais presente: carro, cozinha e atividades lado a lado abrem conversas.' },
+        '13-14': { expectativa: 'Grupo de amigos, aparência e privacidade ganham peso. Discussões sobre regras são frequentes e parte do desenvolvimento.', dica: 'Negocie o que for negociável, mantenha o que for essencial (segurança, saúde) e explique o motivo.' },
+        '15-17': { expectativa: 'Ele busca autonomia e identidade. Precisa de limites claros em segurança e de confiança crescente no resto.', dica: 'Trate como quase adulto nas conversas: escute até o fim, peça a opinião dele e combine regras juntos.' },
+      },
+      situacoes: [
+        {
+          id: 'nao-conversa', nome: 'Fecha-se e não conversa',
+          leitura: 'O silêncio é comum e nem sempre significa problema. Muitos adolescentes conversam melhor quando não se sentem cobrados.',
+          fazer: ['Fique disponível sem pressionar: "Quando quiser conversar, eu estou aqui".', 'Aproveite momentos laterais (carro, cozinha, caminhada).', 'Faça perguntas abertas, curtas e específicas.', 'Escute sem corrigir nem dar sermão, mesmo se discordar.', 'Compartilhe um pouco do seu dia, sem forçar a reciprocidade.'],
+          evitar: ['Interrogar', 'Sermão longo ao final de cada conversa', 'Ridicularizar o que ele conta'],
+          frases: {
+            '11-12': { a: 'Percebi que você está mais quieto. Está tudo bem?', l: 'Eu estou aqui. Se quiser, a gente sai para tomar um sorvete.' },
+            '13-14': { a: 'Não precisa me contar agora, mas quero que saiba que me importo.', l: 'Se algo estiver te incomodando, me procure quando quiser. Eu escuto sem julgar.' },
+            '15-17': { a: 'Respeito seu espaço. Se quiser conversar, é só chamar.', l: 'Se algo for grave ou perigoso, eu preciso saber. Fora isso, o que você quiser dividir, eu escuto.' },
+          },
+          depois: ['Agradeça quando ele contar algo, mesmo difícil.', 'Evite punir o que ele contou, para ele continuar confiando.'],
+          alerta: 'Isolamento total, tristeza persistente ou mudanças fortes no sono e no apetite por mais de duas semanas merecem atenção profissional (veja Sinais de alerta).',
+        },
+        {
+          id: 'privacidade', nome: 'Quer mais privacidade',
+          leitura: 'Privacidade é uma necessidade saudável dessa fase. A segurança continua sendo responsabilidade dos pais.',
+          fazer: ['Respeite o espaço dele: bata antes de entrar.', 'Combine o que é privado (diário, conversas com amigos) e o que os pais precisam saber (onde está, com quem, segurança).', 'Explique que olhar o celular só ocorre em caso de risco, e diga isso antes.', 'Aumente a autonomia conforme a responsabilidade.'],
+          evitar: ['Vasculhar o celular escondido', 'Ler diários sem motivo grave', 'Usar a privacidade como punição'],
+          frases: {
+            '11-12': { a: 'Eu entendo que você queira ter seu espaço.', l: 'Você pode fechar a porta do quarto. Eu bato antes de entrar. Preciso saber onde você está.' },
+            '13-14': { a: 'Sua privacidade é importante e eu respeito.', l: 'O que é seu, é seu. Mas, se eu achar que existe risco para você, eu preciso agir.' },
+            '15-17': { a: 'Você está crescendo e merece mais espaço.', l: 'Confio em você. Combinamos que vou saber onde você está, e em caso de perigo eu vou intervir.' },
+          },
+          depois: ['Revise o combinado a cada poucos meses, aumentando a autonomia.'],
+        },
+        {
+          id: 'regras', nome: 'Discute regras, horários e saídas',
+          leitura: 'Questionar regras é parte da busca por autonomia. Discussões podem virar negociação quando há respeito dos dois lados.',
+          fazer: ['Escolha o momento: nunca no auge da discussão.', 'Ouça o argumento dele por inteiro, sem interromper.', 'Mantenha o que for segurança; negocie o resto.', 'Combine a regra por escrito e a consequência antes da próxima situação.', 'Peça que ele proponha uma solução.'],
+          evitar: ['Dizer "enquanto você morar aqui"', 'Mudar a regra por cansaço', 'Gritar ou humilhar na frente de outras pessoas'],
+          frases: {
+            '11-12': { a: 'Entendo que você queria ficar mais tempo.', l: 'O horário é este, por segurança. Podemos conversar sobre ele no fim de semana.' },
+            '13-14': { a: 'Eu ouvi seus argumentos e fazem sentido.', l: 'Nesse ponto não vou mudar, por causa da segurança. Naquele outro, vamos testar o seu horário por um mês.' },
+            '15-17': { a: 'Você tem razão em querer mais liberdade.', l: 'Vamos fazer um acordo: você me avisa onde está e volta no horário combinado, e eu confio e aumento a liberdade.' },
+          },
+          depois: ['Cumpra sua parte do acordo, aumentando a liberdade quando ele cumprir a dele.'],
+        },
+        {
+          id: 'digital', nome: 'Vida digital: redes, jogos e celular',
+          leitura: 'Para o adolescente, as redes são parte da vida social. O desafio é equilibrar tempo, segurança e sono.',
+          fazer: ['Converse sobre o que ele gosta de fazer online, com curiosidade.', 'Combine horários sem tela e aparelhos fora do quarto à noite.', 'Fale sobre riscos: exposição, golpes, contatos desconhecidos, conteúdos violentos.', 'Combine que ele sempre pode contar se algo estranho acontecer, sem punição.', 'Seja modelo: respeite os momentos sem celular também.'],
+          evitar: ['Proibir tudo sem diálogo', 'Espionar escondido', 'Ridicularizar o que ele gosta'],
+          frases: {
+            '11-12': { a: 'Me mostra o que você mais curte fazer no celular?', l: 'Combinamos o horário de uso e o celular dorme fora do quarto.' },
+            '13-14': { a: 'Eu sei que as redes são importantes para você.', l: 'Vamos combinar horários sem tela e como agir se alguém te incomodar online.' },
+            '15-17': { a: 'Sei que você sabe usar muito bem. Quero entender o que você vê.', l: 'Combinamos: sono em primeiro lugar e, se algo te deixar desconfortável, você me conta.' },
+          },
+          depois: ['Revise o combinado de telas com ele.'],
+          alerta: 'Se um adulto desconhecido pede fotos, segredos ou encontros, ou se há ameaças ou humilhação online, guarde as provas, bloqueie e procure ajuda (Disque 100, escola, polícia).',
+        },
+        {
+          id: 'humor', nome: 'Muito irritado ou com humor instável',
+          leitura: 'Mudanças hormonais, sono curto e pressões da escola causam irritação. É comum, mas vale observar a intensidade e a duração.',
+          fazer: ['Não leve para o lado pessoal. Responda calmo, em voz baixa.', 'Acolha o sentimento antes de falar do comportamento.', 'Combine um sinal de "preciso de um tempo".', 'Cuide do sono, da alimentação e da atividade física.', 'Observe se a irritação é pontual ou dura semanas.'],
+          evitar: ['Revidar no mesmo tom', 'Dizer "isso é coisa da idade"', 'Ignorar sinais de tristeza profunda'],
+          frases: {
+            '11-12': { a: 'Parece que o dia foi pesado.', l: 'Pode ir para o quarto um pouco e depois a gente conversa.' },
+            '13-14': { a: 'Eu vejo que você está irritado e quero entender.', l: 'Não aceito ser tratado com grosseria, mas aceito seu tempo. Volte quando estiver pronto.' },
+            '15-17': { a: 'Percebo que você está sob muita pressão.', l: 'Podemos conversar agora ou mais tarde. Eu estou aqui, e não aceito ofensas.' },
+          },
+          depois: ['Converse quando estiverem calmos, sem cobrar o que aconteceu.'],
+          alerta: 'Tristeza, desânimo ou irritação que duram mais de duas semanas, com mudança de sono, apetite ou isolamento, pedem avaliação profissional.',
+        },
+      ],
+    },
+    {
+      id: 'acordo', tipo: 'combinado', icone: '🤝', nome: 'Acordo da Família',
+      descricao: 'Monte um acordo com o adolescente sobre celular, horários e confiança.',
+      titulo: 'Nosso acordo de família',
+      intro: 'Construímos este acordo juntos, com a participação do adolescente, para que haja segurança, respeito e confiança dos dois lados.',
+      fecho: 'Este acordo será revisto de tempos em tempos. Quando houver cumprimento, a autonomia aumenta.',
+      secoes: [
+        { id: 'celular', titulo: 'Celular e telas', modo: 'multi', itens: [{ id: 'c1', texto: 'Aparelhos ficam fora do quarto durante a noite.', padrao: true }, { id: 'c2', texto: 'Sem celular durante as refeições e as conversas em família.', padrao: true }, { id: 'c3', texto: 'Sem celular na hora do estudo, exceto para pesquisa.', padrao: true }, { id: 'c4', texto: 'Compartilhamos regras de segurança: não passar dados, fotos ou endereço a desconhecidos.', padrao: true }, { id: 'c5', texto: 'Se algo estranho ou ameaçador aparecer, contamos aos pais sem medo de punição.', padrao: true }] },
+        { id: 'horarios', titulo: 'Horários e saídas', modo: 'multi', itens: [{ id: 'h1', texto: 'Avisamos aonde vamos, com quem e a que horas voltamos.', padrao: true }, { id: 'h2', texto: 'Voltamos no horário combinado. Se atrasar, avisamos antes.', padrao: true }, { id: 'h3', texto: 'Os pais podem ligar ou mandar mensagem, e o adolescente responde em um tempo razoável.', padrao: true }, { id: 'h4', texto: 'Em caso de desconforto ou perigo, o adolescente pode pedir ajuda dos pais a qualquer hora, sem perguntas na hora.', padrao: true }] },
+        { id: 'casa', titulo: 'Responsabilidades', modo: 'multi', itens: [{ id: 'r1', texto: 'Cuidamos do nosso quarto e das roupas.', padrao: true }, { id: 'r2', texto: 'Colaboramos nas tarefas da casa.', padrao: true }, { id: 'r3', texto: 'Mantemos em dia os estudos e a rotina da escola.', padrao: true }] },
+        { id: 'respeito', titulo: 'Respeito', modo: 'multi', itens: [{ id: 'e1', texto: 'Conversamos com respeito, sem gritos nem ofensas. Se estiver muito bravo, pede um tempo.', padrao: true }, { id: 'e2', texto: 'A privacidade do quarto, dos diários e das conversas é respeitada, salvo risco à segurança.', padrao: true }, { id: 'e3', texto: 'Pais e filho ouvem a opinião um do outro antes de decidir.', padrao: true }] },
+        { id: 'conseq', titulo: 'Quando o acordo não é cumprido', modo: 'escolha', itens: [{ id: 'q1', texto: 'Conversamos com calma, entendemos o que houve e ajustamos o que for necessário.', padrao: true }, { id: 'q2', texto: 'A liberdade relacionada ao acordo diminui por um tempo curto, e voltamos a conversar sobre confiança.' }] },
+      ],
+    },
+    {
+      id: 'perguntas', tipo: 'ideias', icone: '💬', nome: 'Perguntas para abrir conversa',
+      descricao: 'Ideias para começar conversas sem soar como interrogatório.',
+      categorias: [{ id: 'dia', nome: 'Dia a dia' }, { id: 'amigos', nome: 'Amizades' }, { id: 'digital', nome: 'Vida digital' }, { id: 'sentimentos', nome: 'Sentimentos' }],
+      itens: [
+        { texto: 'Qual foi a melhor e a pior parte do seu dia?', categoria: 'dia', faixas: ['11-12', '13-14', '15-17'] },
+        { texto: 'O que você gostaria que fosse diferente na nossa rotina?', categoria: 'dia', faixas: ['13-14', '15-17'] },
+        { texto: 'Se pudesse escolher qualquer programa para fazermos juntos, qual seria?', categoria: 'dia', faixas: ['11-12', '13-14'] },
+        { texto: 'Como estão as coisas com seus amigos?', categoria: 'amigos', faixas: ['11-12', '13-14', '15-17'] },
+        { texto: 'Tem alguém na turma que você admira? Por quê?', categoria: 'amigos', faixas: ['11-12', '13-14'] },
+        { texto: 'Já aconteceu de alguém pressionar você a fazer algo que não queria?', categoria: 'amigos', faixas: ['13-14', '15-17'] },
+        { texto: 'Quais jogos ou canais você mais curte? Me explica por quê?', categoria: 'digital', faixas: ['11-12', '13-14'] },
+        { texto: 'Já viu algo online que te deixou desconfortável? Posso ajudar?', categoria: 'digital', faixas: ['11-12', '13-14', '15-17'] },
+        { texto: 'O que você acha de tanta gente mostrando uma vida perfeita nas redes?', categoria: 'digital', faixas: ['13-14', '15-17'] },
+        { texto: 'Como você está se sentindo com a escola ultimamente?', categoria: 'sentimentos', faixas: ['11-12', '13-14', '15-17'] },
+        { texto: 'Se eu pudesse te ajudar em uma coisa agora, o que seria?', categoria: 'sentimentos', faixas: ['11-12', '13-14', '15-17'] },
+        { texto: 'Tem algo que você tem pensado muito e queria conversar?', categoria: 'sentimentos', faixas: ['13-14', '15-17'] },
+      ],
+    },
+    {
+      id: 'diario', tipo: 'registro', icone: '📓', nome: 'Diário da Família',
+      descricao: 'Registre conversas e conflitos para enxergar o que ajuda.',
+      campos: [
+        { id: 'data', rotulo: 'Dia', tipo: 'data' },
+        { id: 'tema', rotulo: 'Tema', tipo: 'escolha', insight: true, opcoes: [{ id: 'conversa', nome: 'Conversa difícil' }, { id: 'regras', nome: 'Regras e horários' }, { id: 'digital', nome: 'Celular e redes' }, { id: 'escola', nome: 'Escola' }, { id: 'humor', nome: 'Humor e irritação' }, { id: 'outro', nome: 'Outro' }] },
+        { id: 'resultado', rotulo: 'Como terminou', tipo: 'escolha', insight: true, opcoes: [{ id: 'bem', nome: 'Conseguimos conversar' }, { id: 'mais-ou-menos', nome: 'Mais ou menos' }, { id: 'mal', nome: 'Não deu certo' }] },
+        { id: 'obs', rotulo: 'Anotações (opcional)', tipo: 'texto' },
+      ],
+    },
+    {
+      id: 'ajuda', tipo: 'ajuda', icone: '🛟', nome: 'Sinais de alerta e ajuda',
+      descricao: 'Quando buscar ajuda profissional e onde encontrá-la.',
+      blocos: [
+        { titulo: 'Procure ajuda profissional com urgência se:', itens: ['Ele fala em se machucar, em morrer ou em "sumir", ou já se machucou de propósito.', 'Você encontrou sinais de automutilação (cortes, marcas).', 'Há uso de álcool ou drogas.', 'Há suspeita de violência, abuso, aliciamento ou ameaça, inclusive online ou em namoro.'] },
+        { titulo: 'Converse com o pediatra ou um psicólogo se, por mais de duas semanas:', itens: ['Há tristeza, desânimo ou irritação intensa quase todos os dias.', 'Ele se isola de amigos e família.', 'O sono ou o apetite mudaram muito.', 'As notas caíram bastante ou ele não quer mais ir à escola.', 'Ele perdeu o interesse por coisas que gostava.'] },
+        { titulo: 'Como conversar sobre isso:', itens: ['Pergunte diretamente e com calma: "Você tem pensado em se machucar ou em não viver mais?". Perguntar não coloca a ideia na cabeça.', 'Escute sem julgar nem se assustar, e agradeça por ele contar.', 'Não deixe sozinho se houver risco e procure ajuda imediatamente.'] },
+      ],
+      recursos: [
+        { nome: 'CVV: 188', texto: 'Apoio emocional e prevenção do suicídio. Ligação gratuita, 24 horas, ou chat em cvv.org.br.' },
+        { nome: 'SAMU: 192', texto: 'Em risco imediato, ligue para o 192 ou vá ao pronto-socorro mais próximo.' },
+        { nome: 'CAPS (CAPS i) e UBS', texto: 'Serviços públicos de saúde mental. O CAPS i atende crianças e adolescentes. Procure a unidade da sua cidade.' },
+        { nome: 'Disque 100', texto: 'Denúncia de violência contra crianças e adolescentes. Ligação gratuita, 24 horas.' },
+      ],
+    },
+  ],
+}

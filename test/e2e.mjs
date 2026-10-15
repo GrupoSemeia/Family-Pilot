@@ -20,7 +20,7 @@ const mock = createServer((req, res) => {
   })
 }).listen(MOCK)
 
-const wr = spawn('npx', ['wrangler', 'dev', '--port', String(PORTA), '--var', `ASAAS_URL:http://127.0.0.1:${MOCK}`, '--var', 'ASAAS_API_KEY:chave-teste', '--var', `ASAAS_WEBHOOK_TOKEN:${TOKEN}`, '--var', 'ACESSO_LIVRE:'], { stdio: 'pipe' })
+const wr = spawn('npx', ['wrangler', 'dev', '--port', String(PORTA), '--var', `ASAAS_URL:http://127.0.0.1:${MOCK}`, '--var', 'ASAAS_API_KEY:chave-teste', '--var', `ASAAS_WEBHOOK_TOKEN:${TOKEN}`, '--var', 'ACESSO_LIVRE:', '--var', 'PRECOS_MODULOS:{"sono":2700}'], { stdio: 'pipe' })
 let log = ''; wr.stdout.on('data', d => (log += d)); wr.stderr.on('data', d => (log += d))
 const fim = (cod) => { wr.kill('SIGTERM'); mock.close(); process.exit(cod) }
 
@@ -62,11 +62,30 @@ try {
   assert.ok(dias > 364.9 && dias < 365.1, 'acesso de 365 dias, deu ' + dias)
   await webhook(a, 'PAYMENT_RECEIVED', idPag, 'RECEIVED', 47)
   assert.equal((await a('GET', '/api/auth/eu')).d.acesso.ate, ate1, 'webhook repetido não soma de novo')
-  r = await a('GET', '/api/conteudo'); assert.equal(r.status, 200); assert.ok(r.d.MOTIVOS.length >= 6)
+  r = await a('GET', '/api/conteudo'); assert.equal(r.status, 200); assert.ok(r.d.birra.MOTIVOS.length >= 6)
+  assert.equal(Object.keys(r.d.modulos).length, 0, 'só o SOS Birra foi comprado')
+  const est = Object.fromEntries(r.d.catalogo.map(m => [m.id, m.estado]))
+  assert.deepEqual([est.birra, est.sono, est.telas], ['liberado', 'a-venda', 'em-breve'], 'vitrine: liberado, à venda, em breve')
 
-  // reembolso encerra o acesso
+  // outro módulo: preço vem de PRECOS_MODULOS; sem preço não vende; módulo inexistente é recusado
+  assert.equal((await a('POST', '/api/pagamento', { cpfCnpj: '52998224725', modulo: 'telas' })).status, 503, 'módulo sem preço')
+  assert.equal((await a('POST', '/api/pagamento', { cpfCnpj: '52998224725', modulo: 'xyz' })).status, 400, 'módulo inexistente')
+  const idSono = (await a('POST', '/api/pagamento', { cpfCnpj: '52998224725', modulo: 'sono' })).d.url.split('/').pop()
+  assert.equal(pagamentos.get(idSono).value, 27, 'cobra o preço do módulo')
+  assert.equal((await a('GET', '/api/conteudo')).d.modulos.sono, undefined, 'sono ainda bloqueado')
+  await webhook(a, 'PAYMENT_CONFIRMED', idSono, 'CONFIRMED', 27)
+  r = await a('GET', '/api/conteudo')
+  assert.ok(r.d.modulos.sono.ferramentas.length >= 5, 'sono liberado depois de pagar')
+  assert.equal(r.d.catalogo.find(m => m.id === 'sono').estado, 'liberado')
+  const acessoBirra = (await a('GET', '/api/auth/eu')).d.acesso
+  assert.equal(acessoBirra.modulos.birra.ate, ate1, 'comprar o sono não mexe no prazo do SOS Birra')
+
+  // reembolso do SOS Birra tira só esse módulo; o sono pago continua
   await webhook(a, 'PAYMENT_REFUNDED', idPag, 'REFUNDED', 47)
-  assert.equal((await a('GET', '/api/auth/eu')).d.acesso.ativo, false, 'reembolso tira o acesso')
+  r = await a('GET', '/api/conteudo'); assert.equal(r.status, 200, 'ainda tem o sono')
+  assert.equal(r.d.birra, null, 'reembolso tira o SOS Birra')
+  await webhook(a, 'PAYMENT_REFUNDED', idSono, 'REFUNDED', 27)
+  assert.equal((await a('GET', '/api/auth/eu')).d.acesso.ativo, false, 'sem nenhum módulo, sem acesso')
   assert.equal((await a('GET', '/api/conteudo')).status, 402)
 
   // valor diferente do pedido é ignorado; "Já paguei" confere na Asaas

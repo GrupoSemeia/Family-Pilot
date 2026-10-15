@@ -104,3 +104,16 @@ a{color:inherit}
 .msg.ok{color:var(--ok)}
 .preco .valor{font-family:Nunito,sans-serif;font-weight:900;font-size:2.6rem;color:var(--deep);margin:4px 0}
 .btn[disabled]{opacity:.5}
+
+/* módulos */
+.opt{display:flex;gap:10px;align-items:flex-start;padding:10px 4px;border-bottom:1px solid var(--line);font-size:.95rem;cursor:pointer}
+.opt:last-child{border-bottom:0}
+.opt input{margin-top:4px;width:20px;height:20px;flex:none;accent-color:var(--cta)}
+.saida{white-space:pre-wrap;word-break:break-word;font:400 .9rem/1.5 Inter,sans-serif;background:var(--mint);border-radius:12px;padding:14px;margin:6px 0 4px}
+.tempo{list-style:none}
+.tempo li{display:flex;gap:14px;padding:9px 0;border-bottom:1px solid var(--line)}
+.tempo b{font-family:Nunito,sans-serif;color:var(--cta);min-width:3.4rem}
+.ideias{list-style:none;margin-top:10px}
+.ideias li{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:8px 0}
+.recurso b{font-family:Nunito,sans-serif;font-size:1.1rem}
+a.alerta:hover{filter:brightness(.97)}

@@ -1,6 +1,6 @@
 /* Guarda o app no aparelho para abrir sem internet. Troque a versão ao mudar arquivos. */
-const V = 'familypilot-v2';
-const ARQ = ['./', 'index.html', 'css/app.css', 'js/auth.js', 'js/app.js', 'icon.svg', 'manifest.webmanifest'];
+const V = 'familypilot-v3';
+const ARQ = ['./', 'index.html', 'css/app.css', 'js/modulo.js', 'js/auth.js', 'js/app.js', 'icon.svg', 'manifest.webmanifest'];
 self.addEventListener('install', (e) => { e.waitUntil(caches.open(V).then((c) => c.addAll(ARQ)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', (e) => { e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== V).map((k) => caches.delete(k)))).then(() => self.clients.claim())); });
 self.addEventListener('fetch', (e) => {
