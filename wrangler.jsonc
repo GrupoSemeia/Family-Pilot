@@ -4,7 +4,9 @@
   "main": "worker/index.ts",
   "compatibility_date": "2026-09-25",
   // App (pasta app/) + API no mesmo Worker. Só /api/* passa primeiro pelo Worker; o resto é arquivo estático.
-  "assets": { "directory": "./app", "binding": "ASSETS", "run_worker_first": ["/api/*"] },
+  "assets": { "directory": "./app", "binding": "ASSETS", "not_found_handling": "single-page-application", "run_worker_first": ["/", "/api/*"] },
+  // Endereço do app e da página de vendas. A zona familypilot.com.br precisa estar na conta Cloudflare; o DNS é criado sozinho.
+  "routes": [{ "pattern": "www.familypilot.com.br", "custom_domain": true }],
   // Banco criado na conta Cloudflare do Grupo Semeia Digital (migração 0001 já aplicada).
   "d1_databases": [
     { "binding": "DB", "database_name": "family-pilot", "database_id": "d8e9c4ce-912c-4ec5-81a9-cecdde039683", "migrations_dir": "migrations" }
@@ -13,9 +15,9 @@
   // ASAAS_URL: produção. Chave de teste da Asaas ($aact_hmlg_…) usa o sandbox sozinha.
   // PRECOS_MODULOS: preço (em centavos) de cada módulo e do "pacote" (todos os módulos), em JSON. Sem preço, o módulo aparece como "em breve".
   "vars": { "ASAAS_URL": "https://api.asaas.com/v3", "ACESSO_LIVRE": "gruposemeiadigital@gmail.com", "PRECOS_MODULOS": "{\"sono\":3700,\"telas\":3700,\"alimentacao\":3700,\"limites\":3700,\"escola\":3700,\"adolescencia\":4700,\"pacote\":14700}",
-    // Recuperação de senha por e-mail (Resend). EMAIL_DE precisa ser de um domínio verificado no Resend. Enquanto estiver vazio, a tela
+    // Recuperação de senha por e-mail (Resend). EMAIL_DE precisa ser de um domínio verificado no Resend (sugestão: FamilyPilot <nao-responda@familypilot.com.br>). Enquanto estiver vazio, a tela
     // de "Esqueci minha senha" avisa que o recurso não está ativo. APP_URL (opcional) é o endereço do app usado no link do e-mail.
-    "EMAIL_DE": "", "APP_URL": "",
+    "EMAIL_DE": "", "APP_URL": "https://www.familypilot.com.br",
     // Entrar com o Google: cole aqui o Client ID (tipo "Aplicativo da Web") criado no Google Cloud Console. Vazio = sem o botão do Google.
     "GOOGLE_CLIENT_ID": "840704634462-59qj00i1r2b5ll900b6ojuchhbapvtoj.apps.googleusercontent.com",
     // PRECOS_DE: o preço "de" (cheio) que vai valer depois do lançamento. Aparece riscado ao lado do preço de lançamento.

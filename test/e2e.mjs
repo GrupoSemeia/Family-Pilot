@@ -43,11 +43,13 @@ async function aguardar() { for (let i = 0; i < 120; i++) { try { const r = awai
 
 function cliente() {
   let cookie = ''
-  return async (metodo, url, corpo, extra = {}) => {
+  const f = async (metodo, url, corpo, extra = {}) => {
     const r = await fetch(BASE + url, { method: metodo, headers: { 'content-type': 'application/json', ...(cookie ? { cookie } : {}), ...extra }, body: corpo === undefined ? undefined : JSON.stringify(corpo) })
     const sc = r.headers.get('set-cookie'); if (sc) cookie = sc.split(';')[0]
     return { status: r.status, d: await r.json().catch(() => ({})) }
   }
+  f.pagina = async (url) => { const r = await fetch(BASE + url, { headers: cookie ? { cookie } : {}, redirect: 'manual' }); return { status: r.status, texto: await r.text(), cc: r.headers.get('cache-control'), vary: r.headers.get('vary') } }
+  return f
 }
 const webhook = (c, evento, id, status, value) => c('POST', '/api/asaas/webhook', { event: evento, payment: { id, status, value, billingType: 'PIX' } }, { 'asaas-access-token': TOKEN })
 
@@ -223,6 +225,17 @@ try {
   r = await cliente()('POST', '/api/auth/google', { credential: tokenGoogle({ sub: 'sub-beto-' + S, email: quem }) })
   assert.equal(r.status, 200); assert.equal(r.d.acesso.ativo, true, 'entra na conta paga')
   assert.equal((await cliente()('POST', '/api/auth/entrar', { email: quem, senha: 'nova-senha-123' })).status, 200, 'quem já pagou mantém a senha')
+
+  // endereço único: "/" mostra a página de vendas para quem não está logado e o app para quem está
+  let pg = await cliente().pagina('/')
+  assert.equal(pg.status, 200); assert.match(pg.texto, /Seu filho faz birra/, 'visitante vê a página de vendas'); assert.doesNotMatch(pg.texto, /id="app"/)
+  assert.match(pg.cc, /private/, 'a página inicial não vai para cache compartilhado'); assert.match(pg.vary, /cookie/i)
+  assert.match(pg.texto, /\/entrar\?criar=1/, 'botões da página de vendas levam ao cadastro')
+  pg = await rec.pagina('/')
+  assert.match(pg.texto, /id="app"/, 'logado abre o app'); assert.doesNotMatch(pg.texto, /Seu filho faz birra\. /)
+  pg = await cliente().pagina('/entrar'); assert.match(pg.texto, /id="app"/, '/entrar abre o app')
+  pg = await cliente().pagina('/inicio'); assert.match(pg.texto, /Seu filho faz birra/, '/inicio é a página de vendas')
+  assert.equal((await cliente().pagina('/README.md')).texto.includes('# Family Pilot'), false, 'README não é publicado')
 
   // logout
   await rec('POST', '/api/auth/sair', {}); assert.equal((await rec('GET', '/api/conteudo')).status, 401)

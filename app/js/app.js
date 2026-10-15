@@ -432,5 +432,5 @@ window.FamilyPilot = { _on: false, start: function (C, conta) {
   $('#tabs').hidden = false;
   $('#tabs').innerHTML = nav.map(([h, t, i]) => `<a href="${h}"><span aria-hidden="true">${i}</span>${t}</a>`).join('');
   render();
-  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => {});
+  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('/sw.js').catch(() => {});
 } };

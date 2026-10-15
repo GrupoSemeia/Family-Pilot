@@ -450,12 +450,9 @@ footer b{color:#fff}
 </div>
 
 <script>
-// Endereço do app (onde a pessoa cria a conta e paga). Preencha quando o domínio existir. Ex.: "https://app.seudominio.com.br"
-var APP_URL = "";
-if (APP_URL) {
-  document.querySelectorAll("a.cta").forEach(function (a) { a.href = APP_URL + "/?criar=1"; });
-  document.querySelectorAll("a.cta-pacote").forEach(function (a) { a.href = APP_URL + "/?criar=1&comprar=pacote"; });
-}
+// O app e este site ficam no mesmo endereço (www.familypilot.com.br): todos os botões levam ao cadastro.
+document.querySelectorAll("a.cta").forEach(function (a) { a.href = "/entrar?criar=1"; });
+document.querySelectorAll("a.cta-pacote").forEach(function (a) { a.href = "/entrar?criar=1&comprar=pacote"; });
 
 // mostra a barra fixa depois do primeiro cartão de preço
 (function () {

@@ -1,12 +1,12 @@
 # Family Pilot
 
 Plataforma de ferramentas interativas para pais e mães encontrarem orientações práticas no dia a dia.
-Um produto do Grupo Semeia Digital. Sete módulos prontos: **SOS Birra** (R$ 47, pagamento único, 12 meses de acesso) e SOS Sono, Telas, Alimentação, Limites, Escola e Adolescência.
+Um produto do Grupo Semeia Digital. Endereço: **https://www.familypilot.com.br** (app e página de vendas no mesmo domínio). Sete módulos prontos: **SOS Birra** (R$ 47, pagamento único, 12 meses de acesso) e SOS Sono, Telas, Alimentação, Limites, Escola e Adolescência.
 
 - `app/` — o app dos pais (PWA, HTML/CSS/JS puros). Veja `app/README.md`.
 - `worker/` — API na Cloudflare (Hono + D1): login, pagamento pela Asaas e prazo de acesso por módulo.
 - `worker/modulos/` — conteúdo dos 6 módulos novos, escrito como dados. O app desenha as ferramentas (`app/js/modulo.js`).
-- `landing/sos-birra/` — landing page de vendas (HTML único).
+- `app/inicio.html` — página de vendas (HTML único). Quem não está logado vê essa página em `/`; os botões levam a `/entrar?criar=1`.
 - `migrations/` — banco D1. `test/e2e.mjs` — teste de ponta a ponta com uma Asaas falsa.
 
 ## Como funciona o acesso
@@ -37,6 +37,12 @@ Para criar um módulo novo: escreva um arquivo em `worker/modulos/` no formato d
 `worker/modulos/index.ts` (`MODULOS` e `CATALOGO`) e inclua o id em `MODULOS_IDS` (`worker/lib.ts`).
 Ferramentas disponíveis: `situacoes`, `rotinaSono`, `combinado`, `ideias`, `modelo`, `registro` e `ajuda`.
 
+## Endereço (www.familypilot.com.br)
+O Worker atende `www.familypilot.com.br` como domínio personalizado (`routes` no `wrangler.jsonc`). Para o deploy funcionar,
+a zona `familypilot.com.br` precisa estar na mesma conta Cloudflare do Worker (o registro DNS do `www` é criado sozinho; não crie A/CNAME à mão).
+`/` mostra a página de vendas para quem não está logado e o app para quem está; `/entrar` sempre abre o app (login e cadastro).
+O endereço sem `www` (`familypilot.com.br`) não está configurado.
+
 ## Publicar na Cloudflare (uma vez)
     npm install
     # banco "family-pilot" já criado (id em wrangler.jsonc)
@@ -46,7 +52,7 @@ Ferramentas disponíveis: `situacoes`, `rotinaSono`, `combinado`, `ideias`, `mod
     npx wrangler secret put RESEND_API_KEY       # chave do Resend, para o "Esqueci minha senha" (veja abaixo)
     npm run deploy
 
-Na Asaas (Integrações → Webhooks): URL `https://SEU-DOMINIO/api/asaas/webhook`, o mesmo token no campo de
+Na Asaas (Integrações → Webhooks): URL `https://www.familypilot.com.br/api/asaas/webhook`, o mesmo token no campo de
 autenticação e os eventos de **Cobranças** (confirmada, recebida, estornada/reembolsada, chargeback, removida).
 `ACESSO_LIVRE` em `wrangler.jsonc` lista e-mails com acesso grátis (equipe e testadores).
 
@@ -54,7 +60,7 @@ autenticação e os eventos de **Cobranças** (confirmada, recebida, estornada/r
 Link de uso único, válido por 1 hora, no máximo 3 por hora por conta. A resposta é sempre a mesma, exista a conta ou não.
 Ao trocar a senha, todas as sessões antigas caem e a pessoa já entra. O token vai no fragmento da URL (`#/nova-senha/...`) e o banco guarda só o hash.
 Para ativar: crie a conta no Resend, verifique o domínio de envio, cadastre o segredo `RESEND_API_KEY` e preencha
-`EMAIL_DE` (ex.: `FamilyPilot <nao-responda@seudominio.com.br>`) e, se quiser, `APP_URL` em `wrangler.jsonc`. Sem isso o app avisa que o recurso não está ativo.
+`EMAIL_DE` (sugestão: `FamilyPilot <nao-responda@familypilot.com.br>`) em `wrangler.jsonc`. `APP_URL` já aponta para `https://www.familypilot.com.br`. Sem isso o app avisa que o recurso não está ativo.
 
 ## Entrar com o Google
 Botão "Entrar com o Google" na entrada e no cadastro. O navegador recebe um token assinado do Google e o servidor confere
@@ -65,8 +71,8 @@ a senha antiga é anulada e as sessões caem (protege quem teve o e-mail usado p
 
 Para ativar:
 1. No Google Cloud Console, crie um projeto, configure a "Tela de consentimento OAuth" e crie um **ID do cliente OAuth** do tipo **Aplicativo da Web**.
-2. Em "Origens JavaScript autorizadas", coloque o endereço do app (`https://SEU-DOMINIO`) e, para testar, `http://localhost:8787`. Não precisa de URI de redirecionamento.
-3. O ID do cliente já está em `GOOGLE_CLIENT_ID` no `wrangler.jsonc`. Falta só cadastrar no Google a origem do endereço do app (passo 2) e fazer o deploy. Vazio = o botão não aparece. (O Client ID é público, não é segredo.)
+2. Em "Origens JavaScript autorizadas", coloque o endereço do app (`https://www.familypilot.com.br`) e, para testar, `http://localhost:8787`. Não precisa de URI de redirecionamento.
+3. O ID do cliente já está em `GOOGLE_CLIENT_ID` no `wrangler.jsonc`. Falta só cadastrar no Google a origem `https://www.familypilot.com.br` (passo 2) e fazer o deploy. Vazio = o botão não aparece. (O Client ID é público, não é segredo.)
 
 ## Desenvolver
     npm run db:local && npm run dev    # http://localhost:8787
@@ -75,6 +81,6 @@ Para ativar:
 
 ## Falta
 - Ativar o e-mail (conta no Resend, domínio verificado, `RESEND_API_KEY` e `EMAIL_DE`).
-- Cadastrar no cliente OAuth do Google a origem do endereço do app, assim que o domínio existir.
-- Domínio próprio. Depois, preencher `APP_URL` no fim da landing: os botões passam a levar à criação de conta (`/?criar=1`; o do pacote usa `&comprar=pacote`).
+- Colocar a zona `familypilot.com.br` na conta Cloudflare e fazer o deploy.
+- Cadastrar no cliente OAuth do Google a origem `https://www.familypilot.com.br`.
 - Revisão do conteúdo de todos os módulos por psicólogo ou pediatra antes do lançamento.

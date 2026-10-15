@@ -1,5 +1,5 @@
 import { Hono } from 'hono'
-import { type App, ErroApp, exigirLogin, exigirAcesso, acessoDe, precosDe, precosCheios, ofertaDe, MODULOS_IDS, PACOTE } from './lib'
+import { type App, ErroApp, exigirLogin, exigirAcesso, lerSessao, acessoDe, precosDe, precosCheios, ofertaDe, MODULOS_IDS, PACOTE } from './lib'
 import { auth } from './routes/auth'
 import { pagamento, asaasWebhook } from './routes/pagamento'
 import { CONTEUDO } from './conteudo'
@@ -43,6 +43,16 @@ app.get('/api/conteudo', exigirLogin, exigirAcesso, async c => {
     catalogo,
     oferta: await ofertaDe(c.env, s.usuarioId),
   })
+})
+
+// "/" : quem está logado abre o app; quem não está vê a página de vendas (app/inicio.html). Os botões da página levam a /entrar.
+app.get('/', async c => {
+  const logado = !!(await lerSessao(c))
+  const r = await c.env.ASSETS.fetch(logado ? c.req.raw : new Request(new URL('/inicio', c.req.url), c.req.raw))
+  const resp = new Response(r.body, r)
+  resp.headers.set('cache-control', 'private, no-cache')   // a mesma URL muda conforme o login: nunca guardar em cache compartilhado
+  resp.headers.set('vary', 'cookie')
+  return resp
 })
 
 app.all('/api/*', c => c.json({ erro: 'Rota não encontrada.' }, 404))
