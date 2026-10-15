@@ -66,7 +66,7 @@ a senha antiga é anulada e as sessões caem (protege quem teve o e-mail usado p
 Para ativar:
 1. No Google Cloud Console, crie um projeto, configure a "Tela de consentimento OAuth" e crie um **ID do cliente OAuth** do tipo **Aplicativo da Web**.
 2. Em "Origens JavaScript autorizadas", coloque o endereço do app (`https://SEU-DOMINIO`) e, para testar, `http://localhost:8787`. Não precisa de URI de redirecionamento.
-3. Cole o ID do cliente em `GOOGLE_CLIENT_ID` no `wrangler.jsonc` e faça o deploy. Vazio = o botão não aparece. (O Client ID é público, não é segredo.)
+3. O ID do cliente já está em `GOOGLE_CLIENT_ID` no `wrangler.jsonc`. Falta só cadastrar no Google a origem do endereço do app (passo 2) e fazer o deploy. Vazio = o botão não aparece. (O Client ID é público, não é segredo.)
 
 ## Desenvolver
     npm run db:local && npm run dev    # http://localhost:8787
@@ -75,6 +75,6 @@ Para ativar:
 
 ## Falta
 - Ativar o e-mail (conta no Resend, domínio verificado, `RESEND_API_KEY` e `EMAIL_DE`).
-- Criar o ID do cliente no Google Cloud e preencher `GOOGLE_CLIENT_ID` (passos acima).
+- Cadastrar no cliente OAuth do Google a origem do endereço do app, assim que o domínio existir.
 - Domínio próprio. Depois, preencher `APP_URL` no fim da landing: os botões passam a levar à criação de conta (`/?criar=1`; o do pacote usa `&comprar=pacote`).
 - Revisão do conteúdo de todos os módulos por psicólogo ou pediatra antes do lançamento.
