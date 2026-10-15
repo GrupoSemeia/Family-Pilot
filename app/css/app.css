@@ -127,3 +127,6 @@ a.alerta:hover{filter:brightness(.97)}
 .ou{text-align:center;color:var(--muted);font-size:.85rem;margin:18px 0 10px;display:flex;align-items:center;gap:10px}
 .ou::before,.ou::after{content:"";flex:1;border-top:1px solid var(--line)}
 #g-btn{display:flex;justify-content:center;min-height:44px}
+
+.opt.aceite{border:0;padding:6px 2px;margin-top:10px;font-size:.88rem;color:var(--muted)}
+.opt.aceite a,.nota a{color:var(--cta)}

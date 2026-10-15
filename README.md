@@ -46,7 +46,7 @@ O endereço sem `www` (`familypilot.com.br`) também é atendido pelo Worker e r
 ## Publicar na Cloudflare (uma vez)
     npm install
     # banco "family-pilot" já criado (id em wrangler.jsonc)
-    npm run db:remote                            # migrações novas (0001 a 0004 já estão aplicadas no banco criado)
+    npm run db:remote                            # migrações novas (0001 a 0005 já estão aplicadas no banco criado)
     npx wrangler secret put ASAAS_API_KEY        # chave da Asaas (teste: $aact_hmlg_… usa o sandbox sozinha)
     npx wrangler secret put ASAAS_WEBHOOK_TOKEN  # texto secreto qualquer; o mesmo vai na Asaas
     npx wrangler secret put RESEND_API_KEY       # chave do Resend, para o "Esqueci minha senha" (veja abaixo)
@@ -55,6 +55,13 @@ O endereço sem `www` (`familypilot.com.br`) também é atendido pelo Worker e r
 Na Asaas (Integrações → Webhooks): URL `https://www.familypilot.com.br/api/asaas/webhook`, o mesmo token no campo de
 autenticação e os eventos de **Cobranças** (confirmada, recebida, estornada/reembolsada, chargeback, removida).
 `ACESSO_LIVRE` em `wrangler.jsonc` lista e-mails com acesso grátis (equipe e testadores).
+
+## Termos de Uso e Política de Privacidade
+Páginas públicas `/termos` e `/privacidade` (`app/termos.html` e `app/privacidade.html`), com a empresa **Semeia Digital Consultoria em TI LTDA, CNPJ 69.290.380/0001-42**,
+contato `gruposemeiadigital@gmail.com`, foro de Curitiba/PR e garantia de 7 dias corridos. São um rascunho: peça a revisão de um advogado antes de divulgar.
+O cadastro exige marcar "Li e aceito" e o servidor guarda quando e qual versão (`aceite_em` e `aceite_versao` em `usuarios`; versão em `VERSAO_TERMOS`, `worker/lib.ts`).
+Conta nova pelo Google também exige o aceite (o app mostra o aviso e envia `aceite: true`). Ao mudar o texto, atualize a data no HTML e `VERSAO_TERMOS`.
+Na tela de consentimento do Google, use `https://www.familypilot.com.br/privacidade` e `https://www.familypilot.com.br/termos`.
 
 ## Esqueci minha senha (e-mail pelo Resend)
 Link de uso único, válido por 1 hora, no máximo 3 por hora por conta. A resposta é sempre a mesma, exista a conta ou não.
@@ -84,3 +91,4 @@ Para ativar:
 - Colocar a zona `familypilot.com.br` na conta Cloudflare e fazer o deploy.
 - Cadastrar no cliente OAuth do Google a origem `https://www.familypilot.com.br`.
 - Revisão do conteúdo de todos os módulos por psicólogo ou pediatra antes do lançamento.
+- Revisão jurídica dos Termos de Uso e da Política de Privacidade.

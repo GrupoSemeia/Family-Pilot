@@ -217,7 +217,7 @@ window.FamilyPilot = { _on: false, start: function (C, conta) {
 
   function contaCard() {
     const ate = conta.acesso.livre ? 'acesso liberado pela equipe' : conta.acesso.ate ? 'acesso até ' + new Date(conta.acesso.ate).toLocaleDateString('pt-BR') : '';
-    return `<div class="card"><b>${esc(conta.usuario.nome)}</b><p>${esc(conta.usuario.email)}${ate ? ' · ' + ate : ''}</p><button class="mini" data-act="sair">Sair da conta</button></div>`;
+    return `<div class="card"><b>${esc(conta.usuario.nome)}</b><p>${esc(conta.usuario.email)}${ate ? ' · ' + ate : ''}</p><button class="mini" data-act="sair">Sair da conta</button> <small><a href="/termos" target="_blank" rel="noopener">Termos</a> · <a href="/privacidade" target="_blank" rel="noopener">Privacidade</a></small></div>`;
   }
 
   function itemDiario(e) {

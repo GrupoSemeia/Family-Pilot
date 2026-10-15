@@ -29,11 +29,12 @@
         ${criar ? '<label class="campo">Seu nome<input id="a-nome" autocomplete="name" maxlength="80" required></label>' : ''}
         <label class="campo">E-mail<input id="a-email" type="email" inputmode="email" autocomplete="email" maxlength="160" required></label>
         <label class="campo">Senha${criar ? ' (mínimo 8 caracteres)' : ''}<input id="a-senha" type="password" autocomplete="${criar ? 'new-password' : 'current-password'}" maxlength="100" required></label>
+        ${criar ? '<label class="opt aceite"><input type="checkbox" id="aceite"><span>Li e aceito os <a href="/termos" target="_blank" rel="noopener">Termos de Uso</a> e a <a href="/privacidade" target="_blank" rel="noopener">Política de Privacidade</a>.</span></label>' : ''}
         <p id="msg" class="msg" role="alert"></p>
         <button class="btn" type="submit">${criar ? 'Criar conta' : 'Entrar'}</button>
       </form>
       ${criar ? '' : '<button class="voltar" id="esqueci" style="margin-top:14px">Esqueci minha senha</button><br>'}
-      <div id="g-area" hidden><p class="ou">ou</p><div id="g-btn"></div></div>
+      <div id="g-area" hidden><p class="ou">ou</p><div id="g-btn"></div>${criar ? '' : '<p class="nota" style="text-align:center">Se for o seu primeiro acesso com o Google, você concorda com os <a href="/termos" target="_blank" rel="noopener">Termos de Uso</a> e a <a href="/privacidade" target="_blank" rel="noopener">Política de Privacidade</a>.</p>'}</div>
       <button class="voltar" id="troca" style="margin-top:6px">${criar ? 'Já tenho conta. Entrar' : 'Ainda não tenho conta. Criar agora'}</button>
       <p class="nota">Um produto Grupo Semeia Digital. Orientações educativas para pais e responsáveis.</p>`);
     $('#troca').onclick = () => { modo = criar ? 'entrar' : 'criar'; telaEntrar(); };
@@ -45,7 +46,10 @@
       ocupado(btn, true, 'Aguarde…'); msg('');
       try {
         const corpo = { email: $('#a-email').value, senha: $('#a-senha').value };
-        if (criar) corpo.nome = $('#a-nome').value;
+        if (criar) {
+          if (!$('#aceite').checked) { msg('Para criar a conta, marque que leu e aceita os Termos e a Política de Privacidade.'); return ocupado(btn, false, t); }
+          corpo.nome = $('#a-nome').value; corpo.aceite = true;
+        }
         me = await api('POST', criar ? '/api/auth/cadastro' : '/api/auth/entrar', corpo);
         seguir();
       } catch (e) { msg(e.message); ocupado(btn, false, t); }
@@ -57,7 +61,7 @@
     return new Promise((ok) => {
       if (window.google && window.google.accounts && window.google.accounts.id) return ok(true);
       const s = document.createElement('script');
-      s.src = 'https://accounts.google.com/gsi/client'; s.async = true;
+      s.src = 'https://accounts.google.com/gsi/client?hl=pt_BR'; s.async = true;
       s.onload = () => ok(true); s.onerror = () => ok(false);
       document.head.appendChild(s);
     });
@@ -69,12 +73,13 @@
       client_id: me.googleClientId, auto_select: false,
       callback: async (resp) => {
         msg('');
-        try { me = await api('POST', '/api/auth/google', { credential: resp.credential }); seguir(); }
+        if (criar && !$('#aceite').checked) return msg('Para criar a conta, marque que leu e aceita os Termos e a Política de Privacidade.');
+        try { me = await api('POST', '/api/auth/google', { credential: resp.credential, aceite: true }); seguir(); }
         catch (e) { msg(e.message); }
       },
     });
     $('#g-area').hidden = false;
-    window.google.accounts.id.renderButton($('#g-btn'), { theme: 'outline', size: 'large', shape: 'pill', text: criar ? 'signup_with' : 'signin_with', locale: 'pt-BR', width: Math.min(320, $('#g-btn').clientWidth || 320) });
+    window.google.accounts.id.renderButton($('#g-btn'), { theme: 'outline', size: 'large', shape: 'pill', text: criar ? 'signup_with' : 'signin_with', locale: 'pt_BR', width: Math.min(320, $('#g-btn').clientWidth || 320) });
   }
 
   /* ---------- esqueci minha senha ---------- */

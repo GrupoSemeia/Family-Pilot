@@ -24,6 +24,8 @@ export type C = Context<App>
 export const PRECO_CENTAVOS = 4700          // R$ 47, SOS Birra, pagamento único
 export const DIAS_ACESSO = 365              // acesso por 12 meses a partir da confirmação do pagamento
 export const MODULO_BASE = 'birra'
+/** Versão vigente dos Termos de Uso e da Política de Privacidade (data do texto em app/termos.html e app/privacidade.html). */
+export const VERSAO_TERMOS = '2026-10-15'
 export const MODULOS_IDS = ['birra', 'sono', 'telas', 'alimentacao', 'limites', 'escola', 'adolescencia']
 /** Pacote Família: um pedido que libera todos os módulos por 12 meses. */
 export const PACOTE = 'pacote'

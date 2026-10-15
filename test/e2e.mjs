@@ -57,10 +57,11 @@ try {
   await aguardar()
   const a = cliente()
   assert.equal((await a('GET', '/api/conteudo')).status, 401, 'conteúdo exige login')
-  assert.equal((await a('POST', '/api/auth/cadastro', { nome: 'Ana', email: `ana${S}@teste.com`, senha: 'curta' })).status, 400, 'senha curta')
-  let r = await a('POST', '/api/auth/cadastro', { nome: 'Ana', email: `Ana${S}@Teste.com`, senha: 'senha-forte-1' })
+  assert.equal((await a('POST', '/api/auth/cadastro', { nome: 'Ana', email: `ana${S}@teste.com`, senha: 'curta', aceite: true })).status, 400, 'senha curta')
+  assert.equal((await a('POST', '/api/auth/cadastro', { nome: 'Ana', email: `ana${S}@teste.com`, senha: 'senha-forte-1' })).status, 400, 'sem aceite dos Termos não cria conta')
+  let r = await a('POST', '/api/auth/cadastro', { nome: 'Ana', email: `Ana${S}@Teste.com`, senha: 'senha-forte-1', aceite: true })
   assert.equal(r.status, 201); assert.equal(r.d.acesso.ativo, false); assert.equal(r.d.preco, 4700)
-  assert.equal((await cliente()('POST', '/api/auth/cadastro', { nome: 'Ana', email: `ana${S}@teste.com`, senha: 'senha-forte-1' })).status, 409, 'e-mail repetido')
+  assert.equal((await cliente()('POST', '/api/auth/cadastro', { nome: 'Ana', email: `ana${S}@teste.com`, senha: 'senha-forte-1', aceite: true })).status, 409, 'e-mail repetido')
   assert.equal((await a('GET', '/api/conteudo')).status, 402, 'sem pagar, sem conteúdo')
   assert.equal((await a('POST', '/api/pagamento', { cpfCnpj: '123' })).status, 400, 'CPF inválido')
 
@@ -119,7 +120,7 @@ try {
 
   // valor diferente do pedido é ignorado; "Já paguei" confere na Asaas
   const b = cliente()
-  await b('POST', '/api/auth/cadastro', { nome: 'Beto', email: `beto${S}@teste.com`, senha: 'outra-senha-9' })
+  await b('POST', '/api/auth/cadastro', { nome: 'Beto', email: `beto${S}@teste.com`, senha: 'outra-senha-9', aceite: true })
   const idB = (await b('POST', '/api/pagamento', { cpfCnpj: '52998224725' })).d.url.split('/').pop()
   await webhook(b, 'PAYMENT_CONFIRMED', idB, 'CONFIRMED', 1)
   assert.equal((await b('GET', '/api/auth/eu')).d.acesso.ativo, false, 'valor errado não libera')
@@ -147,7 +148,7 @@ try {
   assert.ok(extra > 364.9 && extra < 365.1, 'renovação soma 365 dias, deu ' + extra)
 
   // quem nunca pagou o SOS Birra não tem oferta
-  const cc = cliente(); await cc('POST', '/api/auth/cadastro', { nome: 'Cida', email: `cida${S}@teste.com`, senha: 'terceira-senha-7' })
+  const cc = cliente(); await cc('POST', '/api/auth/cadastro', { nome: 'Cida', email: `cida${S}@teste.com`, senha: 'terceira-senha-7', aceite: true })
   assert.equal((await cc('POST', '/api/pagamento', { cpfCnpj: '52998224725', modulo: 'sono', oferta: true })).status, 400, 'sem compra do SOS Birra não há oferta')
 
   // login, senha errada e limite de tentativas
@@ -192,7 +193,8 @@ try {
   // entrar com o Google
   const g1 = cliente()
   assert.equal((await g1('GET', '/api/auth/eu')).d.googleClientId, GOOGLE_ID, 'o app recebe o Client ID')
-  r = await g1('POST', '/api/auth/google', { credential: tokenGoogle() })
+  assert.equal((await g1('POST', '/api/auth/google', { credential: tokenGoogle() })).status, 400, 'conta nova do Google sem aceite não é criada')
+  r = await g1('POST', '/api/auth/google', { credential: tokenGoogle(), aceite: true })
   assert.equal(r.status, 200); assert.equal(r.d.usuario.email, `gente${S}@gmail.com`); assert.equal(r.d.acesso.ativo, false, 'conta nova do Google ainda sem acesso')
   assert.equal((await g1('GET', '/api/auth/eu')).d.usuario.nome, 'Gente Boa', 'sessão aberta')
   const g2 = cliente(); r = await g2('POST', '/api/auth/google', { credential: tokenGoogle() })
@@ -216,7 +218,7 @@ try {
 
   // conta criada com senha e nunca paga: o Google confirma o e-mail e a senha antiga (de quem criou primeiro) deixa de valer
   const sequestrador = cliente()
-  await sequestrador('POST', '/api/auth/cadastro', { nome: 'Intruso', email: `vitima${S}@gmail.com`, senha: 'senha-do-intruso-1' })
+  await sequestrador('POST', '/api/auth/cadastro', { nome: 'Intruso', email: `vitima${S}@gmail.com`, senha: 'senha-do-intruso-1', aceite: true })
   r = await cliente()('POST', '/api/auth/google', { credential: tokenGoogle({ sub: 'sub-vitima-' + S, email: `vitima${S}@gmail.com`, name: 'Vítima' }) })
   assert.equal(r.status, 200, 'Google liga à conta com o mesmo e-mail')
   assert.equal((await sequestrador('GET', '/api/auth/eu')).d.usuario, null, 'sessão do intruso foi derrubada')
@@ -236,6 +238,13 @@ try {
   pg = await cliente().pagina('/entrar'); assert.match(pg.texto, /id="app"/, '/entrar abre o app')
   pg = await cliente().pagina('/inicio'); assert.match(pg.texto, /Seu filho faz birra/, '/inicio é a página de vendas')
   assert.equal((await cliente().pagina('/README.md')).texto.includes('# Family Pilot'), false, 'README não é publicado')
+  // Termos de Uso e Política de Privacidade publicados
+  pg = await cliente().pagina('/termos'); assert.equal(pg.status, 200)
+  assert.match(pg.texto, /69\.290\.380\/0001-42/); assert.match(pg.texto, /7 dias corridos/); assert.match(pg.texto, /Curitiba/)
+  pg = await cliente().pagina('/privacidade'); assert.equal(pg.status, 200)
+  assert.match(pg.texto, /Semeia Digital Consultoria em TI LTDA/); assert.match(pg.texto, /LGPD/); assert.match(pg.texto, /gruposemeiadigital@gmail\.com/)
+  const aceite = JSON.parse(execFileSync('npx', ['wrangler', 'd1', 'execute', 'family-pilot', '--local', '--json', '--command', `SELECT aceite_versao, aceite_em FROM usuarios WHERE email='${quem}'`]).toString())[0].results[0]
+  assert.equal(aceite.aceite_versao, '2026-10-15', 'o aceite fica registrado com a versão'); assert.ok(aceite.aceite_em)
 
   // endereço sem "www" redireciona para o principal (regra isolada em worker/dominio.ts)
   const { redirecionarSemWww } = await import('../worker/dominio.ts')

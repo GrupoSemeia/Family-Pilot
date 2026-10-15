@@ -1,6 +1,6 @@
 import { Hono } from 'hono'
 import { verificarGoogle } from '../google'
-import { type App, type Env, erro, novoId, limpar, hashSenha, conferirSenha, criarSessao, encerrarSessao, lerSessao, acessoDe, precosDe, precosCheios, emailAtivo, sha256, tokenAleatorio, paraBanco, agoraBanco } from '../lib'
+import { type App, type Env, erro, novoId, limpar, hashSenha, conferirSenha, criarSessao, encerrarSessao, lerSessao, acessoDe, precosDe, precosCheios, emailAtivo, sha256, tokenAleatorio, paraBanco, agoraBanco, VERSAO_TERMOS } from '../lib'
 
 export const auth = new Hono<App>()
 
@@ -17,10 +17,11 @@ auth.post('/cadastro', async c => {
   if (nome.length < 2) throw erro(400, 'Informe seu nome.')
   if (!emailValido(email)) throw erro(400, 'Informe um e-mail válido.')
   if (senha.length < 8 || senha.length > 100) throw erro(400, 'A senha precisa ter de 8 a 100 caracteres.')
+  if (b.aceite !== true) throw erro(400, 'Para criar a conta, aceite os Termos de Uso e a Política de Privacidade.')
   const ja = await c.env.DB.prepare('SELECT 1 FROM usuarios WHERE email=?').bind(email).first()
   if (ja) throw erro(409, 'Já existe uma conta com esse e-mail. Entre com a sua senha.')
   const id = novoId()
-  await c.env.DB.prepare('INSERT INTO usuarios (id, nome, email, senha_hash) VALUES (?,?,?,?)').bind(id, nome, email, await hashSenha(senha)).run()
+  await c.env.DB.prepare('INSERT INTO usuarios (id, nome, email, senha_hash, aceite_em, aceite_versao) VALUES (?,?,?,?,?,?)').bind(id, nome, email, await hashSenha(senha), agoraBanco(), VERSAO_TERMOS).run()
   await criarSessao(c, id)
   return c.json(await resposta(c, { usuarioId: id, nome, email }), 201)
 })
@@ -131,9 +132,11 @@ auth.post('/google', async c => {
       if (!pago) lote.push(db.prepare('UPDATE usuarios SET senha_hash=? WHERE id=?').bind('google$sem-senha$' + tokenAleatorio(24), u.id), db.prepare('DELETE FROM sessoes WHERE usuario_id=?').bind(u.id))
       await db.batch(lote)
     } else {
+      // conta nova: precisa do aceite dos Termos e da Política (o app envia "aceite" depois de mostrar o aviso)
+      if (b.aceite !== true) throw erro(400, 'Para criar a conta, aceite os Termos de Uso e a Política de Privacidade.')
       const id = novoId()
-      await db.prepare('INSERT INTO usuarios (id, nome, email, senha_hash, google_sub) VALUES (?,?,?,?,?)')
-        .bind(id, g.nome, g.email, 'google$sem-senha$' + tokenAleatorio(24), g.sub).run()
+      await db.prepare('INSERT INTO usuarios (id, nome, email, senha_hash, google_sub, aceite_em, aceite_versao) VALUES (?,?,?,?,?,?,?)')
+        .bind(id, g.nome, g.email, 'google$sem-senha$' + tokenAleatorio(24), g.sub, agoraBanco(), VERSAO_TERMOS).run()
       u = { id, nome: g.nome, email: g.email }
     }
   }
