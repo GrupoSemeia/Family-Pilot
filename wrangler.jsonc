@@ -18,9 +18,9 @@
   // ASAAS_URL: produção. Chave de teste da Asaas ($aact_hmlg_…) usa o sandbox sozinha.
   // PRECOS_MODULOS: preço (em centavos) de cada módulo e do "pacote" (todos os módulos), em JSON. Sem preço, o módulo aparece como "em breve".
   "vars": { "ASAAS_URL": "https://api.asaas.com/v3", "ACESSO_LIVRE": "gruposemeiadigital@gmail.com", "PRECOS_MODULOS": "{\"sono\":3700,\"telas\":3700,\"alimentacao\":3700,\"limites\":3700,\"escola\":3700,\"adolescencia\":4700,\"pacote\":14700}",
-    // Recuperação de senha por e-mail (Resend). EMAIL_DE precisa ser de um domínio verificado no Resend (sugestão: FamilyPilot <nao-responda@familypilot.com.br>). Enquanto estiver vazio, a tela
+    // Recuperação de senha por e-mail (Resend). EMAIL_DE precisa ser de um domínio verificado no Resend (sugestão: FamilyPilot <nao-responda@familypilot.com.br>). Só funciona depois de cadastrar o segredo RESEND_API_KEY e verificar o domínio no Resend; enquanto isso, a tela
     // de "Esqueci minha senha" avisa que o recurso não está ativo. APP_URL (opcional) é o endereço do app usado no link do e-mail.
-    "EMAIL_DE": "", "APP_URL": "https://www.familypilot.com.br",
+    "EMAIL_DE": "FamilyPilot <nao-responda@familypilot.com.br>", "APP_URL": "https://www.familypilot.com.br",
     // Entrar com o Google: cole aqui o Client ID (tipo "Aplicativo da Web") criado no Google Cloud Console. Vazio = sem o botão do Google.
     "GOOGLE_CLIENT_ID": "840704634462-59qj00i1r2b5ll900b6ojuchhbapvtoj.apps.googleusercontent.com",
     // PRECOS_DE: o preço "de" (cheio) que vai valer depois do lançamento. Aparece riscado ao lado do preço de lançamento.
