@@ -1,4 +1,5 @@
 import { Hono } from 'hono'
+import { verificarGoogle } from '../google'
 import { type App, type Env, erro, novoId, limpar, hashSenha, conferirSenha, criarSessao, encerrarSessao, lerSessao, acessoDe, precosDe, precosCheios, emailAtivo, sha256, tokenAleatorio, paraBanco, agoraBanco } from '../lib'
 
 export const auth = new Hono<App>()
@@ -7,7 +8,7 @@ const emailValido = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e) && e.
 const MAX_FALHAS = 8   // por e-mail, em 15 minutos
 
 async function resposta(c: any, s: { usuarioId: string; nome: string; email: string }) {
-  return { usuario: { nome: s.nome, email: s.email }, acesso: await acessoDe(c.env, s.usuarioId, s.email), preco: precosDe(c.env).birra, precos: precosDe(c.env), precosCheios: precosCheios(c.env), pagamentoOnline: !!c.env.ASAAS_API_KEY, emailAtivo: emailAtivo(c.env) }
+  return { usuario: { nome: s.nome, email: s.email }, acesso: await acessoDe(c.env, s.usuarioId, s.email), preco: precosDe(c.env).birra, precos: precosDe(c.env), precosCheios: precosCheios(c.env), pagamentoOnline: !!c.env.ASAAS_API_KEY, emailAtivo: emailAtivo(c.env), googleClientId: c.env.GOOGLE_CLIENT_ID || '' }
 }
 
 auth.post('/cadastro', async c => {
@@ -47,7 +48,7 @@ auth.post('/sair', async c => { await encerrarSessao(c); return c.json({ ok: tru
 /** Quem sou eu e se o acesso está ativo (o app consulta isso ao abrir). */
 auth.get('/eu', async c => {
   const s = await lerSessao(c)
-  if (!s) return c.json({ usuario: null, preco: precosDe(c.env).birra, precos: precosDe(c.env), precosCheios: precosCheios(c.env), pagamentoOnline: !!c.env.ASAAS_API_KEY, emailAtivo: emailAtivo(c.env) })
+  if (!s) return c.json({ usuario: null, preco: precosDe(c.env).birra, precos: precosDe(c.env), precosCheios: precosCheios(c.env), pagamentoOnline: !!c.env.ASAAS_API_KEY, emailAtivo: emailAtivo(c.env), googleClientId: c.env.GOOGLE_CLIENT_ID || '' })
   return c.json(await resposta(c, s))
 })
 
@@ -106,6 +107,36 @@ auth.post('/nova-senha', async c => {
     db.prepare('DELETE FROM senha_resets WHERE usuario_id=? AND id<>?').bind(u.id, r.id),  // invalida os outros links pendentes
     db.prepare('DELETE FROM falhas_login WHERE email=?').bind(u.email),
   ])
+  await criarSessao(c, u.id)
+  return c.json(await resposta(c, { usuarioId: u.id, nome: u.nome, email: u.email }))
+})
+
+
+/* ---------- entrar ou cadastrar com o Google ---------- */
+auth.post('/google', async c => {
+  const b = await c.req.json<any>().catch(() => ({}))
+  let g
+  try { g = await verificarGoogle(c.env, String(b.credential ?? '')) } catch (e) { console.warn('login Google recusado:', (e as Error).message); throw erro(401, 'Não foi possível entrar com o Google. Tente de novo.') }
+  const db = c.env.DB
+  let u = await db.prepare('SELECT id, nome, email, google_sub FROM usuarios WHERE google_sub=?').bind(g.sub).first<any>()
+  if (!u) {
+    u = await db.prepare('SELECT id, nome, email, google_sub FROM usuarios WHERE email=?').bind(g.email).first<any>()
+    if (u && u.google_sub) throw erro(409, 'Este e-mail já está ligado a outra conta Google.')
+    if (u) {
+      // Já existe conta com esse e-mail, criada com senha. O Google confirmou que o e-mail é da pessoa, então ligamos as contas.
+      // Se a conta nunca pagou nada, pode ter sido criada por outra pessoa com o e-mail alheio: trocamos a senha por uma
+      // impossível e derrubamos as sessões, para quem criou antes não continuar com acesso.
+      const pago = await db.prepare(`SELECT 1 FROM pedidos WHERE usuario_id=? AND status='pago' LIMIT 1`).bind(u.id).first()
+      const lote = [db.prepare('UPDATE usuarios SET google_sub=? WHERE id=?').bind(g.sub, u.id)]
+      if (!pago) lote.push(db.prepare('UPDATE usuarios SET senha_hash=? WHERE id=?').bind('google$sem-senha$' + tokenAleatorio(24), u.id), db.prepare('DELETE FROM sessoes WHERE usuario_id=?').bind(u.id))
+      await db.batch(lote)
+    } else {
+      const id = novoId()
+      await db.prepare('INSERT INTO usuarios (id, nome, email, senha_hash, google_sub) VALUES (?,?,?,?,?)')
+        .bind(id, g.nome, g.email, 'google$sem-senha$' + tokenAleatorio(24), g.sub).run()
+      u = { id, nome: g.nome, email: g.email }
+    }
+  }
   await criarSessao(c, u.id)
   return c.json(await resposta(c, { usuarioId: u.id, nome: u.nome, email: u.email }))
 })

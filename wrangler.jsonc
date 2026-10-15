@@ -16,6 +16,8 @@
     // Recuperação de senha por e-mail (Resend). EMAIL_DE precisa ser de um domínio verificado no Resend. Enquanto estiver vazio, a tela
     // de "Esqueci minha senha" avisa que o recurso não está ativo. APP_URL (opcional) é o endereço do app usado no link do e-mail.
     "EMAIL_DE": "", "APP_URL": "",
+    // Entrar com o Google: cole aqui o Client ID (tipo "Aplicativo da Web") criado no Google Cloud Console. Vazio = sem o botão do Google.
+    "GOOGLE_CLIENT_ID": "",
     // PRECOS_DE: o preço "de" (cheio) que vai valer depois do lançamento. Aparece riscado ao lado do preço de lançamento.
     // Só coloque aqui valores que você realmente vai cobrar depois. Para não mostrar o "de", deixe "{}".
     "PRECOS_DE": "{\"birra\":9700,\"sono\":7700,\"telas\":7700,\"alimentacao\":7700,\"limites\":7700,\"escola\":7700,\"adolescencia\":9700}",

@@ -3,10 +3,21 @@
 import { createServer } from 'node:http'
 import { spawn, execFileSync } from 'node:child_process'
 import assert from 'node:assert/strict'
+import { generateKeyPairSync, sign as assinar } from 'node:crypto'
 
 const PORTA = 8791, MOCK = 8792, BASE = `http://127.0.0.1:${PORTA}`, TOKEN = 'segredo-teste'
 const pagamentos = new Map() // id → { status, value }
 let seq = 0
+const GOOGLE_ID = 'cid-teste.apps.googleusercontent.com'
+const par = generateKeyPairSync('rsa', { modulusLength: 2048 })
+const outra = generateKeyPairSync('rsa', { modulusLength: 2048 })   // chave que o Google falso NÃO publica
+const b64u = (x) => Buffer.from(x).toString('base64url')
+function tokenGoogle(extra = {}, { chave = par.privateKey, kid = 'k' + S, alg = 'RS256' } = {}) {
+  const agora = Math.floor(Date.now() / 1000)
+  const corpo = { iss: 'https://accounts.google.com', aud: GOOGLE_ID, sub: 'sub-' + S, email: `gente${S}@gmail.com`, email_verified: true, name: 'Gente Boa', iat: agora, exp: agora + 3600, ...extra }
+  const h = b64u(JSON.stringify({ alg, kid, typ: 'JWT' })), p = b64u(JSON.stringify(corpo))
+  return `${h}.${p}.${alg === 'RS256' ? assinar('RSA-SHA256', Buffer.from(h + '.' + p), chave).toString('base64url') : ''}`
+}
 const emails = [] // e-mails "enviados" ao Resend falso
 const S = Date.now() // e-mails novos a cada execução (o banco local guarda os de antes)
 
@@ -14,6 +25,7 @@ const mock = createServer((req, res) => {
   let corpo = ''; req.on('data', d => (corpo += d)); req.on('end', () => {
     const j = corpo ? JSON.parse(corpo) : {}; const send = (o, s = 200) => { res.writeHead(s, { 'content-type': 'application/json' }); res.end(JSON.stringify(o)) }
     const u = req.url
+    if (req.method === 'GET' && u === '/certs') { res.setHeader?.('cache-control', 'max-age=3600'); return send({ keys: [{ ...par.publicKey.export({ format: 'jwk' }), kid: 'k' + S, alg: 'RS256', use: 'sig' }] }) }
     if (req.method === 'POST' && u === '/emails') { emails.push(j); return send({ id: 'em_' + emails.length }) }
     if (req.method === 'POST' && u === '/customers') return send({ id: 'cus_' + S + '_' + seq++ })
     if (req.method === 'POST' && u.startsWith('/customers/')) return send({ id: u.split('/')[2] })
@@ -23,9 +35,9 @@ const mock = createServer((req, res) => {
   })
 }).listen(MOCK)
 
-const wr = spawn('npx', ['wrangler', 'dev', '--port', String(PORTA), '--var', `ASAAS_URL:http://127.0.0.1:${MOCK}`, '--var', 'ASAAS_API_KEY:chave-teste', '--var', `ASAAS_WEBHOOK_TOKEN:${TOKEN}`, '--var', 'ACESSO_LIVRE:', '--var', 'RESEND_API_KEY:rk-teste', '--var', 'EMAIL_DE:FamilyPilot <nao-responda@teste.com>', '--var', `RESEND_URL:http://127.0.0.1:${MOCK}`, '--var', 'PRECOS_MODULOS:{"sono":3700,"adolescencia":4700,"pacote":9900}', '--var', 'PRECOS_DE:{"sono":7700,"telas":100}', '--var', 'OFERTA_POS_COMPRA:{"modulo":"sono","preco":2700,"horas":72}'], { stdio: 'pipe' })
+const wr = spawn('npx', ['wrangler', 'dev', '--port', String(PORTA), '--var', `ASAAS_URL:http://127.0.0.1:${MOCK}`, '--var', 'ASAAS_API_KEY:chave-teste', '--var', `ASAAS_WEBHOOK_TOKEN:${TOKEN}`, '--var', 'ACESSO_LIVRE:', '--var', `GOOGLE_CLIENT_ID:${GOOGLE_ID}`, '--var', `GOOGLE_CERTS_URL:http://127.0.0.1:${MOCK}/certs`, '--var', 'RESEND_API_KEY:rk-teste', '--var', 'EMAIL_DE:FamilyPilot <nao-responda@teste.com>', '--var', `RESEND_URL:http://127.0.0.1:${MOCK}`, '--var', 'PRECOS_MODULOS:{"sono":3700,"adolescencia":4700,"pacote":9900}', '--var', 'PRECOS_DE:{"sono":7700,"telas":100}', '--var', 'OFERTA_POS_COMPRA:{"modulo":"sono","preco":2700,"horas":72}'], { stdio: 'pipe', detached: true })
 let log = ''; wr.stdout.on('data', d => (log += d)); wr.stderr.on('data', d => (log += d))
-const fim = (cod) => {  wr.kill('SIGTERM'); mock.close(); process.exit(cod) }
+const fim = (cod) => { try { process.kill(-wr.pid, 'SIGTERM') } catch { wr.kill('SIGTERM') }; mock.close(); process.exit(cod) }
 
 async function aguardar() { for (let i = 0; i < 120; i++) { try { const r = await fetch(BASE + '/api/nada'); if (r.status === 404) return } catch {} await new Promise(r => setTimeout(r, 500)) } throw new Error('Worker não subiu:\n' + log.slice(-1500)) }
 
@@ -174,6 +186,43 @@ try {
   const antes = emails.length
   for (let i = 0; i < 4; i++) await pedir(quem)
   assert.ok(emails.length - antes <= 2, 'limite de 3 por hora: enviou ' + (emails.length - antes))
+
+  // entrar com o Google
+  const g1 = cliente()
+  assert.equal((await g1('GET', '/api/auth/eu')).d.googleClientId, GOOGLE_ID, 'o app recebe o Client ID')
+  r = await g1('POST', '/api/auth/google', { credential: tokenGoogle() })
+  assert.equal(r.status, 200); assert.equal(r.d.usuario.email, `gente${S}@gmail.com`); assert.equal(r.d.acesso.ativo, false, 'conta nova do Google ainda sem acesso')
+  assert.equal((await g1('GET', '/api/auth/eu')).d.usuario.nome, 'Gente Boa', 'sessão aberta')
+  const g2 = cliente(); r = await g2('POST', '/api/auth/google', { credential: tokenGoogle() })
+  assert.equal(r.status, 200, 'o mesmo Google entra de novo na mesma conta')
+  assert.equal((await g2('POST', '/api/pagamento', { cpfCnpj: '52998224725' })).status, 200, 'conta do Google consegue comprar')
+  assert.equal((await cliente()('POST', '/api/auth/entrar', { email: `gente${S}@gmail.com`, senha: 'qualquer-coisa-1' })).status, 401, 'conta só-Google não tem senha para adivinhar')
+  const ruins = {
+    'público errado': tokenGoogle({ aud: 'outro-app.apps.googleusercontent.com' }),
+    'vencido': tokenGoogle({ exp: Math.floor(Date.now() / 1000) - 10 }),
+    'e-mail não verificado': tokenGoogle({ email_verified: false }),
+    'emissor errado': tokenGoogle({ iss: 'https://evil.example.com' }),
+    'assinado por outra chave': tokenGoogle({}, { chave: outra.privateKey }),
+    'chave desconhecida (kid)': tokenGoogle({}, { kid: 'k-nao-existe' }),
+    'sem assinatura (alg none)': tokenGoogle({}, { alg: 'none' }),
+    'lixo': 'abc.def.ghi',
+  }
+  for (const [nome, t] of Object.entries(ruins)) assert.equal((await cliente()('POST', '/api/auth/google', { credential: t })).status, 401, 'recusa token ' + nome)
+  const adulterado = tokenGoogle().split('.'); adulterado[1] = b64u(JSON.stringify({ ...JSON.parse(Buffer.from(adulterado[1], 'base64url')), email: `outra${S}@gmail.com` }))
+  assert.equal((await cliente()('POST', '/api/auth/google', { credential: adulterado.join('.') })).status, 401, 'payload adulterado')
+  assert.equal((await cliente()('POST', '/api/auth/google', { credential: tokenGoogle({ sub: 'sub-diferente-' + S }) })).status, 409, 'e-mail já ligado a outro Google')
+
+  // conta criada com senha e nunca paga: o Google confirma o e-mail e a senha antiga (de quem criou primeiro) deixa de valer
+  const sequestrador = cliente()
+  await sequestrador('POST', '/api/auth/cadastro', { nome: 'Intruso', email: `vitima${S}@gmail.com`, senha: 'senha-do-intruso-1' })
+  r = await cliente()('POST', '/api/auth/google', { credential: tokenGoogle({ sub: 'sub-vitima-' + S, email: `vitima${S}@gmail.com`, name: 'Vítima' }) })
+  assert.equal(r.status, 200, 'Google liga à conta com o mesmo e-mail')
+  assert.equal((await sequestrador('GET', '/api/auth/eu')).d.usuario, null, 'sessão do intruso foi derrubada')
+  assert.equal((await cliente()('POST', '/api/auth/entrar', { email: `vitima${S}@gmail.com`, senha: 'senha-do-intruso-1' })).status, 401, 'senha do intruso não vale mais')
+  // conta que já pagou: liga sem mexer na senha
+  r = await cliente()('POST', '/api/auth/google', { credential: tokenGoogle({ sub: 'sub-beto-' + S, email: quem }) })
+  assert.equal(r.status, 200); assert.equal(r.d.acesso.ativo, true, 'entra na conta paga')
+  assert.equal((await cliente()('POST', '/api/auth/entrar', { email: quem, senha: 'nova-senha-123' })).status, 200, 'quem já pagou mantém a senha')
 
   // logout
   await rec('POST', '/api/auth/sair', {}); assert.equal((await rec('GET', '/api/conteudo')).status, 401)

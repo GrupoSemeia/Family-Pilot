@@ -13,6 +13,8 @@ export type Env = {
   PRECOS_DE?: string
   /** E-mail (Resend): chave da API (segredo), remetente com domínio verificado e, se quiser, o endereço público do app. */
   RESEND_API_KEY?: string; EMAIL_DE?: string; APP_URL?: string; RESEND_URL?: string
+  /** Entrar com o Google: Client ID público do tipo "Aplicativo da Web" (vazio = botão escondido). GOOGLE_CERTS_URL só para testes. */
+  GOOGLE_CLIENT_ID?: string; GOOGLE_CERTS_URL?: string
 }
 export type Sessao = { usuarioId: string; nome: string; email: string }
 export type App = { Bindings: Env; Variables: { sessao: Sessao } }

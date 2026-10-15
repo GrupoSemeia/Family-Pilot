@@ -40,7 +40,7 @@ Ferramentas disponíveis: `situacoes`, `rotinaSono`, `combinado`, `ideias`, `mod
 ## Publicar na Cloudflare (uma vez)
     npm install
     # banco "family-pilot" já criado (id em wrangler.jsonc)
-    npm run db:remote                            # migrações novas (0001 e 0002 já estão aplicadas no banco criado)
+    npm run db:remote                            # migrações novas (0001 a 0004 já estão aplicadas no banco criado)
     npx wrangler secret put ASAAS_API_KEY        # chave da Asaas (teste: $aact_hmlg_… usa o sandbox sozinha)
     npx wrangler secret put ASAAS_WEBHOOK_TOKEN  # texto secreto qualquer; o mesmo vai na Asaas
     npx wrangler secret put RESEND_API_KEY       # chave do Resend, para o "Esqueci minha senha" (veja abaixo)
@@ -56,6 +56,18 @@ Ao trocar a senha, todas as sessões antigas caem e a pessoa já entra. O token 
 Para ativar: crie a conta no Resend, verifique o domínio de envio, cadastre o segredo `RESEND_API_KEY` e preencha
 `EMAIL_DE` (ex.: `FamilyPilot <nao-responda@seudominio.com.br>`) e, se quiser, `APP_URL` em `wrangler.jsonc`. Sem isso o app avisa que o recurso não está ativo.
 
+## Entrar com o Google
+Botão "Entrar com o Google" na entrada e no cadastro. O navegador recebe um token assinado do Google e o servidor confere
+assinatura, emissor, destinatário (nosso Client ID), validade e e-mail verificado (`worker/google.ts`). Conta nova do Google é criada na hora
+(sem senha) e depois segue para o pagamento como as demais.
+Se já existe conta com esse e-mail: o Google confirma que o e-mail é da pessoa, então as contas se ligam. Se essa conta nunca pagou nada,
+a senha antiga é anulada e as sessões caem (protege quem teve o e-mail usado por outra pessoa antes); se já pagou, a senha continua valendo.
+
+Para ativar:
+1. No Google Cloud Console, crie um projeto, configure a "Tela de consentimento OAuth" e crie um **ID do cliente OAuth** do tipo **Aplicativo da Web**.
+2. Em "Origens JavaScript autorizadas", coloque o endereço do app (`https://SEU-DOMINIO`) e, para testar, `http://localhost:8787`. Não precisa de URI de redirecionamento.
+3. Cole o ID do cliente em `GOOGLE_CLIENT_ID` no `wrangler.jsonc` e faça o deploy. Vazio = o botão não aparece. (O Client ID é público, não é segredo.)
+
 ## Desenvolver
     npm run db:local && npm run dev    # http://localhost:8787
     npm run test:e2e                   # cadastro → pagamento → acesso → reembolso → renovação
@@ -63,5 +75,6 @@ Para ativar: crie a conta no Resend, verifique o domínio de envio, cadastre o s
 
 ## Falta
 - Ativar o e-mail (conta no Resend, domínio verificado, `RESEND_API_KEY` e `EMAIL_DE`).
+- Criar o ID do cliente no Google Cloud e preencher `GOOGLE_CLIENT_ID` (passos acima).
 - Domínio próprio. Depois, preencher `APP_URL` no fim da landing: os botões passam a levar à criação de conta (`/?criar=1`; o do pacote usa `&comprar=pacote`).
 - Revisão do conteúdo de todos os módulos por psicólogo ou pediatra antes do lançamento.

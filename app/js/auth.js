@@ -33,10 +33,12 @@
         <button class="btn" type="submit">${criar ? 'Criar conta' : 'Entrar'}</button>
       </form>
       ${criar ? '' : '<button class="voltar" id="esqueci" style="margin-top:14px">Esqueci minha senha</button><br>'}
+      <div id="g-area" hidden><p class="ou">ou</p><div id="g-btn"></div></div>
       <button class="voltar" id="troca" style="margin-top:6px">${criar ? 'Já tenho conta. Entrar' : 'Ainda não tenho conta. Criar agora'}</button>
       <p class="nota">Um produto Grupo Semeia Digital. Orientações educativas para pais e responsáveis.</p>`);
     $('#troca').onclick = () => { modo = criar ? 'entrar' : 'criar'; telaEntrar(); };
     if (!criar) $('#esqueci').onclick = telaEsqueci;
+    botaoGoogle(criar);
     $('#f-auth').onsubmit = async (ev) => {
       ev.preventDefault();
       const btn = ev.target.querySelector('button[type=submit]'), t = btn.textContent;
@@ -48,6 +50,31 @@
         seguir();
       } catch (e) { msg(e.message); ocupado(btn, false, t); }
     };
+  }
+
+  /* ---------- entrar com o Google ---------- */
+  function carregarGoogle() {
+    return new Promise((ok) => {
+      if (window.google && window.google.accounts && window.google.accounts.id) return ok(true);
+      const s = document.createElement('script');
+      s.src = 'https://accounts.google.com/gsi/client'; s.async = true;
+      s.onload = () => ok(true); s.onerror = () => ok(false);
+      document.head.appendChild(s);
+    });
+  }
+  async function botaoGoogle(criar) {
+    if (!me || !me.googleClientId || !$('#g-btn')) return;
+    if (!(await carregarGoogle()) || !$('#g-btn')) return;       // sem internet ou bloqueado: segue só com e-mail e senha
+    window.google.accounts.id.initialize({
+      client_id: me.googleClientId, auto_select: false,
+      callback: async (resp) => {
+        msg('');
+        try { me = await api('POST', '/api/auth/google', { credential: resp.credential }); seguir(); }
+        catch (e) { msg(e.message); }
+      },
+    });
+    $('#g-area').hidden = false;
+    window.google.accounts.id.renderButton($('#g-btn'), { theme: 'outline', size: 'large', shape: 'pill', text: criar ? 'signup_with' : 'signin_with', locale: 'pt-BR', width: Math.min(320, $('#g-btn').clientWidth || 320) });
   }
 
   /* ---------- esqueci minha senha ---------- */
