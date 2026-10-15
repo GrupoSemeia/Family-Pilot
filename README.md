@@ -19,9 +19,19 @@ Um produto do Grupo Semeia Digital. Sete módulos prontos: **SOS Birra** (R$ 47,
    Os registros do Diário e do Radar ficam só no aparelho de cada pessoa.
 
 ## Módulos e preços
-Cada módulo tem acesso próprio de 12 meses (tabela `pedidos`, coluna `modulo`). O SOS Birra custa R$ 47.
-Os outros só ficam à venda quando você define o preço (em centavos) em `PRECOS_MODULOS` no `wrangler.jsonc`,
-por exemplo `{"sono":2700,"telas":2700}`. Sem preço, o módulo aparece como "em breve". Quem está em `ACESSO_LIVRE` vê todos.
+Cada módulo tem acesso próprio de 12 meses (tabela `pedidos`, coluna `modulo`), em pagamento único:
+
+| Produto | Preço |
+|---|---|
+| SOS Birra | R$ 47 |
+| SOS Sono, Telas, Alimentação, Limites, Escola | R$ 37 cada |
+| SOS Adolescência | R$ 47 |
+| **Pacote Família** (todos os 7 módulos) | R$ 147 (separados somam R$ 279) |
+| Oferta de boas-vindas: SOS Sono logo depois de pagar o SOS Birra | R$ 27, por 72 horas, uma vez |
+
+Os preços ficam em `wrangler.jsonc`: `PRECOS_MODULOS` (em centavos, incluindo a chave `pacote`) e `OFERTA_POS_COMPRA`
+(`{"modulo":"sono","preco":2700,"horas":72}`). Produto sem preço aparece como "em breve". O servidor sempre decide o
+preço e confere se a pessoa tem direito à oferta. Quem está em `ACESSO_LIVRE` vê todos os módulos.
 
 Para criar um módulo novo: escreva um arquivo em `worker/modulos/` no formato de `tipos.ts`, registre-o em
 `worker/modulos/index.ts` (`MODULOS` e `CATALOGO`) e inclua o id em `MODULOS_IDS` (`worker/lib.ts`).
@@ -46,6 +56,5 @@ autenticação e os eventos de **Cobranças** (confirmada, recebida, estornada/r
 
 ## Falta
 - Esqueci minha senha (precisa de envio de e-mail, por exemplo Resend como no AroCerto).
-- Domínio próprio e ligar o botão da landing à criação de conta (`/?criar=1`).
-- Definir o preço dos módulos adicionais (`PRECOS_MODULOS`) e atualizar a landing, que hoje diz "módulo adicional".
+- Domínio próprio. Depois, preencher `APP_URL` no fim da landing: os botões passam a levar à criação de conta (`/?criar=1`; o do pacote usa `&comprar=pacote`).
 - Revisão do conteúdo de todos os módulos por psicólogo ou pediatra antes do lançamento.

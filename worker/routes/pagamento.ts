@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
 import {
   type App, type Env, erro, novoId, digitos, paraBanco, agoraBanco, acessoDe, exigirLogin,
-  precosDe, DIAS_ACESSO, MODULO_BASE, MODULOS_IDS,
+  precosDe, ofertaDe, DIAS_ACESSO, MODULO_BASE, PRODUTOS_IDS,
 } from '../lib'
 import { CATALOGO } from '../modulos'
 
@@ -54,9 +54,15 @@ pagamento.post('/', async c => {
   const b = await c.req.json<any>().catch(() => ({}))
   const doc = digitos(b.cpfCnpj)
   const modulo = String(b.modulo ?? MODULO_BASE)
-  if (!MODULOS_IDS.includes(modulo)) throw erro(400, 'Módulo inválido.')
-  const valor = precosDe(c.env)[modulo]
+  if (!PRODUTOS_IDS.includes(modulo)) throw erro(400, 'Módulo inválido.')
+  let valor = precosDe(c.env)[modulo]
   if (!valor) throw erro(503, 'Este módulo ainda não está à venda.')
+  if (b.oferta) {
+    // preço de boas-vindas: o servidor confere se a pessoa tem direito (nunca confia no navegador)
+    const o = await ofertaDe(c.env, s.usuarioId)
+    if (!o || o.modulo !== modulo) throw erro(400, 'Esta oferta não está mais disponível.')
+    valor = o.preco
+  }
   if (doc.length !== 11 && doc.length !== 14) throw erro(400, 'Informe um CPF (11 números) ou CNPJ (14 números) válido.')
   if (!c.env.ASAAS_API_KEY) throw erro(503, 'O pagamento online ainda não foi ativado. Fale com o Grupo Semeia Digital.')
 

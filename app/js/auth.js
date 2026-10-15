@@ -74,7 +74,7 @@
       ev.preventDefault();
       const btn = ev.target.querySelector('button[type=submit]'), t = btn.textContent;
       ocupado(btn, true, 'Abrindo o pagamento…'); msg('');
-      try { const r = await api('POST', '/api/pagamento', { cpfCnpj: $('#p-doc').value, modulo: item.id }); if (!r.url) throw new Error('Não foi possível abrir o pagamento. Tente de novo.'); location.href = r.url; }
+      try { const r = await api('POST', '/api/pagamento', { cpfCnpj: $('#p-doc').value, modulo: item.id, oferta: !!item.oferta }); if (!r.url) throw new Error('Não foi possível abrir o pagamento. Tente de novo.'); location.href = r.url; }
       catch (e) { msg(e.message); ocupado(btn, false, t); }
     };
     $('#ja-paguei').onclick = verificar;
@@ -86,7 +86,9 @@
       const r = await api('POST', '/api/pagamento/verificar');
       me.acesso = r.acesso;
       const id = (atual || itemBirra()).id;
-      if (r.acesso.modulos && r.acesso.modulos[id] && r.acesso.modulos[id].ativo) {
+      const todos = Object.values(r.acesso.modulos || {});
+      const liberado = id === 'pacote' ? todos.length >= 7 && todos.every((x) => x.ativo) : !!(r.acesso.modulos && r.acesso.modulos[id] && r.acesso.modulos[id].ativo);
+      if (liberado) {
         if (window.FamilyPilot && window.FamilyPilot._on) return location.reload();   // recarrega com o módulo novo
         return seguir();
       }
@@ -98,6 +100,12 @@
   /* ---------- fluxo ---------- */
   async function seguir() {
     if (!me.usuario) return telaEntrar();
+    // veio da landing pelo botão do Pacote Família: vai direto para o pagamento do pacote
+    if (/[?&]comprar=pacote/.test(location.search) && me.precos && me.precos.pacote) {
+      const todos = Object.values((me.acesso && me.acesso.modulos) || {});
+      history.replaceState(null, '', location.pathname + location.hash);
+      if (!(todos.length >= 7 && todos.every((m) => m.ativo))) return telaAssinar({ id: 'pacote', nome: 'Pacote Família: todos os 7 módulos', preco: me.precos.pacote });
+    }
     if (!me.acesso.ativo) return telaAssinar();
     try {
       const conteudo = await api('GET', '/api/conteudo');
@@ -132,6 +140,6 @@
   // ao voltar da página de pagamento, confere sozinho
   document.addEventListener('visibilitychange', () => { if (!document.hidden && me && me.usuario && $('#ja-paguei')) verificar(); });
 
-  window.FamilyAuth = { sair, comprar: (item) => { if (item) telaAssinar({ id: item.id, nome: item.nome, preco: item.preco }); } };
+  window.FamilyAuth = { sair, comprar: (item) => { if (item) telaAssinar({ id: item.id, nome: item.nome, preco: item.preco, oferta: !!item.oferta }); } };
   iniciar();
 })();

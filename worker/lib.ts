@@ -7,6 +7,8 @@ export type Env = {
   ACESSO_LIVRE?: string
   /** Preços dos módulos à venda, em centavos, em JSON. Ex.: {"sono":2700}. Módulo sem preço aparece como "em breve". */
   PRECOS_MODULOS?: string
+  /** Oferta de boas-vindas depois de comprar o SOS Birra. JSON: {"modulo":"sono","preco":2700,"horas":72}. Vazio = sem oferta. */
+  OFERTA_POS_COMPRA?: string
 }
 export type Sessao = { usuarioId: string; nome: string; email: string }
 export type App = { Bindings: Env; Variables: { sessao: Sessao } }
@@ -17,13 +19,16 @@ export const PRECO_CENTAVOS = 4700          // R$ 47, SOS Birra, pagamento únic
 export const DIAS_ACESSO = 365              // acesso por 12 meses a partir da confirmação do pagamento
 export const MODULO_BASE = 'birra'
 export const MODULOS_IDS = ['birra', 'sono', 'telas', 'alimentacao', 'limites', 'escola', 'adolescencia']
+/** Pacote Família: um pedido que libera todos os módulos por 12 meses. */
+export const PACOTE = 'pacote'
+export const PRODUTOS_IDS = [...MODULOS_IDS, PACOTE]
 
 /** Preço de cada módulo em centavos. O SOS Birra é fixo; os demais vêm de PRECOS_MODULOS (indefinido = ainda não está à venda). */
 export function precosDe(env: Env): Record<string, number> {
   const out: Record<string, number> = { [MODULO_BASE]: PRECO_CENTAVOS }
   try {
     const extra = JSON.parse(env.PRECOS_MODULOS || '{}')
-    for (const id of MODULOS_IDS) if (id !== MODULO_BASE && Number.isInteger(extra[id]) && extra[id] >= 500) out[id] = extra[id]
+    for (const id of PRODUTOS_IDS) if (id !== MODULO_BASE && Number.isInteger(extra[id]) && extra[id] >= 500) out[id] = extra[id]
   } catch { /* JSON inválido: nenhum módulo extra à venda */ }
   return out
 }
@@ -116,14 +121,36 @@ export async function acessoDe(env: Env, usuarioId: string, email: string): Prom
     return { ativo: true, ate: null, livre: true, modulos: Object.fromEntries(MODULOS_IDS.map(id => [id, { ativo: true, ate: null }])) }
   }
   const rs = await env.DB.prepare(`SELECT modulo, MAX(acesso_ate) AS ate FROM pedidos WHERE usuario_id=? AND status='pago' GROUP BY modulo`).bind(usuarioId).all<{ modulo: string; ate: string }>()
+  const ates: Record<string, string> = Object.fromEntries(rs.results.map(m => [m.modulo, m.ate]))
   const agora = agoraBanco()
   const modulos: Record<string, AcessoModulo> = {}
   let maior: string | null = null
-  for (const m of rs.results) {
-    modulos[m.modulo] = { ativo: m.ate > agora, ate: paraISO(m.ate) }
-    if (!maior || m.ate > maior) maior = m.ate
+  for (const id of MODULOS_IDS) {
+    // o Pacote Família vale para todos os módulos; vale o prazo mais longo entre o módulo e o pacote
+    const ate = [ates[id], ates[PACOTE]].filter(Boolean).sort().pop()
+    if (!ate) continue
+    modulos[id] = { ativo: ate > agora, ate: paraISO(ate) }
+    if (!maior || ate > maior) maior = ate
   }
   return { ativo: !!maior && maior > agora, ate: maior ? paraISO(maior) : null, livre: false, modulos }
+}
+
+/** Oferta de boas-vindas: quem acabou de pagar o SOS Birra pode levar um módulo por preço especial, por tempo limitado.
+    Vale uma vez, só para quem ainda não tem o módulo nem o pacote. */
+export type Oferta = { modulo: string; preco: number; precoNormal: number; ate: string }
+export async function ofertaDe(env: Env, usuarioId: string): Promise<Oferta | null> {
+  let cfg: any
+  try { cfg = JSON.parse(env.OFERTA_POS_COMPRA || 'null') } catch { return null }
+  const normal = precosDe(env)[cfg?.modulo]
+  if (!cfg || !MODULOS_IDS.includes(cfg.modulo) || cfg.modulo === MODULO_BASE || !Number.isInteger(cfg.preco) || cfg.preco < 500 || !normal || cfg.preco >= normal) return null
+  const horas = Number.isFinite(cfg.horas) && cfg.horas > 0 ? Math.min(cfg.horas, 24 * 14) : 72
+  const compra = await env.DB.prepare(`SELECT MAX(pago_em) AS em FROM pedidos WHERE usuario_id=? AND modulo=? AND status='pago'`).bind(usuarioId, MODULO_BASE).first<{ em: string | null }>()
+  if (!compra?.em) return null
+  const fim = paraBanco(new Date(new Date(paraISO(compra.em)).getTime() + horas * 36e5))
+  if (fim <= agoraBanco()) return null
+  const ja = await env.DB.prepare(`SELECT 1 FROM pedidos WHERE usuario_id=? AND modulo IN (?, ?) AND status='pago' LIMIT 1`).bind(usuarioId, cfg.modulo, PACOTE).first()
+  if (ja) return null
+  return { modulo: cfg.modulo, preco: cfg.preco, precoNormal: normal, ate: paraISO(fim) }
 }
 export const exigirAcesso: MiddlewareHandler<App> = async (c, next) => {
   const s = c.get('sessao')

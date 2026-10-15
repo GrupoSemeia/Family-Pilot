@@ -3,6 +3,7 @@
 window.FamilyPilot = { _on: false, start: function (C, conta) {
   window.FamilyPilot._on = true;
   const D = C.birra || null;                 // SOS Birra (telas próprias); null se a conta não tem esse módulo
+  const OFERTA = C.oferta || null;           // oferta de boas-vindas (módulo com preço especial por tempo limitado)
   const CAT = C.catalogo || [];              // vitrine: liberado, à venda ou em breve
   const $ = (s, r) => (r || document).querySelector(s);
   const byId = (arr, id) => arr.find((x) => x.id === id);
@@ -65,7 +66,7 @@ window.FamilyPilot = { _on: false, start: function (C, conta) {
         <a class="tool" href="#/radar"><b>📡 Radar de Gatilhos</b><span>Perceba o que costuma acontecer antes da birra.</span></a>
         <a class="tool" href="#/diario"><b>📓 Diário SOS</b><span>Registre episódios e o que funcionou.</span></a>
       </div>
-      ${meusModulos()}
+      ${ofertaCard()}${meusModulos()}
       <a class="outros" href="#/modulos">${CAT.some((m) => m.estado !== 'liberado') ? 'Conheça os outros módulos FamilyPilot →' : 'Ver todos os módulos →'}</a>
       ${aviso}`;
     },
@@ -177,16 +178,32 @@ window.FamilyPilot = { _on: false, start: function (C, conta) {
     },
 
     modulos() {
-      const preco = (c) => (c / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+      const preco = brl;
       return `${voltar('#/', 'Início')}<h1>Módulos FamilyPilot</h1>
       <p class="lead">Seu filho cresce, os desafios mudam. Você começa pelo problema que precisa resolver hoje.</p>
-      ${contaCard()}<ul class="mods">${CAT.map((m) => `<li class="mod${m.estado === 'liberado' ? ' on' : ''}">
+      ${contaCard()}${ofertaCard()}${pacoteCard()}<ul class="mods">${CAT.filter((m) => m.id !== 'pacote').map((m) => `<li class="mod${m.estado === 'liberado' ? ' on' : ''}">
         <span class="ico">${m.icone}</span><div><b>${esc(m.nome)}</b><p>${esc(m.frase)}</p><small>${esc(m.detalhe)}</small>
         ${m.estado === 'liberado' ? `<a class="btn mini-btn" href="${m.id === 'birra' ? '#/' : '#/m/' + m.id}">Abrir</a>${m.ate ? `<small> Acesso até ${new Date(m.ate).toLocaleDateString('pt-BR')}</small>` : ''}`
           : m.estado === 'a-venda' ? `<button class="btn mini-btn" data-act="comprar" data-id="${m.id}">Liberar por ${preco(m.preco)}</button><small> Pagamento único, 12 meses de acesso.</small>`
           : '<span class="status">Em breve</span>'}</div></li>`).join('')}</ul>${aviso}`;
     },
   };
+
+  const brl = (c) => (c / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  function ofertaCard() {
+    if (!OFERTA) return '';
+    const m = CAT.find((x) => x.id === OFERTA.modulo); if (!m) return '';
+    const ate = new Date(OFERTA.ate).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+    return `<div class="card oferta"><b>🎁 Oferta de boas-vindas</b><p>${esc(m.nome)} por <b>${brl(OFERTA.preco)}</b> <s>${brl(OFERTA.precoNormal)}</s>, só até ${ate}.</p>
+      <button class="btn mini-btn" data-act="comprar-oferta">Quero o ${esc(m.nome)}</button></div>`;
+  }
+  function pacoteCard() {
+    const p = CAT.find((m) => m.id === 'pacote');
+    if (!p || p.estado !== 'a-venda') return '';
+    return `<div class="card pacote"><b>🎁 Pacote Família: todos os 7 módulos</b>
+      <p>${brl(p.preco)} <small>em vez de ${p.somaSeparados ? brl(p.somaSeparados) : 'comprar um a um'}${p.somaSeparados ? ' se comprados separados' : ''}. Pagamento único, 12 meses de acesso.</small></p>
+      <button class="btn mini-btn" data-act="comprar" data-id="pacote">Liberar todos por ${brl(p.preco)}</button></div>`;
+  }
 
   function meusModulos() {
     const ok = CAT.filter((m) => m.estado === 'liberado' && m.id !== 'birra');
@@ -195,7 +212,7 @@ window.FamilyPilot = { _on: false, start: function (C, conta) {
   }
   function homeGeral() {
     return `<section class="hero-app"><p class="eyebrow">FamilyPilot</p><h1>Olá, ${esc(conta.usuario.nome.split(' ')[0])}</h1><p>Escolha por onde começar hoje.</p></section>
-    ${meusModulos()}<a class="outros" href="#/modulos">Ver todos os módulos →</a>${aviso}`;
+    ${ofertaCard()}${meusModulos()}<a class="outros" href="#/modulos">Ver todos os módulos →</a>${aviso}`;
   }
 
   function contaCard() {
@@ -370,6 +387,7 @@ window.FamilyPilot = { _on: false, start: function (C, conta) {
       case 'copiar': copiar(el.dataset.t); break;
       case 'sair': window.FamilyAuth.sair(); break;
       case 'comprar': window.FamilyAuth.comprar(CAT.find((m) => m.id === el.dataset.id)); break;
+      case 'comprar-oferta': { const m = CAT.find((x) => x.id === OFERTA.modulo); window.FamilyAuth.comprar({ id: m.id, nome: m.nome + ' (oferta de boas-vindas)', preco: OFERTA.preco, oferta: true }); break; }
       case 'pausa-iniciar': pausaIniciar(); break;
       case 'pausa-parar': pausaParar(); break;
       case 'tag': { const q = $('#r-quando'); if (q) R.quando = q.value; toggle(R.tags, v); reRender(); break; }

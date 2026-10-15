@@ -11,8 +11,10 @@
   ],
   // ACESSO_LIVRE: e-mails com acesso liberado sem pagar (equipe, testadores), separados por vírgula.
   // ASAAS_URL: produção. Chave de teste da Asaas ($aact_hmlg_…) usa o sandbox sozinha.
-  // PRECOS_MODULOS: preço (em centavos) dos módulos à venda, em JSON. Ex.: {"sono":2700,"telas":2700}. Módulo sem preço aparece como "em breve".
-  "vars": { "ASAAS_URL": "https://api.asaas.com/v3", "ACESSO_LIVRE": "gruposemeiadigital@gmail.com", "PRECOS_MODULOS": "{}" },
+  // PRECOS_MODULOS: preço (em centavos) de cada módulo e do "pacote" (todos os módulos), em JSON. Sem preço, o módulo aparece como "em breve".
+  "vars": { "ASAAS_URL": "https://api.asaas.com/v3", "ACESSO_LIVRE": "gruposemeiadigital@gmail.com", "PRECOS_MODULOS": "{\"sono\":3700,\"telas\":3700,\"alimentacao\":3700,\"limites\":3700,\"escola\":3700,\"adolescencia\":4700,\"pacote\":14700}",
+    // Oferta de boas-vindas: depois de pagar o SOS Birra, o SOS Sono sai por R$ 27 durante 72 horas (uma vez).
+    "OFERTA_POS_COMPRA": "{\"modulo\":\"sono\",\"preco\":2700,\"horas\":72}" },
   // segredos (não ficam no código):  npx wrangler secret put ASAAS_API_KEY   e   npx wrangler secret put ASAAS_WEBHOOK_TOKEN
   "observability": { "enabled": true }
 }

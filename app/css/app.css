@@ -117,3 +117,6 @@ a{color:inherit}
 .ideias li{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:8px 0}
 .recurso b{font-family:Nunito,sans-serif;font-size:1.1rem}
 a.alerta:hover{filter:brightness(.97)}
+
+.card.oferta,.card.pacote{border:2px solid var(--gold);background:#fff9ea}
+.card.oferta s,.card.pacote s{color:var(--muted)}

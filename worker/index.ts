@@ -1,5 +1,5 @@
 import { Hono } from 'hono'
-import { type App, ErroApp, exigirLogin, exigirAcesso, acessoDe, precosDe, MODULOS_IDS } from './lib'
+import { type App, ErroApp, exigirLogin, exigirAcesso, acessoDe, precosDe, ofertaDe, MODULOS_IDS, PACOTE } from './lib'
 import { auth } from './routes/auth'
 import { pagamento, asaasWebhook } from './routes/pagamento'
 import { CONTEUDO } from './conteudo'
@@ -30,14 +30,18 @@ app.route('/api/asaas/webhook', asaasWebhook)
 app.get('/api/conteudo', exigirLogin, exigirAcesso, async c => {
   const s = c.get('sessao'), ac = await acessoDe(c.env, s.usuarioId, s.email), precos = precosDe(c.env)
   const liberado = (id: string) => !!ac.modulos[id]?.ativo
-  const catalogo = MODULOS_IDS.map(id => ({
+  const catalogo: any[] = MODULOS_IDS.map(id => ({
     id, ...CATALOGO[id], estado: liberado(id) ? 'liberado' : precos[id] ? 'a-venda' : 'em-breve',
     preco: precos[id] ?? null, ate: ac.modulos[id]?.ate ?? null,
   }))
+  // Pacote Família: aparece como "a venda" enquanto faltar algum módulo. "somaSeparados" é o que custaria comprar um a um.
+  const soma = MODULOS_IDS.every(id => precos[id]) ? MODULOS_IDS.reduce((t, id) => t + precos[id], 0) : null
+  catalogo.push({ id: PACOTE, ...CATALOGO[PACOTE], estado: MODULOS_IDS.every(liberado) ? 'liberado' : precos[PACOTE] ? 'a-venda' : 'em-breve', preco: precos[PACOTE] ?? null, somaSeparados: soma, ate: null })
   return c.json({
     birra: liberado('birra') ? CONTEUDO : null,
     modulos: Object.fromEntries(Object.entries(MODULOS).filter(([id]) => liberado(id))),
     catalogo,
+    oferta: await ofertaDe(c.env, s.usuarioId),
   })
 })
 

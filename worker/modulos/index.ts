@@ -17,5 +17,6 @@ export const CATALOGO: Record<string, { nome: string; icone: string; frase: stri
   alimentacao: { nome: 'SOS Alimentação', icone: '🍽️', frase: 'Quando a hora de comer vira um momento de tensão.', detalhe: 'Refeições organizadas e orientações educativas para a resistência alimentar.' },
   limites: { nome: 'SOS Limites', icone: '❤️', frase: 'Quando você precisa dizer não, mas não sabe como.', detalhe: 'Frases e estratégias para limites adequados à idade.' },
   escola: { nome: 'SOS Escola', icone: '🎒', frase: 'Quando surgem dificuldades com tarefas, amizades ou adaptação escolar.', detalhe: 'Organize situações escolares e prepare conversas com professores e responsáveis.' },
+  pacote: { nome: 'Pacote Família: todos os 7 módulos', icone: '🎁', frase: 'Todos os módulos do FamilyPilot por um preço único.', detalhe: 'SOS Birra, Sono, Telas, Alimentação, Limites, Escola e Adolescência, com 12 meses de acesso.' },
   adolescencia: { nome: 'SOS Adolescência', icone: '🌱', frase: 'Quando conversar com seu filho parece cada vez mais difícil.', detalhe: 'Ferramentas para conversas sobre autonomia, conflitos familiares e vida digital.' },
 }
