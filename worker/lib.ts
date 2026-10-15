@@ -136,12 +136,17 @@ export function precosCheios(env: Env): Record<string, number> {
 }
 
 export type AcessoModulo = { ativo: boolean; ate: string | null }
-export type Acesso = { ativo: boolean; ate: string | null; livre: boolean; modulos: Record<string, AcessoModulo> }
+export type Acesso = { ativo: boolean; ate: string | null; livre: boolean; modulos: Record<string, AcessoModulo>; livrePendente?: boolean }
 /** Por módulo, o acesso vale até o maior "acesso_ate" dos pedidos pagos (reembolsados não contam).
     "ativo"/"ate" do topo valem para qualquer módulo (quem tem algum módulo entra no app). */
 export async function acessoDe(env: Env, usuarioId: string, email: string): Promise<Acesso> {
+  // Acesso liberado pela equipe (super usuário): todos os módulos, sem prazo e sem pagamento. Só vale se o e-mail foi confirmado
+  // (login com o Google ou "Esqueci minha senha"): sem isso, qualquer pessoa poderia criar conta com o e-mail de alguém da equipe.
+  let livrePendente = false
   if (acessoLivre(env, email)) {
-    return { ativo: true, ate: null, livre: true, modulos: Object.fromEntries(MODULOS_IDS.map(id => [id, { ativo: true, ate: null }])) }
+    const v = await env.DB.prepare('SELECT email_verificado_em AS v FROM usuarios WHERE id=?').bind(usuarioId).first<{ v: string | null }>()
+    if (v?.v) return { ativo: true, ate: null, livre: true, modulos: Object.fromEntries(MODULOS_IDS.map(id => [id, { ativo: true, ate: null }])) }
+    livrePendente = true
   }
   const rs = await env.DB.prepare(`SELECT modulo, MAX(acesso_ate) AS ate FROM pedidos WHERE usuario_id=? AND status='pago' GROUP BY modulo`).bind(usuarioId).all<{ modulo: string; ate: string }>()
   const ates: Record<string, string> = Object.fromEntries(rs.results.map(m => [m.modulo, m.ate]))
@@ -155,7 +160,7 @@ export async function acessoDe(env: Env, usuarioId: string, email: string): Prom
     modulos[id] = { ativo: ate > agora, ate: paraISO(ate) }
     if (!maior || ate > maior) maior = ate
   }
-  return { ativo: !!maior && maior > agora, ate: maior ? paraISO(maior) : null, livre: false, modulos }
+  return { ativo: !!maior && maior > agora, ate: maior ? paraISO(maior) : null, livre: false, modulos, ...(livrePendente ? { livrePendente } : {}) }
 }
 
 /** Oferta de boas-vindas: quem acabou de pagar o SOS Birra pode levar um módulo por preço especial, por tempo limitado.

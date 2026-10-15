@@ -35,7 +35,7 @@ const mock = createServer((req, res) => {
   })
 }).listen(MOCK)
 
-const wr = spawn('npx', ['wrangler', 'dev', '--port', String(PORTA), '--var', `ASAAS_URL:http://127.0.0.1:${MOCK}`, '--var', 'ASAAS_API_KEY:chave-teste', '--var', `ASAAS_WEBHOOK_TOKEN:${TOKEN}`, '--var', 'ACESSO_LIVRE:', '--var', 'APP_URL:https://www.teste.local', '--var', `GOOGLE_CLIENT_ID:${GOOGLE_ID}`, '--var', `GOOGLE_CERTS_URL:http://127.0.0.1:${MOCK}/certs`, '--var', 'RESEND_API_KEY:rk-teste', '--var', 'EMAIL_DE:FamilyPilot <nao-responda@teste.com>', '--var', `RESEND_URL:http://127.0.0.1:${MOCK}`, '--var', 'PRECOS_MODULOS:{"sono":3700,"adolescencia":4700,"pacote":9900}', '--var', 'PRECOS_DE:{"sono":7700,"telas":100}', '--var', 'OFERTA_POS_COMPRA:{"modulo":"sono","preco":2700,"horas":72}'], { stdio: 'pipe', detached: true })
+const wr = spawn('npx', ['wrangler', 'dev', '--port', String(PORTA), '--var', `ASAAS_URL:http://127.0.0.1:${MOCK}`, '--var', 'ASAAS_API_KEY:chave-teste', '--var', `ASAAS_WEBHOOK_TOKEN:${TOKEN}`, '--var', `ACESSO_LIVRE:super${S}@gmail.com, equipe${S}@teste.com`, '--var', 'APP_URL:https://www.teste.local', '--var', `GOOGLE_CLIENT_ID:${GOOGLE_ID}`, '--var', `GOOGLE_CERTS_URL:http://127.0.0.1:${MOCK}/certs`, '--var', 'RESEND_API_KEY:rk-teste', '--var', 'EMAIL_DE:FamilyPilot <nao-responda@teste.com>', '--var', `RESEND_URL:http://127.0.0.1:${MOCK}`, '--var', 'PRECOS_MODULOS:{"sono":3700,"adolescencia":4700,"pacote":9900}', '--var', 'PRECOS_DE:{"sono":7700,"telas":100}', '--var', 'OFERTA_POS_COMPRA:{"modulo":"sono","preco":2700,"horas":72}'], { stdio: 'pipe', detached: true })
 let log = ''; wr.stdout.on('data', d => (log += d)); wr.stderr.on('data', d => (log += d))
 const fim = (cod) => { try { process.kill(-wr.pid, 'SIGTERM') } catch { wr.kill('SIGTERM') }; mock.close(); process.exit(cod) }
 
@@ -270,6 +270,30 @@ try {
   assert.deepEqual(enviados, [{ from: { email: 'nao-responda@familypilot.com.br', name: 'FamilyPilot' }, to: 'mae@exemplo.com', subject: 'Assunto', html: '<p>oi</p>', text: 'oi' }], 'chama env.EMAIL.send com o formato da Cloudflare')
   const quebrado = { send: async () => { const e = new Error('domínio não verificado'); e.code = 'E_SENDER_NOT_VERIFIED'; throw e } }
   await enviarEmail({ EMAIL_DE: DE, EMAIL: quebrado }, { para: 'x@y.com', assunto: 'a', html: 'b', texto: 'c' })   // não pode lançar erro
+
+  // super usuário (ACESSO_LIVRE): todos os módulos, sem prazo e sem pagamento, mas só com o e-mail confirmado
+  const adm = cliente(), emailAdm = `super${S}@gmail.com`
+  r = await adm('POST', '/api/auth/cadastro', { nome: 'Intruso', email: emailAdm, senha: 'senha-do-intruso-1', aceite: true })
+  assert.equal(r.d.acesso.ativo, false, 'quem cria conta com o e-mail da equipe, sem confirmar, não ganha acesso')
+  assert.equal(r.d.acesso.livrePendente, true, 'o app explica que falta confirmar o e-mail')
+  assert.equal((await adm('GET', '/api/conteudo')).status, 402)
+  // o dono entra com o Google (e-mail verificado): a conta é do dono e vira super usuário
+  const dono = cliente()
+  r = await dono('POST', '/api/auth/google', { credential: tokenGoogle({ sub: 'sub-super-' + S, email: emailAdm, name: 'Grupo Semeia' }) })
+  assert.equal(r.status, 200); assert.equal(r.d.acesso.livre, true); assert.equal(r.d.acesso.ativo, true); assert.equal(r.d.acesso.ate, null, 'sem prazo')
+  assert.equal(Object.values(r.d.acesso.modulos).filter(m => m.ativo).length, 7, 'os 7 módulos')
+  assert.equal((await adm('GET', '/api/auth/eu')).d.usuario, null, 'a sessão do intruso caiu')
+  r = await dono('GET', '/api/conteudo')
+  assert.equal(r.status, 200); assert.ok(r.d.birra); assert.equal(Object.keys(r.d.modulos).length, 6, 'conteúdo de todos os módulos')
+  assert.ok(r.d.catalogo.every(m => m.estado === 'liberado'), 'tudo liberado, inclusive o pacote')
+  assert.equal(r.d.oferta, null)
+  // outro membro da equipe, com senha: confirma o e-mail pelo "Esqueci minha senha" e então ganha acesso total
+  const eq = cliente(), emailEq = `equipe${S}@teste.com`
+  r = await eq('POST', '/api/auth/cadastro', { nome: 'Equipe', email: emailEq, senha: 'senha-equipe-1', aceite: true })
+  assert.equal(r.d.acesso.ativo, false); assert.equal(r.d.acesso.livrePendente, true)
+  await pedir(emailEq); const tokenEq = /#\/nova-senha\/([\w-]+)/.exec(emails.at(-1).text)[1]
+  r = await cliente()('POST', '/api/auth/nova-senha', { token: tokenEq, senha: 'senha-equipe-2' })
+  assert.equal(r.d.acesso.livre, true, 'depois de confirmar o e-mail pelo link, o acesso da equipe vale')
 
   // logout
   await rec('POST', '/api/auth/sair', {}); assert.equal((await rec('GET', '/api/conteudo')).status, 401)

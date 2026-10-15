@@ -134,6 +134,7 @@
     tela(`<section class="hero-app"><p class="eyebrow">Olá, ${esc(me.usuario.nome.split(' ')[0])}</p>
       <h1>${dentro ? 'Liberar ' + esc(item.nome) : renovar ? 'Seu acesso terminou' : 'Falta só liberar o acesso'}</h1>
       <p>${renovar ? 'Renove para continuar usando o SOS Birra.' : 'Pagamento único, sem mensalidade.'}</p></section>
+      ${me.acesso && me.acesso.livrePendente ? '<div class="alerta"><b>Seu e-mail tem acesso liberado pela equipe, mas ainda não foi confirmado.</b> Saia e entre com o <b>Google</b>, ou use <b>Esqueci minha senha</b> para confirmar que o e-mail é seu. Depois disso o acesso total é liberado.</div>' : ''}
       <div class="card preco"><b>${esc(item.nome)}</b>
         ${item.precoCheio ? `<div class="de"><s>de ${brl(item.precoCheio)}</s> <span class="selo-lanc">preço de lançamento</span></div>` : ''}
         <div class="valor">${brl(item.preco)}</div>

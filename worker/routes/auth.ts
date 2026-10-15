@@ -99,7 +99,7 @@ auth.post('/nova-senha', async c => {
   if ((uso.meta.changes ?? 0) !== 1) throw erro(400, 'Este link não vale mais. Peça um novo em "Esqueci minha senha".')
   const u = await db.prepare('SELECT id, nome, email FROM usuarios WHERE id=?').bind(r.usuario_id).first<any>()
   await db.batch([
-    db.prepare('UPDATE usuarios SET senha_hash=? WHERE id=?').bind(await hashSenha(senha), u.id),
+    db.prepare('UPDATE usuarios SET senha_hash=?, email_verificado_em=COALESCE(email_verificado_em, ?) WHERE id=?').bind(await hashSenha(senha), agoraBanco(), u.id),   // o link chegou na caixa de entrada: e-mail confirmado
     db.prepare('DELETE FROM sessoes WHERE usuario_id=?').bind(u.id),                       // derruba todas as sessões antigas
     db.prepare('DELETE FROM senha_resets WHERE usuario_id=? AND id<>?').bind(u.id, r.id),  // invalida os outros links pendentes
     db.prepare('DELETE FROM falhas_login WHERE email=?').bind(u.email),
@@ -124,18 +124,19 @@ auth.post('/google', async c => {
       // Se a conta nunca pagou nada, pode ter sido criada por outra pessoa com o e-mail alheio: trocamos a senha por uma
       // impossível e derrubamos as sessões, para quem criou antes não continuar com acesso.
       const pago = await db.prepare(`SELECT 1 FROM pedidos WHERE usuario_id=? AND status='pago' LIMIT 1`).bind(u.id).first()
-      const lote = [db.prepare('UPDATE usuarios SET google_sub=? WHERE id=?').bind(g.sub, u.id)]
+      const lote = [db.prepare('UPDATE usuarios SET google_sub=?, email_verificado_em=COALESCE(email_verificado_em, ?) WHERE id=?').bind(g.sub, agoraBanco(), u.id)]
       if (!pago) lote.push(db.prepare('UPDATE usuarios SET senha_hash=? WHERE id=?').bind('google$sem-senha$' + tokenAleatorio(24), u.id), db.prepare('DELETE FROM sessoes WHERE usuario_id=?').bind(u.id))
       await db.batch(lote)
     } else {
       // conta nova: precisa do aceite dos Termos e da Política (o app envia "aceite" depois de mostrar o aviso)
       if (b.aceite !== true) throw erro(400, 'Para criar a conta, aceite os Termos de Uso e a Política de Privacidade.')
       const id = novoId()
-      await db.prepare('INSERT INTO usuarios (id, nome, email, senha_hash, google_sub, aceite_em, aceite_versao) VALUES (?,?,?,?,?,?,?)')
-        .bind(id, g.nome, g.email, 'google$sem-senha$' + tokenAleatorio(24), g.sub, agoraBanco(), VERSAO_TERMOS).run()
+      await db.prepare('INSERT INTO usuarios (id, nome, email, senha_hash, google_sub, aceite_em, aceite_versao, email_verificado_em) VALUES (?,?,?,?,?,?,?,?)')
+        .bind(id, g.nome, g.email, 'google$sem-senha$' + tokenAleatorio(24), g.sub, agoraBanco(), VERSAO_TERMOS, agoraBanco()).run()
       u = { id, nome: g.nome, email: g.email }
     }
   }
+  await db.prepare('UPDATE usuarios SET email_verificado_em=? WHERE id=? AND email_verificado_em IS NULL').bind(agoraBanco(), u.id).run()   // quem entra pelo Google tem e-mail confirmado (contas antigas incluídas)
   await criarSessao(c, u.id)
   return c.json(await resposta(c, { usuarioId: u.id, nome: u.nome, email: u.email }))
 })

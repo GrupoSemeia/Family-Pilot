@@ -46,14 +46,16 @@ O endereço sem `www` (`familypilot.com.br`) também é atendido pelo Worker e r
 ## Publicar na Cloudflare (uma vez)
     npm install
     # banco "family-pilot" já criado (id em wrangler.jsonc)
-    npm run db:remote                            # migrações novas (0001 a 0005 já estão aplicadas no banco criado)
+    npm run db:remote                            # migrações novas (0001 a 0006 já estão aplicadas no banco criado)
     npx wrangler secret put ASAAS_API_KEY        # chave da Asaas (teste: $aact_hmlg_… usa o sandbox sozinha)
     npx wrangler secret put ASAAS_WEBHOOK_TOKEN  # texto secreto qualquer; o mesmo vai na Asaas
     npm run deploy
 
 Na Asaas (Integrações → Webhooks): URL `https://www.familypilot.com.br/api/asaas/webhook`, o mesmo token no campo de
 autenticação e os eventos de **Cobranças** (confirmada, recebida, estornada/reembolsada, chargeback, removida).
-`ACESSO_LIVRE` em `wrangler.jsonc` lista e-mails com acesso grátis (equipe e testadores).
+`ACESSO_LIVRE` em `wrangler.jsonc` lista os **super usuários** (hoje `gruposemeiadigital@gmail.com`): veem todos os módulos, sem prazo e sem pagar.
+O acesso só vale com o **e-mail confirmado**, para ninguém ganhar acesso criando conta com o e-mail da equipe: entre com o **Google** (que já confirma) ou conclua o **"Esqueci minha senha"**.
+Enquanto não confirmar, a pessoa vê um aviso explicando o que fazer (`livrePendente`).
 
 ## Termos de Uso e Política de Privacidade
 Páginas públicas `/termos` e `/privacidade` (`app/termos.html` e `app/privacidade.html`), com a empresa **Semeia Digital Consultoria em TI LTDA, CNPJ 69.290.380/0001-42**,
