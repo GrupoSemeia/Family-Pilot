@@ -3,9 +3,17 @@ import { type App, ErroApp, exigirLogin, exigirAcesso, lerSessao, acessoDe, prec
 import { auth } from './routes/auth'
 import { pagamento, asaasWebhook } from './routes/pagamento'
 import { CONTEUDO } from './conteudo'
+import { redirecionarSemWww } from './dominio'
 import { MODULOS, CATALOGO } from './modulos'
 
 const app = new Hono<App>()
+
+// O endereço sem "www" vai para o endereço principal (APP_URL)
+app.use('*', async (c, next) => {
+  const r = redirecionarSemWww(c.env.APP_URL, c.req.url, c.req.method)
+  if (r) return c.redirect(r.destino, r.status)
+  await next()
+})
 
 app.onError((e, c) => {
   if (e instanceof ErroApp) return c.json({ erro: e.message }, e.status as any)
@@ -44,6 +52,10 @@ app.get('/api/conteudo', exigirLogin, exigirAcesso, async c => {
     oferta: await ofertaDe(c.env, s.usuarioId),
   })
 })
+
+// Páginas que passam pelo Worker só para poder redirecionar o endereço sem "www"; o conteúdo é o mesmo arquivo estático.
+app.get('/entrar', c => c.env.ASSETS.fetch(c.req.raw))
+app.get('/inicio', c => c.env.ASSETS.fetch(c.req.raw))
 
 // "/" : quem está logado abre o app; quem não está vê a página de vendas (app/inicio.html). Os botões da página levam a /entrar.
 app.get('/', async c => {

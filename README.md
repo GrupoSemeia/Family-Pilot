@@ -41,7 +41,7 @@ Ferramentas disponíveis: `situacoes`, `rotinaSono`, `combinado`, `ideias`, `mod
 O Worker atende `www.familypilot.com.br` como domínio personalizado (`routes` no `wrangler.jsonc`). Para o deploy funcionar,
 a zona `familypilot.com.br` precisa estar na mesma conta Cloudflare do Worker (o registro DNS do `www` é criado sozinho; não crie A/CNAME à mão).
 `/` mostra a página de vendas para quem não está logado e o app para quem está; `/entrar` sempre abre o app (login e cadastro).
-O endereço sem `www` (`familypilot.com.br`) não está configurado.
+O endereço sem `www` (`familypilot.com.br`) também é atendido pelo Worker e redireciona para o `www` (301 nos GET, 308 nos demais; regra em `worker/dominio.ts`, baseada em `APP_URL`).
 
 ## Publicar na Cloudflare (uma vez)
     npm install

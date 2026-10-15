@@ -4,9 +4,12 @@
   "main": "worker/index.ts",
   "compatibility_date": "2026-09-25",
   // App (pasta app/) + API no mesmo Worker. Só /api/* passa primeiro pelo Worker; o resto é arquivo estático.
-  "assets": { "directory": "./app", "binding": "ASSETS", "not_found_handling": "single-page-application", "run_worker_first": ["/", "/api/*"] },
+  "assets": { "directory": "./app", "binding": "ASSETS", "not_found_handling": "single-page-application", "run_worker_first": ["/", "/entrar", "/inicio", "/api/*"] },
   // Endereço do app e da página de vendas. A zona familypilot.com.br precisa estar na conta Cloudflare; o DNS é criado sozinho.
-  "routes": [{ "pattern": "www.familypilot.com.br", "custom_domain": true }],
+  "routes": [
+    { "pattern": "www.familypilot.com.br", "custom_domain": true },
+    { "pattern": "familypilot.com.br", "custom_domain": true }   // sem "www": o Worker redireciona para o www
+  ],
   // Banco criado na conta Cloudflare do Grupo Semeia Digital (migração 0001 já aplicada).
   "d1_databases": [
     { "binding": "DB", "database_name": "family-pilot", "database_id": "d8e9c4ce-912c-4ec5-81a9-cecdde039683", "migrations_dir": "migrations" }

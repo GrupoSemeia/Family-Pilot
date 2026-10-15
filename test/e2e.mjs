@@ -1,6 +1,6 @@
 /* Teste de ponta a ponta: sobe uma Asaas falsa, o Worker local (wrangler dev) e percorre cadastro → pagamento → acesso.
    Rodar:  npm run db:local && npm run test:e2e */
-import { createServer } from 'node:http'
+import { createServer, request as httpRequest } from 'node:http'
 import { spawn, execFileSync } from 'node:child_process'
 import assert from 'node:assert/strict'
 import { generateKeyPairSync, sign as assinar } from 'node:crypto'
@@ -35,7 +35,7 @@ const mock = createServer((req, res) => {
   })
 }).listen(MOCK)
 
-const wr = spawn('npx', ['wrangler', 'dev', '--port', String(PORTA), '--var', `ASAAS_URL:http://127.0.0.1:${MOCK}`, '--var', 'ASAAS_API_KEY:chave-teste', '--var', `ASAAS_WEBHOOK_TOKEN:${TOKEN}`, '--var', 'ACESSO_LIVRE:', '--var', `GOOGLE_CLIENT_ID:${GOOGLE_ID}`, '--var', `GOOGLE_CERTS_URL:http://127.0.0.1:${MOCK}/certs`, '--var', 'RESEND_API_KEY:rk-teste', '--var', 'EMAIL_DE:FamilyPilot <nao-responda@teste.com>', '--var', `RESEND_URL:http://127.0.0.1:${MOCK}`, '--var', 'PRECOS_MODULOS:{"sono":3700,"adolescencia":4700,"pacote":9900}', '--var', 'PRECOS_DE:{"sono":7700,"telas":100}', '--var', 'OFERTA_POS_COMPRA:{"modulo":"sono","preco":2700,"horas":72}'], { stdio: 'pipe', detached: true })
+const wr = spawn('npx', ['wrangler', 'dev', '--port', String(PORTA), '--var', `ASAAS_URL:http://127.0.0.1:${MOCK}`, '--var', 'ASAAS_API_KEY:chave-teste', '--var', `ASAAS_WEBHOOK_TOKEN:${TOKEN}`, '--var', 'ACESSO_LIVRE:', '--var', 'APP_URL:https://www.teste.local', '--var', `GOOGLE_CLIENT_ID:${GOOGLE_ID}`, '--var', `GOOGLE_CERTS_URL:http://127.0.0.1:${MOCK}/certs`, '--var', 'RESEND_API_KEY:rk-teste', '--var', 'EMAIL_DE:FamilyPilot <nao-responda@teste.com>', '--var', `RESEND_URL:http://127.0.0.1:${MOCK}`, '--var', 'PRECOS_MODULOS:{"sono":3700,"adolescencia":4700,"pacote":9900}', '--var', 'PRECOS_DE:{"sono":7700,"telas":100}', '--var', 'OFERTA_POS_COMPRA:{"modulo":"sono","preco":2700,"horas":72}'], { stdio: 'pipe', detached: true })
 let log = ''; wr.stdout.on('data', d => (log += d)); wr.stderr.on('data', d => (log += d))
 const fim = (cod) => { try { process.kill(-wr.pid, 'SIGTERM') } catch { wr.kill('SIGTERM') }; mock.close(); process.exit(cod) }
 
@@ -236,6 +236,15 @@ try {
   pg = await cliente().pagina('/entrar'); assert.match(pg.texto, /id="app"/, '/entrar abre o app')
   pg = await cliente().pagina('/inicio'); assert.match(pg.texto, /Seu filho faz birra/, '/inicio é a página de vendas')
   assert.equal((await cliente().pagina('/README.md')).texto.includes('# Family Pilot'), false, 'README não é publicado')
+
+  // endereço sem "www" redireciona para o principal (regra isolada em worker/dominio.ts)
+  const { redirecionarSemWww } = await import('../worker/dominio.ts')
+  const APP = 'https://www.familypilot.com.br'
+  assert.deepEqual(redirecionarSemWww(APP, 'https://familypilot.com.br/entrar?criar=1&comprar=pacote', 'GET'), { destino: `${APP}/entrar?criar=1&comprar=pacote`, status: 301 }, 'GET sem www vai para o www')
+  assert.deepEqual(redirecionarSemWww(APP, 'https://familypilot.com.br/', 'GET'), { destino: `${APP}/`, status: 301 })
+  assert.deepEqual(redirecionarSemWww(APP, 'https://familypilot.com.br/api/asaas/webhook', 'POST'), { destino: `${APP}/api/asaas/webhook`, status: 308 }, 'POST mantém o método (308)')
+  for (const [app, url] of [[APP, 'https://www.familypilot.com.br/entrar'], [APP, 'http://127.0.0.1:8787/'], [APP, 'https://outro.com.br/'], ['', 'https://familypilot.com.br/'], ['https://app.exemplo.com.br', 'https://exemplo.com.br/'], ['lixo', 'https://familypilot.com.br/']])
+    assert.equal(redirecionarSemWww(app, url, 'GET'), null, 'não redireciona ' + url)
 
   // logout
   await rec('POST', '/api/auth/sair', {}); assert.equal((await rec('GET', '/api/conteudo')).status, 401)
