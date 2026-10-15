@@ -16,7 +16,8 @@
   }
   const guardar = (v) => { try { v === null ? localStorage.removeItem(CK) : localStorage.setItem(CK, JSON.stringify(v)); } catch (e) { /* sem armazenamento */ } };
   const lerCache = () => { try { return JSON.parse(localStorage.getItem(CK) || 'null'); } catch (e) { return null; } };
-  const tela = (html) => { $('#tabs').hidden = true; $('#app').innerHTML = html; $('#app').focus({ preventScroll: true }); window.scrollTo(0, 0); };
+  const sairVisivel = (v) => { $('#btn-sair').hidden = !v; };   // botão "Sair" do topo: aparece em toda tela de quem está logado
+  const tela = (html) => { sairVisivel(!!(me && me.usuario)); $('#tabs').hidden = true; $('#app').innerHTML = html; $('#app').focus({ preventScroll: true }); window.scrollTo(0, 0); };
   const msg = (t, ok) => { const e = $('#msg'); if (e) { e.textContent = t || ''; e.className = 'msg' + (ok ? ' ok' : ''); } };
   const ocupado = (btn, on, txt) => { btn.disabled = on; if (txt) btn.textContent = txt; };
 
@@ -190,6 +191,7 @@
       const conteudo = await api('GET', '/api/conteudo');
       guardar({ me, conteudo });
       history.replaceState(null, '', location.pathname + location.hash);
+      sairVisivel(true);
       window.FamilyPilot.start(conteudo, me);
     } catch (e) {
       if (e.status === 402) { me.acesso.ativo = false; return telaAssinar(); }
@@ -202,13 +204,17 @@
   function offline() {
     const c = lerCache();
     if (c && c.me && c.me.acesso && (c.me.acesso.livre || (c.me.acesso.ate && new Date(c.me.acesso.ate) > new Date()))) {
-      window.FamilyPilot.start(c.conteudo, c.me); return;
+      sairVisivel(true); window.FamilyPilot.start(c.conteudo, c.me); return;
     }
     tela('<section class="hero-app"><h1>Sem conexão</h1><p>Conecte-se à internet para entrar.</p></section><button class="btn" onclick="location.reload()">Tentar de novo</button>');
   }
 
   async function sair() {
-    try { await api('POST', '/api/auth/sair', {}); } catch (e) { /* segue mesmo assim */ }
+    try { await api('POST', '/api/auth/sair', {}); }
+    catch (e) {
+      // sem internet não dá para encerrar a sessão no servidor: avisa em vez de fingir que saiu
+      if (!e.status) return alert('Sem conexão com a internet. Conecte-se para sair da conta.');
+    }
     guardar(null); location.href = location.pathname;
   }
 
@@ -222,6 +228,7 @@
   // ao voltar da página de pagamento, confere sozinho
   document.addEventListener('visibilitychange', () => { if (!document.hidden && me && me.usuario && $('#ja-paguei')) verificar(); });
 
+  $('#btn-sair').onclick = sair;
   window.FamilyAuth = { sair, comprar: (item) => { if (item) telaAssinar({ id: item.id, nome: item.nome, preco: item.preco, precoCheio: item.precoCheio, oferta: !!item.oferta }); } };
   iniciar();
 })();
