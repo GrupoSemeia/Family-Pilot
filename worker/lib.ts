@@ -13,6 +13,8 @@ export type Env = {
   PRECOS_DE?: string
   /** E-mail (Resend): chave da API (segredo), remetente com domínio verificado e, se quiser, o endereço público do app. */
   RESEND_API_KEY?: string; EMAIL_DE?: string; APP_URL?: string; RESEND_URL?: string
+  /** Cloudflare Email Service (binding send_email). Sem Resend configurado, é por aqui que os e-mails saem. */
+  EMAIL?: { send(msg: { from: string | { email: string; name?: string }; to: string; subject: string; html?: string; text?: string }): Promise<unknown> }
   /** Entrar com o Google: Client ID público do tipo "Aplicativo da Web" (vazio = botão escondido). GOOGLE_CERTS_URL só para testes. */
   GOOGLE_CLIENT_ID?: string; GOOGLE_CERTS_URL?: string
 }
@@ -117,8 +119,8 @@ export const exigirLogin: MiddlewareHandler<App> = async (c, next) => {
 }
 
 /* ---------- acesso pago ---------- */
-/** A recuperação de senha por e-mail só funciona com a chave do Resend e um remetente configurados. */
-export const emailAtivo = (env: Env) => !!(env.RESEND_API_KEY && env.EMAIL_DE)
+/** A recuperação de senha por e-mail só funciona com um remetente (EMAIL_DE) e um caminho de envio: Resend (segredo) ou Cloudflare Email Service (binding). */
+export const emailAtivo = (env: Env) => !!env.EMAIL_DE && !!(env.RESEND_API_KEY || env.EMAIL)
 
 export const acessoLivre = (env: Env, email: string) =>
   (env.ACESSO_LIVRE ?? '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean).includes(email.toLowerCase())

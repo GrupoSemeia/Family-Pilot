@@ -1,5 +1,6 @@
 import { Hono } from 'hono'
 import { verificarGoogle } from '../google'
+import { enviarEmail } from '../email'
 import { type App, type Env, erro, novoId, limpar, hashSenha, conferirSenha, criarSessao, encerrarSessao, lerSessao, acessoDe, precosDe, precosCheios, emailAtivo, sha256, tokenAleatorio, paraBanco, agoraBanco, VERSAO_TERMOS } from '../lib'
 
 export const auth = new Hono<App>()
@@ -59,19 +60,14 @@ auth.get('/eu', async c => {
    O token vai no fragmento da URL (#/nova-senha/...), que o navegador não envia ao servidor. O banco guarda só o SHA-256. */
 const esc = (s: string) => s.replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]!))
 
-async function enviarEmail(env: Env, para: string, nome: string, link: string) {
+function mensagemSenha(nome: string, link: string) {
   const primeiro = nome.split(' ')[0]
   const texto = `Olá, ${primeiro}!\n\nRecebemos um pedido para criar uma nova senha no FamilyPilot. Use o link abaixo (vale por 1 hora e só pode ser usado uma vez):\n\n${link}\n\nSe não foi você, ignore este e-mail: sua senha continua a mesma.\n\nGrupo Semeia Digital`
   const html = `<p>Olá, ${esc(primeiro)}!</p><p>Recebemos um pedido para criar uma nova senha no FamilyPilot. O link vale por 1 hora e só pode ser usado uma vez.</p>
     <p><a href="${esc(link)}" style="background:#ee3b64;color:#fff;padding:12px 22px;border-radius:999px;text-decoration:none;font-weight:bold">Criar nova senha</a></p>
     <p style="color:#555;font-size:13px">Se o botão não abrir, copie este endereço no navegador:<br>${esc(link)}</p>
     <p style="color:#555;font-size:13px">Se não foi você, ignore este e-mail: sua senha continua a mesma.</p><p style="color:#555;font-size:13px">Grupo Semeia Digital</p>`
-  try {
-    await fetch(`${(env.RESEND_URL || 'https://api.resend.com').replace(/\/$/, '')}/emails`, {
-      method: 'POST', headers: { authorization: `Bearer ${env.RESEND_API_KEY}`, 'content-type': 'application/json' },
-      body: JSON.stringify({ from: env.EMAIL_DE, to: [para], subject: 'Crie uma nova senha no FamilyPilot', html, text: texto }),
-    })
-  } catch { /* sem e-mail: a pessoa pede de novo */ }
+  return { assunto: 'Crie uma nova senha no FamilyPilot', html, texto }
 }
 
 auth.post('/esqueci', async c => {
@@ -87,7 +83,7 @@ auth.post('/esqueci', async c => {
   const token = tokenAleatorio(32)
   await db.prepare('INSERT INTO senha_resets (id, usuario_id, expira_em) VALUES (?,?,?)').bind(await sha256(token), u.id, paraBanco(new Date(Date.now() + 36e5))).run()
   const base = (c.env.APP_URL || new URL(c.req.url).origin).replace(/\/$/, '')
-  c.executionCtx.waitUntil(enviarEmail(c.env, email, u.nome, `${base}/#/nova-senha/${token}`))
+  c.executionCtx.waitUntil(enviarEmail(c.env, { para: email, ...mensagemSenha(u.nome, `${base}/#/nova-senha/${token}`) }))
   return neutra
 })
 

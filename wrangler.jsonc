@@ -29,5 +29,7 @@
     // Oferta de boas-vindas: depois de pagar o SOS Birra, o SOS Sono sai por R$ 27 durante 72 horas (uma vez).
     "OFERTA_POS_COMPRA": "{\"modulo\":\"sono\",\"preco\":2700,\"horas\":72}" },
   // segredos (não ficam no código):  npx wrangler secret put ASAAS_API_KEY · ASAAS_WEBHOOK_TOKEN · RESEND_API_KEY
+  // E-mail pelo Cloudflare Email Service (plano Workers Paid): sem chave. Habilite o domínio em Computação > Email Service > Email Sending > Onboard Domain.
+  "send_email": [{ "name": "EMAIL" }],
   "observability": { "enabled": true }
 }

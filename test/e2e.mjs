@@ -255,6 +255,22 @@ try {
   for (const [app, url] of [[APP, 'https://www.familypilot.com.br/entrar'], [APP, 'http://127.0.0.1:8787/'], [APP, 'https://outro.com.br/'], ['', 'https://familypilot.com.br/'], ['https://app.exemplo.com.br', 'https://exemplo.com.br/'], ['lixo', 'https://familypilot.com.br/']])
     assert.equal(redirecionarSemWww(app, url, 'GET'), null, 'não redireciona ' + url)
 
+  // e-mail: remetente, escolha do caminho de envio (Resend ou Cloudflare Email Service) e falhas sem derrubar o pedido
+  const { remetente, provedorDeEmail, enviarEmail } = await import('../worker/email.ts')
+  assert.deepEqual(remetente('FamilyPilot <nao-responda@familypilot.com.br>'), { email: 'nao-responda@familypilot.com.br', name: 'FamilyPilot' })
+  assert.deepEqual(remetente('"Família Pilot" <a@b.com.br>'), { email: 'a@b.com.br', name: 'Família Pilot' })
+  assert.deepEqual(remetente('<a@b.com.br>'), { email: 'a@b.com.br' })
+  assert.deepEqual(remetente(' a@b.com.br '), { email: 'a@b.com.br' })
+  const DE = 'FamilyPilot <nao-responda@familypilot.com.br>', enviados = [], binding = { send: async (m) => { enviados.push(m); return { messageId: 'x' } } }
+  assert.equal(provedorDeEmail({}), null); assert.equal(provedorDeEmail({ EMAIL: binding }), null, 'sem remetente não envia')
+  assert.equal(provedorDeEmail({ EMAIL_DE: DE }), null, 'sem caminho de envio não envia')
+  assert.equal(provedorDeEmail({ EMAIL_DE: DE, EMAIL: binding }), 'cloudflare')
+  assert.equal(provedorDeEmail({ EMAIL_DE: DE, EMAIL: binding, RESEND_API_KEY: 'k' }), 'resend', 'Resend, se configurado, tem prioridade')
+  await enviarEmail({ EMAIL_DE: DE, EMAIL: binding }, { para: 'mae@exemplo.com', assunto: 'Assunto', html: '<p>oi</p>', texto: 'oi' })
+  assert.deepEqual(enviados, [{ from: { email: 'nao-responda@familypilot.com.br', name: 'FamilyPilot' }, to: 'mae@exemplo.com', subject: 'Assunto', html: '<p>oi</p>', text: 'oi' }], 'chama env.EMAIL.send com o formato da Cloudflare')
+  const quebrado = { send: async () => { const e = new Error('domínio não verificado'); e.code = 'E_SENDER_NOT_VERIFIED'; throw e } }
+  await enviarEmail({ EMAIL_DE: DE, EMAIL: quebrado }, { para: 'x@y.com', assunto: 'a', html: 'b', texto: 'c' })   // não pode lançar erro
+
   // logout
   await rec('POST', '/api/auth/sair', {}); assert.equal((await rec('GET', '/api/conteudo')).status, 401)
   console.log('OK: todos os testes passaram'); fim(0)

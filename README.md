@@ -49,7 +49,6 @@ O endereço sem `www` (`familypilot.com.br`) também é atendido pelo Worker e r
     npm run db:remote                            # migrações novas (0001 a 0005 já estão aplicadas no banco criado)
     npx wrangler secret put ASAAS_API_KEY        # chave da Asaas (teste: $aact_hmlg_… usa o sandbox sozinha)
     npx wrangler secret put ASAAS_WEBHOOK_TOKEN  # texto secreto qualquer; o mesmo vai na Asaas
-    npx wrangler secret put RESEND_API_KEY       # chave do Resend, para o "Esqueci minha senha" (veja abaixo)
     npm run deploy
 
 Na Asaas (Integrações → Webhooks): URL `https://www.familypilot.com.br/api/asaas/webhook`, o mesmo token no campo de
@@ -63,11 +62,16 @@ O cadastro exige marcar "Li e aceito" e o servidor guarda quando e qual versão 
 Conta nova pelo Google também exige o aceite (o app mostra o aviso e envia `aceite: true`). Ao mudar o texto, atualize a data no HTML e `VERSAO_TERMOS`.
 Na tela de consentimento do Google, use `https://www.familypilot.com.br/privacidade` e `https://www.familypilot.com.br/termos`.
 
-## Esqueci minha senha (e-mail pelo Resend)
+## Esqueci minha senha (e-mail)
 Link de uso único, válido por 1 hora, no máximo 3 por hora por conta. A resposta é sempre a mesma, exista a conta ou não.
 Ao trocar a senha, todas as sessões antigas caem e a pessoa já entra. O token vai no fragmento da URL (`#/nova-senha/...`) e o banco guarda só o hash.
-Para ativar: crie a conta no Resend, verifique o domínio de envio, cadastre o segredo `RESEND_API_KEY` e preencha
-`EMAIL_DE` (sugestão: `FamilyPilot <nao-responda@familypilot.com.br>`) em `wrangler.jsonc`. `APP_URL` já aponta para `https://www.familypilot.com.br`. Sem isso o app avisa que o recurso não está ativo.
+
+**Envio pelo Cloudflare Email Service** (padrão, sem chave de API; exige o plano Workers Paid, com 3.000 e-mails por mês incluídos). Em `wrangler.jsonc` já há o binding `send_email` (`EMAIL`) e o remetente `EMAIL_DE`
+(`FamilyPilot <nao-responda@familypilot.com.br>`). Para ativar, no painel da Cloudflare: **Computação → Email Service → Email Sending → Onboard Domain** e escolha `familypilot.com.br`
+(a Cloudflare cria os registros SPF, DKIM e DMARC sozinha, na área `cf-bounce` do domínio). O serviço está em beta e contas novas começam com limite diário baixo.
+
+**Alternativa: Resend.** Se existir o segredo `RESEND_API_KEY`, o app usa o Resend no lugar da Cloudflare (verifique o domínio lá e use o mesmo `EMAIL_DE`).
+Sem nenhum dos dois, a tela de "Esqueci minha senha" avisa que a recuperação por e-mail não está ativa. Falhas de envio vão para o log (Observability), com o código do erro (ex.: `E_SENDER_NOT_VERIFIED`).
 
 ## Entrar com o Google
 Botão "Entrar com o Google" na entrada e no cadastro. O navegador recebe um token assinado do Google e o servidor confere
@@ -87,7 +91,7 @@ Para ativar:
     npm run typecheck
 
 ## Falta
-- Ativar o e-mail (conta no Resend, domínio verificado, `RESEND_API_KEY` e `EMAIL_DE`).
+- Ativar o e-mail: Workers Paid e **Onboard Domain** do `familypilot.com.br` no Email Sending da Cloudflare.
 - Colocar a zona `familypilot.com.br` na conta Cloudflare e fazer o deploy.
 - Cadastrar no cliente OAuth do Google a origem `https://www.familypilot.com.br`.
 - Revisão do conteúdo de todos os módulos por psicólogo ou pediatra antes do lançamento.
