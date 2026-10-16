@@ -259,7 +259,9 @@ window.FamilyPilot = { _on: false, start: function (C, conta) {
   /* ---------- Plano SOS ---------- */
   function gerarPlano(s) {
     const m = byId(D.MOTIVOS, s.motivo), l = byId(D.LOCAIS, s.local), pi = D.POR_IDADE[s.idade];
-    const fazer = [].concat(s.risco ? D.SEGURANCA : [], l.passos, m.fazer);
+    // Com risco físico marcado, o bloco de segurança já diz "segurança primeiro" e "garanta que ele está seguro": não repete nos passos do lugar e do motivo.
+    const repete = (i) => /^(Segurança primeiro|Garanta que ele está seguro)/.test(i);
+    const fazer = s.risco ? [].concat(D.SEGURANCA, l.passos.filter((i) => !repete(i)), m.fazer.filter((i) => !repete(i))) : [].concat(l.passos, m.fazer);
     const evitar = Array.from(new Set([].concat(m.evitar, D.EVITAR_SEMPRE)));
     return { m, l, pi, fazer, evitar, f: m.frases[s.idade] };
   }

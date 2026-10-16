@@ -6,6 +6,8 @@ export type Frases = { a: string; l: string }   // a = acolher / abrir; l = mant
 export type Situacao = {
   id: string; nome: string; leitura: string; fazer: string[]; evitar: string[]
   frases: Record<string, Frases>; depois: string[]; alerta?: string
+  /** esconde a dica geral da idade nesta situação (quando ela não combina com o assunto, ex.: segurança digital) */
+  semDicaDaIdade?: boolean
 }
 export type Ferramenta =
   | { id: string; tipo: 'situacoes'; nome: string; descricao: string; icone: string; situacoes: Situacao[]; porFaixa: Record<string, { expectativa: string; dica: string }> }

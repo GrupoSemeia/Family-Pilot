@@ -66,7 +66,7 @@
     ${x.alerta ? `<div class="alerta"><b>Atenção.</b> ${E(x.alerta)}</div>` : ''}
     <p class="lead">${E(x.leitura)}</p>
     <section class="bloco"><h2>1. Fazer agora</h2><ol class="passos">${x.fazer.map((i) => `<li>${E(i)}</li>`).join('')}</ol></section>
-    <section class="bloco"><h2>2. Frases que podem ajudar</h2>${frase(fr.a, 'Para acolher ou abrir a conversa')}${frase(fr.l, 'Para manter o limite ou combinar')}<p class="dica">${E(pf.dica)}</p></section>
+    <section class="bloco"><h2>2. Frases que podem ajudar</h2>${frase(fr.a, 'Para acolher ou abrir a conversa')}${frase(fr.l, 'Para manter o limite ou combinar')}${x.semDicaDaIdade ? '' : `<p class="dica">${E(pf.dica)}</p>`}</section>
     <section class="bloco evitar"><h2>3. Evitar</h2>${lista(x.evitar, 'lista x')}</section>
     <section class="bloco"><h2>4. Depois</h2>${lista(x.depois)}</section>
     <div class="card"><b>O que esperar nessa idade</b><p>${E(pf.expectativa)}</p></div>

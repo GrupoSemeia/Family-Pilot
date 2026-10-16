@@ -71,7 +71,7 @@ export const telas: Modulo = {
           depois: ['Mostre que você também guarda o celular nesse horário.'],
         },
         {
-          id: 'conteudo', nome: 'Viu algo inadequado ou conversa com desconhecidos',
+          id: 'conteudo', nome: 'Viu algo inadequado ou conversa com desconhecidos', semDicaDaIdade: true,
           leitura: 'A curiosidade leva a criança a ver o que não deveria. O mais importante é ela se sentir segura para contar a você.',
           fazer: ['Mantenha a calma e agradeça por ela ter contado.', 'Pergunte o que viu e como se sentiu, sem punir.', 'Bloqueie o conteúdo ou o contato e ajuste os controles parentais.', 'Combine: "Se algo estranho aparecer, você me conta, e você não terá problemas por isso".', 'Se um adulto desconhecido pediu fotos, segredos ou encontro, guarde as provas, bloqueie e denuncie.'],
           evitar: ['Dar bronca ou tirar o aparelho por ter contado', 'Dizer "eu avisei"', 'Ignorar o assunto'],

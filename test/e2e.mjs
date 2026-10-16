@@ -397,6 +397,13 @@ try {
     assert.deepEqual(obrig, { sono: ['despertares'], telas: ['conflito'], alimentacao: ['refeicao', 'aceitou'], limites: ['situacao', 'resultado'], escola: ['humor', 'tema'], adolescencia: ['tema', 'resultado'] }, 'campos obrigatórios de cada diário')
   }
 
+  // dica geral da idade escondida onde não combina (Telas: conversa com desconhecidos)
+  {
+    const cont = (await dono('GET', '/api/conteudo')).d
+    const f = cont.modulos.telas.ferramentas.find(x => x.tipo === 'situacoes')
+    assert.deepEqual(f.situacoes.filter(x => x.semDicaDaIdade).map(x => x.id), ['conteudo'])
+  }
+
   // logout
   await rec('POST', '/api/auth/sair', {}); assert.equal((await rec('GET', '/api/conteudo')).status, 401)
   console.log('OK: todos os testes passaram'); fim(0)
