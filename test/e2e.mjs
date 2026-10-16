@@ -389,6 +389,14 @@ try {
     assert.ok(/"d":\s*0/.test(resto) && /"u":\s*0/.test(resto), 'registros apagados e e-mail anonimizado')
   }
 
+  // diários: campos obrigatórios chegam ao app (o registro vazio não é salvo)
+  {
+    const cont = (await dono('GET', '/api/conteudo')).d
+    const obrig = {}
+    for (const [id, m] of Object.entries(cont.modulos)) for (const f of m.ferramentas) if (f.tipo === 'registro') obrig[id] = f.campos.filter(c => c.obrigatorio).map(c => c.id)
+    assert.deepEqual(obrig, { sono: ['despertares'], telas: ['conflito'], alimentacao: ['refeicao', 'aceitou'], limites: ['situacao', 'resultado'], escola: ['humor', 'tema'], adolescencia: ['tema', 'resultado'] }, 'campos obrigatórios de cada diário')
+  }
+
   // logout
   await rec('POST', '/api/auth/sair', {}); assert.equal((await rec('GET', '/api/conteudo')).status, 401)
   console.log('OK: todos os testes passaram'); fim(0)

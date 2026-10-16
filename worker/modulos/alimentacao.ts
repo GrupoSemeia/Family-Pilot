@@ -122,8 +122,8 @@ export const alimentacao: Modulo = {
       descricao: 'Registre como foi cada refeição e o que ele aceitou.',
       campos: [
         { id: 'data', rotulo: 'Dia', tipo: 'data' },
-        { id: 'refeicao', rotulo: 'Refeição', tipo: 'escolha', insight: true, opcoes: [{ id: 'cafe', nome: 'Café da manhã' }, { id: 'almoco', nome: 'Almoço' }, { id: 'lanche', nome: 'Lanche' }, { id: 'jantar', nome: 'Jantar' }] },
-        { id: 'aceitou', rotulo: 'O que aceitou', tipo: 'escolha', insight: true, opcoes: [{ id: 'tudo', nome: 'Quase tudo' }, { id: 'metade', nome: 'Cerca de metade' }, { id: 'pouco', nome: 'Pouco' }, { id: 'nada', nome: 'Nada' }] },
+        { id: 'refeicao', rotulo: 'Refeição', tipo: 'escolha', insight: true, obrigatorio: true, opcoes: [{ id: 'cafe', nome: 'Café da manhã' }, { id: 'almoco', nome: 'Almoço' }, { id: 'lanche', nome: 'Lanche' }, { id: 'jantar', nome: 'Jantar' }] },
+        { id: 'aceitou', rotulo: 'O que aceitou', tipo: 'escolha', insight: true, obrigatorio: true, opcoes: [{ id: 'tudo', nome: 'Quase tudo' }, { id: 'metade', nome: 'Cerca de metade' }, { id: 'pouco', nome: 'Pouco' }, { id: 'nada', nome: 'Nada' }] },
         { id: 'novo', rotulo: 'Alimento novo', tipo: 'texto' },
         { id: 'obs', rotulo: 'Anotações (opcional)', tipo: 'texto' },
       ],

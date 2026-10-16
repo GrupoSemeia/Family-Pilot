@@ -118,9 +118,9 @@ export const limites: Modulo = {
       descricao: 'Registre situações de limite e o que funcionou.',
       campos: [
         { id: 'data', rotulo: 'Dia', tipo: 'data' },
-        { id: 'situacao', rotulo: 'Situação', tipo: 'escolha', insight: true, opcoes: [{ id: 'ignora', nome: 'Ignorou o pedido' }, { id: 'resposta', nome: 'Respondeu mal' }, { id: 'mentira', nome: 'Mentiu' }, { id: 'tarefa', nome: 'Não fez a tarefa' }, { id: 'insiste', nome: 'Insistiu na regra' }, { id: 'outra', nome: 'Outra' }] },
+        { id: 'situacao', rotulo: 'Situação', tipo: 'escolha', insight: true, obrigatorio: true, opcoes: [{ id: 'ignora', nome: 'Ignorou o pedido' }, { id: 'resposta', nome: 'Respondeu mal' }, { id: 'mentira', nome: 'Mentiu' }, { id: 'tarefa', nome: 'Não fez a tarefa' }, { id: 'insiste', nome: 'Insistiu na regra' }, { id: 'outra', nome: 'Outra' }] },
         { id: 'feito', rotulo: 'O que eu fiz', tipo: 'texto' },
-        { id: 'resultado', rotulo: 'Como terminou', tipo: 'escolha', insight: true, opcoes: [{ id: 'ajudou', nome: 'Ajudou' }, { id: 'mais-ou-menos', nome: 'Mais ou menos' }, { id: 'nao-ajudou', nome: 'Não ajudou' }] },
+        { id: 'resultado', rotulo: 'Como terminou', tipo: 'escolha', insight: true, obrigatorio: true, opcoes: [{ id: 'ajudou', nome: 'Ajudou' }, { id: 'mais-ou-menos', nome: 'Mais ou menos' }, { id: 'nao-ajudou', nome: 'Não ajudou' }] },
       ],
     },
     {

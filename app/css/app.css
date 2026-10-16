@@ -149,6 +149,6 @@ a.alerta:hover{filter:brightness(.97)}
 @media (min-width:600px){.modal{align-items:center}}
 
 /* aviso de campo do formulário */
-.campo-erro{color:#b3213f;font-size:.9rem;margin:4px 0 8px;min-height:0}
+.campo-erro,.card .campo-erro{color:#b3213f;font-size:.9rem;margin:4px 0 8px;min-height:0}
 .campo-erro:empty{display:none}
 input[aria-invalid="true"]{border-color:#b3213f}

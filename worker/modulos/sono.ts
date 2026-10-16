@@ -129,7 +129,7 @@ export const sono: Modulo = {
         { id: 'data', rotulo: 'Noite do dia', tipo: 'data' },
         { id: 'dormiu', rotulo: 'Horário em que dormiu', tipo: 'hora', padrao: '20:30' },
         { id: 'acordou', rotulo: 'Horário em que acordou', tipo: 'hora', padrao: '07:00' },
-        { id: 'despertares', rotulo: 'Quantas vezes acordou de noite?', tipo: 'escolha', insight: true, opcoes: [{ id: 'nenhuma', nome: 'Nenhuma' }, { id: 'uma', nome: 'Uma' }, { id: 'duas', nome: 'Duas' }, { id: 'tres-ou-mais', nome: 'Três ou mais' }] },
+        { id: 'despertares', rotulo: 'Quantas vezes acordou de noite?', tipo: 'escolha', insight: true, obrigatorio: true, opcoes: [{ id: 'nenhuma', nome: 'Nenhuma' }, { id: 'uma', nome: 'Uma' }, { id: 'duas', nome: 'Duas' }, { id: 'tres-ou-mais', nome: 'Três ou mais' }] },
         { id: 'obs', rotulo: 'Anotações (opcional)', tipo: 'texto' },
       ],
     },

@@ -147,7 +147,7 @@ export const telas: Modulo = {
       campos: [
         { id: 'data', rotulo: 'Dia', tipo: 'data' },
         { id: 'minutos', rotulo: 'Minutos de tela (aproximado)', tipo: 'numero', padrao: '60' },
-        { id: 'conflito', rotulo: 'Como foi a hora de desligar?', tipo: 'escolha', insight: true, opcoes: [{ id: 'tranquila', nome: 'Tranquila' }, { id: 'um-pouco', nome: 'Um pouco difícil' }, { id: 'dificil', nome: 'Muito difícil' }] },
+        { id: 'conflito', rotulo: 'Como foi a hora de desligar?', tipo: 'escolha', insight: true, obrigatorio: true, opcoes: [{ id: 'tranquila', nome: 'Tranquila' }, { id: 'um-pouco', nome: 'Um pouco difícil' }, { id: 'dificil', nome: 'Muito difícil' }] },
         { id: 'obs', rotulo: 'Anotações (opcional)', tipo: 'texto' },
       ],
     },

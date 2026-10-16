@@ -142,8 +142,8 @@ export const escola: Modulo = {
       descricao: 'Registre como foi o dia escolar.',
       campos: [
         { id: 'data', rotulo: 'Dia', tipo: 'data' },
-        { id: 'humor', rotulo: 'Como ele voltou da escola', tipo: 'escolha', insight: true, opcoes: [{ id: 'bem', nome: 'Bem' }, { id: 'mais-ou-menos', nome: 'Mais ou menos' }, { id: 'mal', nome: 'Mal' }] },
-        { id: 'tema', rotulo: 'O que marcou o dia', tipo: 'escolha', insight: true, opcoes: [{ id: 'dever', nome: 'Dever de casa' }, { id: 'colegas', nome: 'Colegas' }, { id: 'professor', nome: 'Professor' }, { id: 'prova', nome: 'Prova ou nota' }, { id: 'ida', nome: 'Ida para a escola' }, { id: 'outro', nome: 'Outro' }] },
+        { id: 'humor', rotulo: 'Como ele voltou da escola', tipo: 'escolha', insight: true, obrigatorio: true, opcoes: [{ id: 'bem', nome: 'Bem' }, { id: 'mais-ou-menos', nome: 'Mais ou menos' }, { id: 'mal', nome: 'Mal' }] },
+        { id: 'tema', rotulo: 'O que marcou o dia', tipo: 'escolha', insight: true, obrigatorio: true, opcoes: [{ id: 'dever', nome: 'Dever de casa' }, { id: 'colegas', nome: 'Colegas' }, { id: 'professor', nome: 'Professor' }, { id: 'prova', nome: 'Prova ou nota' }, { id: 'ida', nome: 'Ida para a escola' }, { id: 'outro', nome: 'Outro' }] },
         { id: 'obs', rotulo: 'Anotações (opcional)', tipo: 'texto' },
       ],
     },

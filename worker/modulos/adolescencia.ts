@@ -117,8 +117,8 @@ export const adolescencia: Modulo = {
       descricao: 'Registre conversas e conflitos para enxergar o que ajuda.',
       campos: [
         { id: 'data', rotulo: 'Dia', tipo: 'data' },
-        { id: 'tema', rotulo: 'Tema', tipo: 'escolha', insight: true, opcoes: [{ id: 'conversa', nome: 'Conversa difícil' }, { id: 'regras', nome: 'Regras e horários' }, { id: 'digital', nome: 'Celular e redes' }, { id: 'escola', nome: 'Escola' }, { id: 'humor', nome: 'Humor e irritação' }, { id: 'outro', nome: 'Outro' }] },
-        { id: 'resultado', rotulo: 'Como terminou', tipo: 'escolha', insight: true, opcoes: [{ id: 'bem', nome: 'Conseguimos conversar' }, { id: 'mais-ou-menos', nome: 'Mais ou menos' }, { id: 'mal', nome: 'Não deu certo' }] },
+        { id: 'tema', rotulo: 'Tema', tipo: 'escolha', insight: true, obrigatorio: true, opcoes: [{ id: 'conversa', nome: 'Conversa difícil' }, { id: 'regras', nome: 'Regras e horários' }, { id: 'digital', nome: 'Celular e redes' }, { id: 'escola', nome: 'Escola' }, { id: 'humor', nome: 'Humor e irritação' }, { id: 'outro', nome: 'Outro' }] },
+        { id: 'resultado', rotulo: 'Como terminou', tipo: 'escolha', insight: true, obrigatorio: true, opcoes: [{ id: 'bem', nome: 'Conseguimos conversar' }, { id: 'mais-ou-menos', nome: 'Mais ou menos' }, { id: 'mal', nome: 'Não deu certo' }] },
         { id: 'obs', rotulo: 'Anotações (opcional)', tipo: 'texto' },
       ],
     },
