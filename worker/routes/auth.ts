@@ -70,11 +70,11 @@ const esc = (s: string) => s.replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&l
 
 function mensagemSenha(nome: string, link: string) {
   const primeiro = nome.split(' ')[0]
-  const texto = `Olá, ${primeiro}!\n\nRecebemos um pedido para criar uma nova senha no FamilyPilot. Use o link abaixo (vale por 1 hora e só pode ser usado uma vez):\n\n${link}\n\nSe não foi você, ignore este e-mail: sua senha continua a mesma.\n\nGrupo Semeia Digital`
+  const texto = `Olá, ${primeiro}!\n\nRecebemos um pedido para criar uma nova senha no FamilyPilot. Use o link abaixo (vale por 1 hora e só pode ser usado uma vez):\n\n${link}\n\nSe não foi você, ignore este e-mail: sua senha continua a mesma.\n\nDúvidas? Escreva para contato@familypilot.com.br.\n\nGrupo Semeia Digital`
   const html = `<p>Olá, ${esc(primeiro)}!</p><p>Recebemos um pedido para criar uma nova senha no FamilyPilot. O link vale por 1 hora e só pode ser usado uma vez.</p>
     <p><a href="${esc(link)}" style="background:#ee3b64;color:#fff;padding:12px 22px;border-radius:999px;text-decoration:none;font-weight:bold">Criar nova senha</a></p>
     <p style="color:#555;font-size:13px">Se o botão não abrir, copie este endereço no navegador:<br>${esc(link)}</p>
-    <p style="color:#555;font-size:13px">Se não foi você, ignore este e-mail: sua senha continua a mesma.</p><p style="color:#555;font-size:13px">Grupo Semeia Digital</p>`
+    <p style="color:#555;font-size:13px">Se não foi você, ignore este e-mail: sua senha continua a mesma.</p><p style="color:#555;font-size:13px">Dúvidas? Escreva para <a href="mailto:contato@familypilot.com.br">contato@familypilot.com.br</a>.</p><p style="color:#555;font-size:13px">Grupo Semeia Digital</p>`
   return { assunto: 'Crie uma nova senha no FamilyPilot', html, texto }
 }
 

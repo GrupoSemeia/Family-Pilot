@@ -247,7 +247,7 @@ try {
   pg = await cliente().pagina('/termos'); assert.equal(pg.status, 200)
   assert.match(pg.texto, /69\.290\.380\/0001-42/); assert.match(pg.texto, /7 dias corridos/); assert.match(pg.texto, /Curitiba/)
   pg = await cliente().pagina('/privacidade'); assert.equal(pg.status, 200)
-  assert.match(pg.texto, /Semeia Digital Consultoria em TI LTDA/); assert.match(pg.texto, /LGPD/); assert.match(pg.texto, /gruposemeiadigital@gmail\.com/)
+  assert.match(pg.texto, /Semeia Digital Consultoria em TI LTDA/); assert.match(pg.texto, /LGPD/); assert.match(pg.texto, /contato@familypilot\.com\.br/)
   const aceite = JSON.parse(execFileSync('npx', ['wrangler', 'd1', 'execute', 'family-pilot', '--local', '--json', '--command', `SELECT aceite_versao, aceite_em FROM usuarios WHERE email='${quem}'`]).toString())[0].results[0]
   assert.equal(aceite.aceite_versao, '2026-10-16', 'o aceite fica registrado com a versão'); assert.ok(aceite.aceite_em)
 

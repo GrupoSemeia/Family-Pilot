@@ -78,7 +78,7 @@ A escolha fica só na sessão atual (`sessoes.ver_como`, migração 0007); uma f
 
 ## Termos de Uso e Política de Privacidade
 Páginas públicas `/termos` e `/privacidade` (`app/termos.html` e `app/privacidade.html`), com a empresa **Semeia Digital Consultoria em TI LTDA, CNPJ 69.290.380/0001-42**,
-contato `gruposemeiadigital@gmail.com`, foro de Curitiba/PR e garantia de 7 dias corridos. São um rascunho: peça a revisão de um advogado antes de divulgar.
+contato `contato@familypilot.com.br`, foro de Curitiba/PR e garantia de 7 dias corridos. São um rascunho: peça a revisão de um advogado antes de divulgar.
 O cadastro exige marcar "Li e aceito" e o servidor guarda quando e qual versão (`aceite_em` e `aceite_versao` em `usuarios`; versão em `VERSAO_TERMOS`, `worker/lib.ts`).
 Conta nova pelo Google também exige o aceite (o app mostra o aviso e envia `aceite: true`). Ao mudar o texto, atualize a data no HTML e `VERSAO_TERMOS`.
 Na tela de consentimento do Google, use `https://www.familypilot.com.br/privacidade` e `https://www.familypilot.com.br/termos`.
