@@ -44,7 +44,12 @@ async function aguardar() { for (let i = 0; i < 120; i++) { try { const r = awai
 function cliente() {
   let cookie = ''
   const f = async (metodo, url, corpo, extra = {}) => {
-    const r = await fetch(BASE + url, { method: metodo, headers: { 'content-type': 'application/json', ...(cookie ? { cookie } : {}), ...extra }, body: corpo === undefined ? undefined : JSON.stringify(corpo) })
+    // o wrangler dev às vezes reinicia o Worker logo depois de um "d1 execute"; tenta de novo antes de dar a conexão como perdida
+    let r
+    for (let t = 0; ; t++) {
+      try { r = await fetch(BASE + url, { method: metodo, headers: { 'content-type': 'application/json', ...(cookie ? { cookie } : {}), ...extra }, body: corpo === undefined ? undefined : JSON.stringify(corpo) }); break }
+      catch (e) { if (t >= 6) throw e; await new Promise(r => setTimeout(r, 1000)) }
+    }
     const sc = r.headers.get('set-cookie'); if (sc) cookie = sc.split(';')[0]
     return { status: r.status, d: await r.json().catch(() => ({})) }
   }
@@ -327,6 +332,20 @@ try {
   eu = (await dono('GET', '/api/auth/eu')).d
   assert.equal(eu.visao, null); assert.equal(eu.acesso.livre, true, 'voltou à visão de administrador')
   assert.equal((await dono('POST', '/api/admin/visao', { modulos: 'x' })).status, 400, 'lista inválida')
+
+  // painel do administrador: clientes e pedidos (só leitura, sem CPF nem registros)
+  {
+    for (const u of ['/api/admin/resumo', '/api/admin/clientes', '/api/admin/pedidos']) assert.equal((await a('GET', u)).status, 404, 'cliente comum não vê o painel: ' + u)
+    const rs = await dono('GET', '/api/admin/resumo'); assert.equal(rs.status, 200)
+    assert.ok(rs.d.contas.total >= 2 && rs.d.pedidos.pago && rs.d.pedidos.pago.n >= 1, 'resumo conta contas e pedidos pagos')
+    const cl = await dono('GET', '/api/admin/clientes'); assert.equal(cl.status, 200); assert.ok(cl.d.clientes.length >= 2)
+    const ana = cl.d.clientes.find(x => x.email === `ana${S}@teste.com`); assert.ok(ana, 'lista a cliente'); assert.ok(ana.pedidos >= 1 && typeof ana.pago === "number")
+    const busca = await dono('GET', '/api/admin/clientes?busca=' + encodeURIComponent(`ana${S}`)); assert.equal(busca.d.clientes.length, 1, 'busca por e-mail')
+    assert.equal((await dono('GET', '/api/admin/clientes?busca=' + encodeURIComponent('%'))).d.clientes.length, 0, 'o % da busca não vale como curinga')
+    const pd = await dono('GET', '/api/admin/pedidos?status=pago'); assert.ok(pd.d.pedidos.length >= 1 && pd.d.pedidos.every(x => x.status === 'pago'))
+    assert.equal((await dono('GET', '/api/admin/pedidos?status=xx')).status, 400)
+    const texto = JSON.stringify([rs.d, cl.d, pd.d]); assert.ok(!/cpf|52998224725|senha|token/i.test(texto), 'o painel não expõe CPF, senha nem token')
+  }
 
   // registros na nuvem (LGPD): cifrados, por conta, com controle de versão, exportação e exclusão
   {

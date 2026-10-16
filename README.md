@@ -67,6 +67,10 @@ Diário, radar e ferramentas dos módulos ficam na conta (tabela `dados`, migra�
 - Ao sair da conta, a cópia dos registros é retirada do aparelho (se houver algo sem enviar, o app avisa antes).
 - Texto jurídico atualizado em `app/privacidade.html` e `app/termos.html` (versão 2026-10-16, `VERSAO_TERMOS`): revisar com advogado, em especial o consentimento do responsável sobre dados de crianças (art. 14).
 
+### Painel de clientes e pedidos (administrador)
+Em Módulos → "Clientes e pedidos" (`#/admin`, `app/js/admin.js`; rotas `GET /api/admin/resumo|clientes|pedidos` em `worker/routes/admin.ts`): resumo de contas e faturamento, lista de clientes (busca por nome/e-mail, módulos ativos, total pago) e pedidos por status.
+Só leitura e só para super usuário (os outros recebem 404). **Não mostra CPF/CNPJ nem registros das famílias**; o teste e2e garante isso.
+
 ### Ver como usuário (administrador)
 Quem está em `ACESSO_LIVRE` (com e-mail confirmado) vê, na aba **Módulos**, o painel "Ver como usuário": escolhe quais módulos simular, se quer ver a oferta de boas-vindas, e o app passa a se comportar como para um cliente (catálogo, cadeados, tela de pagamento).
 A escolha fica só na sessão atual (`sessoes.ver_como`, migração 0007); uma faixa no topo traz o botão "Voltar à minha visão". Nesse modo os pagamentos ficam bloqueados (409). Rotas em `worker/routes/admin.ts`; quem não é super usuário recebe 404.
