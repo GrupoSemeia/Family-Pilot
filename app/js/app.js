@@ -34,8 +34,8 @@ window.FamilyPilot = { _on: false, start: function (C, conta) {
 
   const nav = D ? [
     ['#/', 'Início', '🏠'],
-    ['#/plano', 'Plano SOS', '🆘'],
-    ['#/diario', 'Diário', '📓'],
+    ['#/plano', 'Plano Birra', '🆘'],
+    ['#/diario', 'Diário Birra', '📓'],
     ['#/modulos', 'Módulos', '🧭'],
   ] : [
     ['#/', 'Início', '🏠'],
@@ -47,7 +47,7 @@ window.FamilyPilot = { _on: false, start: function (C, conta) {
   const chip = (act, k, v, label, on) => `<button type="button" class="chip${on ? ' on' : ''}" data-act="${act}" data-k="${k}" data-v="${esc(v)}" aria-pressed="${!!on}">${esc(label)}</button>`;
   const idadeChips = (act, sel) => `<div class="chips">${D.IDADES.map((i) => chip(act, 'idade', i.id, i.rotulo, i.id === sel)).join('')}</div>`;
   const voltar = (hash, txt) => `<a class="voltar" href="${hash}">← ${txt || 'Voltar'}</a>`;
-  const frase = (txt, titulo) => `<div class="frase"><small>${esc(titulo)}</small><p>“${esc(txt)}”</p><button class="mini" data-act="copiar" data-t="${esc(txt)}">Copiar</button></div>`;
+  const frase = (txt, titulo) => `<div class="frase"><small>${esc(titulo)}</small><p>“${esc(txt)}”</p><button class="mini" data-act="copiar" data-t="${esc(txt)}" aria-label="Copiar: ${esc(String(titulo).replace(/^\d+\.\s*/, ''))}">Copiar</button></div>`;
   const lista = (itens, cls) => `<ul class="${cls || 'lista'}">${itens.map((i) => `<li>${esc(i)}</li>`).join('')}</ul>`;
 
   /* ---------- telas ---------- */
@@ -434,6 +434,8 @@ window.FamilyPilot = { _on: false, start: function (C, conta) {
       case 'tag': { const q = $('#r-quando'); if (q) R.quando = q.value; toggle(R.tags, v); reRender(); break; }
       case 'radar-salvar': {
         const q = $('#r-quando').value || agoraLocal();
+        const igual = db.radar.some((e) => e.quando === q && e.tags.length === R.tags.length && R.tags.every((t) => e.tags.includes(t)));
+        if (igual && !confirm('Já existe um registro igual neste mesmo horário. Salvar de novo mesmo assim?')) break;
         db.radar.push({ id: uid(), quando: q, tags: R.tags.slice() }); salvar();
         R = { tags: [], quando: null }; toast('Salvo no Radar'); reRender(); break;
       }

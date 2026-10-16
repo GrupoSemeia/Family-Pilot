@@ -1,6 +1,6 @@
 /* Guarda o app no aparelho para abrir sem internet. Troque a versão ao mudar arquivos.
    A página inicial ("/") nunca é guardada: ela muda conforme o login (app ou página de vendas). */
-const V = 'familypilot-v13';
+const V = 'familypilot-v14';
 const ARQ = ['/entrar', '/css/app.css', '/js/app.js', '/js/sync.js', '/js/admin.js', '/js/modulo.js', '/js/auth.js', '/icon.svg', '/manifest.webmanifest'];
 self.addEventListener('install', (e) => { e.waitUntil(caches.open(V).then((c) => c.addAll(ARQ)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', (e) => { e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== V).map((k) => caches.delete(k)))).then(() => self.clients.claim())); });

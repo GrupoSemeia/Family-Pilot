@@ -26,7 +26,7 @@
   const chip = (act, k, v, label, on) => `<button type="button" class="chip${on ? ' on' : ''}" data-m="${act}" data-k="${k}" data-v="${E(v)}" aria-pressed="${!!on}">${E(label)}</button>`;
   const faixaChips = (m, sel) => `<div class="chips">${m.faixas.map((f) => chip('faixa', 'faixa', f.id, f.rotulo, f.id === sel)).join('')}</div>`;
   const voltar = (hash, txt) => `<a class="voltar" href="${hash}">← ${txt}</a>`;
-  const frase = (txt, titulo) => `<div class="frase"><small>${E(titulo)}</small><p>“${E(txt)}”</p><button class="mini" data-m="copiar" data-t="${E(txt)}">Copiar</button></div>`;
+  const frase = (txt, titulo) => `<div class="frase"><small>${E(titulo)}</small><p>“${E(txt)}”</p><button class="mini" data-m="copiar" data-t="${E(txt)}" aria-label="Copiar: ${E(titulo)}">Copiar</button></div>`;
   const lista = (itens, cls) => `<ul class="${cls || 'lista'}">${itens.map((i) => `<li>${E(i)}</li>`).join('')}</ul>`;
   const noFaixa = (it, f) => !it.faixas || it.faixas.includes(f);
   const rotaFerr = (m, f) => `#/m/${m.id}/${f.id}`;
@@ -94,7 +94,7 @@
     <label class="campo">Hora de acordar<input type="time" data-m="hora" data-k="acordar" value="${E(s.acordar)}"></label></div>
     ${status ? `<div class="card"><b>Horas de sono</b><p>${E(status)}</p><p class="dica">${E(pf.dica)}</p></div>` : ''}
     ${passos.length ? `<section class="bloco"><h2>Rotina da noite</h2><ul class="tempo">${passos.map((p) => `<li><b>${p.hora}</b><span>${E(p.texto)}</span></li>`).join('')}</ul>
-    <button class="mini" data-m="copiar" data-t="${E('Rotina da noite\n' + texto)}">Copiar rotina</button></section>` : ''}
+    <button class="mini" data-m="copiar" data-t="${E('Rotina da noite\n' + texto)}" aria-label="Copiar a rotina da noite">Copiar rotina</button></section>` : ''}
     ${X.aviso}`;
   }
 
@@ -200,19 +200,39 @@
     }
     return out;
   }
+  /** Confere o registro antes de salvar. Devolve { idDoCampo: mensagem em português }; vazio = pode salvar. */
+  function validarRegistro(f, v) {
+    const erros = {};
+    f.campos.forEach((c) => {
+      const val = v[c.id] == null ? '' : String(v[c.id]).trim();
+      if (c.tipo === 'numero') {
+        const n = Number(val);
+        if (val === '' || !Number.isInteger(n) || n < 0 || n > 1440) erros[c.id] = `${c.rotulo}: informe um número inteiro de 0 a 1.440.`;
+      } else if (c.tipo === 'data' || c.tipo === 'hora') {
+        if (val === '') erros[c.id] = `${c.rotulo}: informe ${c.tipo === 'data' ? 'a data' : 'o horário'}.`;
+      } else if (c.obrigatorio && val === '') {
+        erros[c.id] = c.tipo === 'escolha' ? `Escolha uma opção em "${c.rotulo}".` : `Preencha "${c.rotulo}".`;
+      }
+    });
+    return erros;
+  }
+  function limpaErro(s, id) { if (s.erros) delete s.erros[id]; const e = document.getElementById('erro-' + id); if (e) e.textContent = ''; const i = document.querySelector(`[data-id="${id}"][aria-invalid]`); if (i) i.removeAttribute('aria-invalid'); }
+
   function registro(m, f) {
     const s = estado(m, f, () => ({ v: {} }));
     f.campos.forEach((c) => { if (s.v[c.id] === undefined) s.v[c.id] = c.tipo === 'data' ? hojeISO() : c.padrao || ''; });
     const lista = regs(m, f).slice().sort((a, b) => (b.v.data || '').localeCompare(a.v.data || '') || b.criado - a.criado);
     const resumo = resumoRegistro(f, lista);
+    const er = s.erros || {};
+    const aviso = (c) => `<p class="campo-erro" id="erro-${c.id}" role="alert">${er[c.id] ? E(er[c.id]) : ''}</p>`;
     const campo = (c) => {
-      const v = s.v[c.id];
-      if (c.tipo === 'escolha') return `<p class="rotulo">${E(c.rotulo)}</p><div class="chips">${c.opcoes.map((o) => chip('rv', c.id, o.id, o.nome, v === o.id)).join('')}</div>`;
+      const v = s.v[c.id], inv = er[c.id] ? ' aria-invalid="true"' : '';
+      if (c.tipo === 'escolha') return `<p class="rotulo">${E(c.rotulo)}${c.obrigatorio ? ' <small>(obrigatório)</small>' : ''}</p><div class="chips" role="group" aria-label="${E(c.rotulo)}">${c.opcoes.map((o) => chip('rv', c.id, o.id, o.nome, v === o.id)).join('')}</div>${aviso(c)}`;
       const tipo = { data: 'date', hora: 'time', numero: 'number' }[c.tipo] || 'text';
-      return `<label class="campo">${E(c.rotulo)}<input type="${tipo}" data-m="rvin" data-id="${c.id}" value="${E(v)}" ${c.tipo === 'numero' ? 'min="0" max="1440" inputmode="numeric"' : ''} ${c.tipo === 'texto' ? 'maxlength="300"' : ''}></label>`;
+      return `<label class="campo">${E(c.rotulo)}<input type="${tipo}" data-m="rvin" data-id="${c.id}" value="${E(v)}"${inv} ${c.tipo === 'numero' ? 'min="0" max="1440" inputmode="numeric"' : ''} ${c.tipo === 'texto' ? 'maxlength="300"' : ''}></label>${aviso(c)}`;
     };
     return `<h1>${E(f.nome)}</h1><p class="lead">${E(f.descricao)}</p>
-    <form id="m-form" class="form card">${f.campos.map(campo).join('')}<button class="btn" type="submit">Salvar registro</button></form>
+    <form id="m-form" class="form card" novalidate>${Object.keys(er).length ? '<p class="msg" role="alert">Falta preencher alguns campos para salvar. Veja os avisos abaixo.</p>' : ''}${f.campos.map(campo).join('')}<button class="btn" type="submit">Salvar registro</button></form>
     ${resumo.length ? `<div class="card"><b>O que seus registros mostram</b>${lista_(resumo)}<p class="nota">Baseado só no que você anotou. Não é diagnóstico.</p></div>` : ''}
     ${lista.length ? `<h2 class="sec">Histórico (${lista.length})</h2><ul class="hist">${lista.slice(0, 40).map((r) => `<li><div><b>${fmtDia(r.v.data)}</b>${f.campos.filter((c) => c.id !== 'data' && r.v[c.id] !== '' && r.v[c.id] != null).map((c) => `<small>${E(c.rotulo)}: ${E(rotuloValor(c, r.v[c.id]))}</small>`).join('')}</div>
       <button class="mini perigo" data-m="rdel" data-id="${r.id}" aria-label="Apagar registro">Apagar</button></li>`).join('')}</ul>` : '<p class="vazio">Nenhum registro ainda.</p>'}${X.aviso}`;
@@ -256,7 +276,7 @@
       case 'sit-voltar': s.step = s.step === 2 ? 1 : 0; break;
       case 'cat': s.cat = el.dataset.v; break;
       case 'mod': s.id = el.dataset.v; break;
-      case 'rv': s.v[el.dataset.k] = s.v[el.dataset.k] === el.dataset.v ? '' : el.dataset.v; break;
+      case 'rv': s.v[el.dataset.k] = s.v[el.dataset.k] === el.dataset.v ? '' : el.dataset.v; if (s.erros) delete s.erros[el.dataset.k]; break;
       case 'rdel': if (confirm('Apagar este registro?')) { const l = regs(m, f); const i = l.findIndex((r) => r.id === el.dataset.id); if (i >= 0) l.splice(i, 1); FamilySync.lapide(st, el.dataset.id); salvar(); } else return; break;
       default: return;
     }
@@ -271,7 +291,7 @@
     if (a === 'chk') s.sel[el.dataset.id] = el.checked;
     else if (a === 'rad') s.esc[el.dataset.s] = el.dataset.id;
     else if (a === 'hora') s[el.dataset.k] = el.value;
-    else if (a === 'rvin') { s.v[el.dataset.id] = el.value; return; }
+    else if (a === 'rvin') { s.v[el.dataset.id] = el.value; limpaErro(s, el.dataset.id); return; }
     else return;
     if (a === 'chk' || a === 'rad') atualizarSaida(); else X.reRender();
   });
@@ -283,7 +303,7 @@
     const s = S[m.id + '/' + f.id], a = el.dataset.m;
     if (a === 'nome') { s.nome = el.value.trim(); atualizarSaida(); }
     else if (a === 'campo') { (s.vals[s.id] = s.vals[s.id] || {})[el.dataset.id] = el.value; atualizarSaida(); }
-    else if (a === 'rvin') s.v[el.dataset.id] = el.value;
+    else if (a === 'rvin') { s.v[el.dataset.id] = el.value; limpaErro(s, el.dataset.id); }
   });
 
   document.addEventListener('submit', (ev) => {
@@ -292,7 +312,14 @@
     const { m, f } = toolDe(); if (!m || !f) return;
     const s = S[m.id + '/' + f.id];
     const v = Object.assign({}, s.v);
-    if (!v.data) v.data = hojeISO();
+    const erros = validarRegistro(f, v);
+    if (Object.keys(erros).length) {
+      s.erros = erros; X.reRender();
+      const primeiro = document.querySelector('[aria-invalid="true"], .campo-erro:not(:empty)');
+      if (primeiro) primeiro.scrollIntoView({ block: 'center' });
+      return;
+    }
+    delete s.erros;
     regs(m, f).push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 5), criado: Date.now(), v });
     if (st.reg[m.id + '/' + f.id].length > 300) st.reg[m.id + '/' + f.id].shift();
     salvar(); delete S[m.id + '/' + f.id]; X.toast('Registro salvo'); X.reRender();

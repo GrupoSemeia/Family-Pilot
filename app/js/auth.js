@@ -9,6 +9,7 @@
   let atual = null; // módulo em compra (tela de pagamento)
 
   async function api(metodo, url, corpo) {
+    if (corpo === undefined && metodo !== 'GET') corpo = {};   // o servidor só aceita POST em JSON: sem corpo, a chamada era recusada ("Requisição inválida")
     const r = await fetch(url, { method: metodo, credentials: 'same-origin', headers: corpo ? { 'content-type': 'application/json' } : {}, body: corpo ? JSON.stringify(corpo) : undefined });
     const d = await r.json().catch(() => ({}));
     if (!r.ok) { const e = new Error(d.erro || 'Algo deu errado. Tente de novo.'); e.status = r.status; throw e; }

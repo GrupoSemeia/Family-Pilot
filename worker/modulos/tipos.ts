@@ -15,7 +15,8 @@ export type Ferramenta =
   | { id: string; tipo: 'ideias'; nome: string; descricao: string; icone: string; categorias: { id: string; nome: string }[]; itens: { texto: string; categoria: string; faixas?: string[] }[] }
   | { id: string; tipo: 'modelo'; nome: string; descricao: string; icone: string; modelos: { id: string; nome: string; campos: { id: string; rotulo: string; area?: boolean; opcional?: boolean; exemplo?: string }[]; texto: string }[] }
   | { id: string; tipo: 'registro'; nome: string; descricao: string; icone: string; resumo?: 'sono' | 'minutos'
-      campos: { id: string; rotulo: string; tipo: 'data' | 'hora' | 'escolha' | 'numero' | 'texto'; opcoes?: { id: string; nome: string }[]; insight?: boolean; padrao?: string }[] }
+      campos: { id: string; rotulo: string; tipo: 'data' | 'hora' | 'escolha' | 'numero' | 'texto'; opcoes?: { id: string; nome: string }[]; insight?: boolean; padrao?: string
+        /** o registro só é salvo com este campo preenchido (o app mostra o aviso junto ao campo) */ obrigatorio?: boolean }[] }
   | { id: string; tipo: 'ajuda'; nome: string; descricao: string; icone: string; blocos: { titulo: string; itens: string[] }[]; recursos?: { nome: string; texto: string }[] }
 
 export type Modulo = {
