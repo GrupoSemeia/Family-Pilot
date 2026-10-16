@@ -137,7 +137,7 @@
     <label class="campo">Nome da criança (opcional)<input data-m="nome" value="${E(s.nome)}" maxlength="40"></label>
     ${secoes}
     <section class="bloco"><h2>Seu combinado</h2><pre class="saida" id="m-saida">${E(textoCombinado(f, s, faixa))}</pre>
-    <button class="btn" data-m="copiar-saida">Copiar combinado</button></section>${X.aviso}`;
+    <button class="btn" data-m="copiar-saida">Copiar combinado</button> <button class="btn claro" data-m="imprimir">Imprimir ou salvar em PDF</button></section>${X.aviso}`;
   }
 
   /* ideias */
@@ -266,6 +266,7 @@
     if (tag === 'INPUT' || tag === 'TEXTAREA') return; // campos tratam em change/input
     const a = el.dataset.m, { m, f } = toolDe();
     if (a === 'copiar') { X.copiar(el.dataset.t); return; }
+    if (a === 'imprimir') { imprimir(m, f); return; }
     if (a === 'copiar-saida') { const o = document.getElementById('m-saida'); if (o) X.copiar(o.textContent); return; }
     if (!m || !f) return;
     const s = S[m.id + '/' + f.id];
@@ -324,6 +325,21 @@
     if (st.reg[m.id + '/' + f.id].length > 300) st.reg[m.id + '/' + f.id].shift();
     salvar(); delete S[m.id + '/' + f.id]; X.toast('Registro salvo'); X.reRender();
   });
+
+  /** Folha para imprimir (ou "Salvar como PDF" no próprio diálogo do aparelho): só o combinado, com espaço para assinaturas. */
+  function imprimir(m, f) {
+    const o = document.getElementById('m-saida'); if (!o) return;
+    const velha = document.getElementById('area-impressao'); if (velha) velha.remove();
+    const a = document.createElement('div'); a.id = 'area-impressao';
+    const hoje = new Date().toLocaleDateString('pt-BR');
+    a.innerHTML = `<p class="imp-marca">FamilyPilot · ${E(m.nome)}</p><h1>${E(f.nome)}</h1><pre>${E(o.textContent)}</pre>
+      <div class="imp-ass"><div><span></span>Assinatura do responsável</div><div><span></span>Assinatura da criança</div><div><span></span>Data (${hoje})</div></div>
+      <p class="imp-rodape">Orientação educativa para pais e responsáveis. Um produto Grupo Semeia Digital.</p>`;
+    document.body.appendChild(a);
+    const limpa = () => { a.remove(); window.removeEventListener('afterprint', limpa); };
+    window.addEventListener('afterprint', limpa);
+    window.print();
+  }
 
   /* ---------- API usada pelo app.js ---------- */
   window.FPModulo = {

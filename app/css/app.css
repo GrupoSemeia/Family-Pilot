@@ -155,3 +155,19 @@ a.alerta:hover{filter:brightness(.97)}
 input[aria-invalid="true"]{border-color:#b3213f}
 
 .card.preco .desconto{margin-top:6px;color:var(--ok);font-weight:600}
+
+/* impressão do combinado: só a folha do combinado aparece */
+#area-impressao{display:none}
+@media print{
+  @page{margin:12mm 16mm}
+  body{background:#fff;padding:0}
+  body > *:not(#area-impressao){display:none !important}
+  #area-impressao{display:block;color:#000;font-family:Georgia,'Times New Roman',serif;padding:0}
+  #area-impressao .imp-marca{font:700 11pt Inter,sans-serif;color:#555;margin-bottom:6pt}
+  #area-impressao h1{font-size:22pt;margin:0 0 14pt}
+  #area-impressao pre{white-space:pre-wrap;font:11.5pt/1.4 Georgia,'Times New Roman',serif;margin:0}
+  #area-impressao .imp-ass{display:flex;gap:18pt;margin-top:22pt;break-inside:avoid}
+  #area-impressao .imp-ass div{flex:1;font:10pt Inter,sans-serif;color:#333}
+  #area-impressao .imp-ass span{display:block;border-bottom:1px solid #000;height:28pt;margin-bottom:4pt}
+  #area-impressao .imp-rodape{margin-top:22pt;font:9pt Inter,sans-serif;color:#666}
+}
