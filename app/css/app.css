@@ -1,7 +1,8 @@
 :root{--bg:#fff8f4;--surface:#fff;--sand:#fdebe4;--ink:#1f2540;--muted:#5b6382;--line:#f3ddd3;--deep:#1f2a4a;--cta:#ee3b64;--cta-h:#d62d56;--ok:#1f9d7f;--mint:#e9f7f2;--gold:#f2b84b;--warn:#fff3d6;--r:18px;--sh:0 8px 24px rgba(31,42,74,.09)}
 *{box-sizing:border-box;margin:0;padding:0}
 html{-webkit-text-size-adjust:100%}
-body{font-family:Inter,system-ui,sans-serif;background:var(--bg);color:var(--ink);line-height:1.55;font-size:17px;padding-bottom:84px}
+body{font-family:Inter,system-ui,sans-serif;background:var(--bg);color:var(--ink);line-height:1.55;font-size:17px;padding-bottom:calc(96px + env(safe-area-inset-bottom))}
+html{scroll-padding-bottom:120px}
 h1,h2{font-family:Nunito,system-ui,sans-serif;line-height:1.15;color:var(--deep)}
 h1{font-size:1.8rem;font-weight:900;margin:.4rem 0 .6rem}
 a{color:inherit}
