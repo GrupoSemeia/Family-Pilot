@@ -182,3 +182,9 @@ input[aria-invalid="true"]{border-color:#b3213f}
 .lista-filhos li > span:first-child{font-weight:700}
 #form-filho input{flex:1;min-width:0;border:2px solid var(--line);border-radius:12px;padding:8px 12px;font:inherit}
 .filtro-filho{margin:10px 0}
+
+/* primeiro uso guiado */
+.guia-saida{margin-top:22px;display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+.guia-saida .btn{width:100%;text-align:center}
+.opcao small{color:var(--muted);font-weight:400}
+.card.guia-pos{border:2px solid var(--ok);background:var(--mint)}

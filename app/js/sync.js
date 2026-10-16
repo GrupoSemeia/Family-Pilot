@@ -41,7 +41,7 @@
     const ap = lapides(a, b), pref = mandaLocal ? [a, b] : [b, a];
     if (k === 'filhos') return { lista: uniao(ap, a.lista, b.lista), apagados: ap };
     if (k === 'birra') {
-      return { diario: uniao(ap, a.diario, b.diario), radar: uniao(ap, a.radar, b.radar), idade: pref[0].idade || pref[1].idade || '4-5', apagados: ap };
+      return { diario: uniao(ap, a.diario, b.diario), radar: uniao(ap, a.radar, b.radar), idade: pref[0].idade || pref[1].idade || '4-5', guiado: !!(a.guiado || b.guiado), apagados: ap };
     }
     const reg = {};
     new Set(Object.keys(a.reg || {}).concat(Object.keys(b.reg || {}))).forEach((c) => {
@@ -76,8 +76,9 @@
     finally { ocupado[k] = false; }
   }
 
-  function agendar(k) {
-    if (!ativo) { if (estado === 'consentimento' && !perguntou) { perguntou = true; pedir(); } return; }
+  /** semPedir: preferências (idade escolhida, guia concluído) não são registros: gravam, mas não abrem a janela de autorização. */
+  function agendar(k, semPedir) {
+    if (!ativo) { if (estado === 'consentimento' && !perguntou && !semPedir) { perguntou = true; pedir(); } return; }
     pend[k] = true; clearTimeout(timers[k]);
     timers[k] = setTimeout(() => enviar(k), 1200);
   }

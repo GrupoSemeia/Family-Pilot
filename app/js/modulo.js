@@ -5,6 +5,7 @@
   let X = null;        // utilidades do app (esc, toast, copiar, reRender, email, aviso)
   let MODS = {};       // módulos liberados: id → módulo
   let S = {};          // estado de cada tela (zera ao trocar de rota)
+  let PRE = null;      // situação já escolhida no primeiro uso guiado: a tela abre direto na orientação
   let st = null;       // armazenamento local da conta
 
   const byId = (arr, id) => (arr || []).find((x) => x.id === id);
@@ -16,7 +17,7 @@
   /* ---------- armazenamento (uma chave por conta) ---------- */
   const KEY = () => 'familypilot.m.' + X.email;
   function carregar() { try { st = Object.assign({ faixa: {}, reg: {} }, JSON.parse(localStorage.getItem(KEY()) || '{}')); } catch (e) { st = { faixa: {}, reg: {} }; } }
-  function salvar() { try { localStorage.setItem(KEY(), JSON.stringify(st)); } catch (e) { /* sem armazenamento */ } FamilySync.agendar('modulos'); }
+  function salvar(silencioso) { try { localStorage.setItem(KEY(), JSON.stringify(st)); } catch (e) { /* sem armazenamento */ } FamilySync.agendar('modulos', silencioso === true); }
   const faixaDe = (m) => { const f = st.faixa[m.id]; return byId(m.faixas, f) ? f : m.faixas[Math.min(1, m.faixas.length - 1)].id; };
   const regs = (m, f) => (st.reg[m.id + '/' + f.id] = st.reg[m.id + '/' + f.id] || []);
   const estado = (m, f, ini) => (S[m.id + '/' + f.id] = S[m.id + '/' + f.id] || ini());
@@ -50,7 +51,7 @@
 
   /* situações: faixa → situação → plano */
   function situacoes(m, f) {
-    const s = estado(m, f, () => ({ step: 0, sit: null }));
+    const s = estado(m, f, () => { const p = PRE && PRE.mid === m.id && PRE.fid === f.id ? PRE : null; PRE = null; return p ? { step: 2, sit: p.sit } : { step: 0, sit: null }; });
     const faixa = faixaDe(m);
     if (s.step === 0) {
       return `<h1>${E(f.nome)}</h1><p class="lead">${E(f.descricao)}</p><h2 class="sec">Idade</h2>${faixaChips(m, faixa)}
@@ -70,7 +71,7 @@
     <section class="bloco evitar"><h2>3. Evitar</h2>${lista(x.evitar, 'lista x')}</section>
     <section class="bloco"><h2>4. Depois</h2>${lista(x.depois)}</section>
     <div class="card"><b>O que esperar nessa idade</b><p>${E(pf.expectativa)}</p></div>
-    ${X.aviso}`;
+    ${X.cartaoPos ? X.cartaoPos() : ''}${X.aviso}`;
   }
 
   /* rotina da noite (sono) */
@@ -276,7 +277,7 @@
     if (!m || !f) return;
     const s = S[m.id + '/' + f.id];
     switch (a) {
-      case 'faixa': st.faixa[m.id] = el.dataset.v; salvar(); break;
+      case 'faixa': st.faixa[m.id] = el.dataset.v; salvar(true); break;
       case 'sit-ir': s.step = 1; break;
       case 'sit': s.sit = el.dataset.v; s.step = 2; break;
       case 'sit-voltar': s.step = s.step === 2 ? 1 : 0; break;
@@ -366,6 +367,10 @@
   window.FPModulo = {
     init(ctx, modulos) { X = ctx; MODS = modulos || {}; carregar(); FamilySync.aoMudar('modulos', () => { carregar(); X.reRender(); }); },
     reset() { S = {}; },
+    /** o primeiro uso guiado grava a idade escolhida e pede para a ferramenta abrir já na situação */
+    definirFaixa(mid, faixa) { st.faixa[mid] = faixa; salvar(true); },
+    preparar(mid, fid, sit) { PRE = { mid, fid, sit }; },
+    temRegistros() { return Object.values(st.reg || {}).some((l) => l && l.length); },
     /** devolve o HTML da rota /m/<módulo>[/<ferramenta>] ou null se a rota não for de módulo */
     view(rota) {
       const p = rota.split('/');

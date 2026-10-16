@@ -11,10 +11,10 @@ window.FamilyPilot = { _on: false, start: function (C, conta) {
 
   /* ---------- armazenamento ---------- */
   const KEY = 'familypilot.v1.' + conta.usuario.email; // registros separados por conta neste aparelho
-  const vazio = () => ({ diario: [], radar: [], idade: '4-5' });
+  const vazio = () => ({ diario: [], radar: [], idade: '4-5', guiado: false });
   let db = vazio();
   try { db = Object.assign(vazio(), JSON.parse(localStorage.getItem(KEY) || '{}')); } catch (e) { db = vazio(); }
-  const salvar = () => { try { localStorage.setItem(KEY, JSON.stringify(db)); } catch (e) { /* sem armazenamento: segue na memória */ } FamilySync.agendar('birra'); };
+  const salvar = (silencioso) => { try { localStorage.setItem(KEY, JSON.stringify(db)); } catch (e) { /* sem armazenamento: segue na memória */ } FamilySync.agendar('birra', silencioso === true); };
   FPFilhos.init(conta.usuario.email);
   FamilySync.zerarOuvintes();
   FamilySync.aoMudar('birra', () => { try { db = Object.assign(vazio(), JSON.parse(localStorage.getItem(KEY) || '{}')); } catch (e) { /* mantém */ } reRender(); });
@@ -30,6 +30,7 @@ window.FamilyPilot = { _on: false, start: function (C, conta) {
   let W = { step: 0, idade: null, motivo: null, local: null, risco: false };
   let F = { comp: null, idade: null };
   let R = { tags: [], quando: null };
+  let WPRE = null;   // idade já escolhida no primeiro uso guiado: o Plano SOS começa na pergunta do motivo
   let DRAFT = null;
   let timer = null;
 
@@ -55,6 +56,7 @@ window.FamilyPilot = { _on: false, start: function (C, conta) {
   const views = {
     admin() { return conta.admin ? window.FPAdmin.view() : views.home(); },
     ajuda() { return window.FPAjuda.view(); },
+    comecar() { return window.FPGuia.view(); },
     home() {
       if (!D) return homeGeral();
       return `
@@ -72,6 +74,7 @@ window.FamilyPilot = { _on: false, start: function (C, conta) {
         <a class="tool" href="#/diario"><b>📓 Diário SOS</b><span>Registre episódios e o que funcionou.</span></a>
       </div>
       ${ofertaCard()}${meusModulos()}
+      <a class="outros" href="#/comecar">Refazer a orientação rápida</a>
       <a class="outros" href="#/modulos">${CAT.some((m) => m.estado !== 'liberado') ? 'Conheça os outros módulos FamilyPilot →' : 'Ver todos os módulos →'}</a>
       ${aviso}`;
     },
@@ -222,7 +225,7 @@ window.FamilyPilot = { _on: false, start: function (C, conta) {
   }
   function homeGeral() {
     return `<section class="hero-app"><p class="eyebrow">FamilyPilot</p><h1>Olá, ${esc(conta.usuario.nome.split(' ')[0])}</h1><p>Escolha por onde começar hoje.</p></section>
-    ${ofertaCard()}${meusModulos()}<a class="outros" href="#/modulos">Ver todos os módulos →</a>${aviso}`;
+    ${ofertaCard()}${meusModulos()}<a class="outros" href="#/comecar">Refazer a orientação rápida</a><a class="outros" href="#/modulos">Ver todos os módulos →</a>${aviso}`;
   }
 
   /** Meus filhos: um apelido por filho (não o nome completo), para identificar e filtrar os registros. */
@@ -294,6 +297,7 @@ window.FamilyPilot = { _on: false, start: function (C, conta) {
     <section class="bloco evitar"><h2>3. Evitar</h2>${lista(p.evitar, 'lista x')}</section>
     <section class="bloco"><h2>4. Depois que passar</h2>${lista(D.DEPOIS, 'lista')}</section>
     <div class="card"><b>O que esperar nessa idade</b><p>${esc(p.pi.expectativa)}</p></div>
+    ${window.FPGuia.cartaoPos()}
     <div class="acoes">
       <a class="btn claro" href="#/pausa">Preciso de 60 segundos para me acalmar</a>
       <button class="btn" data-act="registrar-plano">Registrar no Diário SOS</button>
@@ -401,13 +405,13 @@ window.FamilyPilot = { _on: false, start: function (C, conta) {
   function toggle(arr, v) { const i = arr.indexOf(v); if (i >= 0) arr.splice(i, 1); else arr.push(v); }
 
   /* ---------- roteador ---------- */
-  const MAPA = { '/': 'home', '/plano': 'plano', '/frase': 'frase', '/pausa': 'pausa', '/radar': 'radar', '/diario': 'diario', '/diario/novo': 'diarioNovo', '/modulos': 'modulos', '/admin': 'admin', '/ajuda': 'ajuda' };
+  const MAPA = { '/': 'home', '/plano': 'plano', '/frase': 'frase', '/pausa': 'pausa', '/radar': 'radar', '/diario': 'diario', '/diario/novo': 'diarioNovo', '/modulos': 'modulos', '/admin': 'admin', '/ajuda': 'ajuda', '/comecar': 'comecar' };
   function rotaAtual() { return (location.hash || '#/').replace(/^#/, '') || '/'; }
   function render() {
     pausaParar();
     const r = rotaAtual();
     // sem o SOS Birra na conta, as telas dele não existem: volta para o início
-    if (!D && r !== '/' && r !== '/modulos' && r !== '/admin' && r !== '/ajuda' && !r.startsWith('/m/')) { location.hash = '#/'; return; }
+    if (!D && r !== '/' && r !== '/modulos' && r !== '/admin' && r !== '/ajuda' && r !== '/comecar' && !r.startsWith('/m/')) { location.hash = '#/'; return; }
     $('#app').innerHTML = htmlDaRota(r);
     const selo = document.querySelector('.selo'), cm = r.startsWith('/m/') && CAT.find((x) => x.id === r.split('/')[2]);
     if (selo) selo.textContent = cm ? cm.nome : D ? 'SOS Birra' : 'FamilyPilot';
@@ -423,7 +427,9 @@ window.FamilyPilot = { _on: false, start: function (C, conta) {
 
   window.addEventListener('hashchange', () => {
     window.FPModulo.reset();
-    if (rotaAtual() === '/plano') W = { step: 0, idade: null, motivo: null, local: null, risco: false };
+    window.FPGuia.aoMudarRota();
+    if (rotaAtual() === '/comecar') window.FPGuia.recomecar();
+    if (rotaAtual() === '/plano') { W = WPRE ? { step: 1, idade: WPRE, motivo: null, local: null, risco: false } : { step: 0, idade: null, motivo: null, local: null, risco: false }; WPRE = null; }
     if (rotaAtual() !== '/diario/novo' && rotaAtual() !== '/plano') DRAFT = null;
     render();
   });
@@ -435,14 +441,14 @@ window.FamilyPilot = { _on: false, start: function (C, conta) {
     const act = el.dataset.act, v = el.dataset.v, k = el.dataset.k;
     switch (act) {
       case 'pick':
-        if (k === 'idade') { W.idade = v; db.idade = v; salvar(); W.step = 1; }
+        if (k === 'idade') { W.idade = v; db.idade = v; salvar(true); W.step = 1; }
         else if (k === 'motivo') { W.motivo = v; W.step = 2; }
         else if (k === 'local') { W.local = v; }
         reRender(); break;
       case 'passo-voltar': W.step = Math.max(0, W.step - 1); reRender(); break;
       case 'gerar': { const r = $('#risco'); W.risco = !!(r && r.checked); W.step = 3; reRender(); window.scrollTo(0, 0); break; }
       case 'plano-refazer': W = { step: 0, idade: null, motivo: null, local: null, risco: false }; reRender(); break;
-      case 'pick-frase': if (k === 'idade') { F.idade = v; db.idade = v; salvar(); } else F.comp = v; reRender(); break;
+      case 'pick-frase': if (k === 'idade') { F.idade = v; db.idade = v; salvar(true); } else F.comp = v; reRender(); break;
       case 'copiar': copiar(el.dataset.t); break;
       case 'sair': window.FamilyAuth.sair(); break;
       case 'adm-preset': { const v = el.dataset.v; document.querySelectorAll('.adm-mod').forEach((c) => { c.checked = v === 'todos' || (v === 'birra' && c.value === 'birra'); }); break; }
@@ -523,9 +529,13 @@ window.FamilyPilot = { _on: false, start: function (C, conta) {
   /* ---------- início ---------- */
   window.FPAdmin.init({ esc, reRender });
   window.FPAjuda.init({ esc, reRender, email: conta.usuario.email });
-  window.FPModulo.init({ esc, toast, copiar, reRender, aviso, email: conta.usuario.email }, C.modulos);
+  window.FPGuia.init({ esc, reRender, CAT: () => CAT, D: () => D, MODS: () => C.modulos || {}, db: () => db, salvar: () => salvar(true),
+    iniciarPlano: (idade) => { db.idade = idade; F.idade = idade; WPRE = idade; salvar(true); location.hash = '#/plano'; } });
+  window.FPModulo.init({ esc, toast, copiar, reRender, aviso, email: conta.usuario.email, cartaoPos: () => window.FPGuia.cartaoPos() }, C.modulos);
   $('#tabs').hidden = false;
   $('#tabs').innerHTML = nav.map(([h, t, i]) => `<a href="${h}"><span aria-hidden="true">${i}</span>${t}</a>`).join('');
+  // primeira vez da conta (sem registros): abre o guia em vez da tela inicial
+  if (rotaAtual() === '/' && window.FPGuia.deveMostrar()) history.replaceState(null, '', '#/comecar');
   render();
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('/sw.js').catch(() => {});
 } };

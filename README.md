@@ -70,6 +70,9 @@ Diário, radar e ferramentas dos módulos ficam na conta (tabela `dados`, migra�
 - Ao sair da conta, a cópia dos registros é retirada do aparelho (se houver algo sem enviar, o app avisa antes).
 - Texto jurídico atualizado em `app/privacidade.html` e `app/termos.html` (versão 2026-10-16, `VERSAO_TERMOS`): revisar com advogado, em especial o consentimento do responsável sobre dados de crianças (art. 14).
 
+### Primeiro uso guiado
+Na primeira abertura da conta (sem registros e com `guiado` falso) o app abre `#/comecar` (`app/js/guia.js`): tema (só se a conta tem mais de um módulo) → idade → situação, e termina na orientação pronta (no SOS Birra, no Plano SOS que já existia, com a idade já escolhida). "Estou em crise agora" (só com o SOS Birra) e "Pular e explorar sozinho" ficam sempre à vista. Depois do primeiro plano aparece, no fim da tela e uma vez só, um cartão: guardar o app na tela inicial e, se quiser, cadastrar o apelido do filho. O guia é marcado como concluído em `guiado` (junto dos registros) e pode ser refeito em "Refazer a orientação rápida". Preferências (idade escolhida, guia concluído) não abrem a janela de autorização dos registros; só salvar um registro de verdade abre.
+
 ### Filhos (apelidos)
 Em Módulos → "Meus filhos" a pessoa cadastra um **apelido** por filho (até 6, até 20 letras, sem sobrenome; o app não pede o nome completo). O apelido aparece como "Filho(a)" nos episódios do Diário SOS, no Radar e nos diários dos módulos, e há filtro "Todos | apelidos" (o filho em foco fica só no aparelho). A lista é o bloco `filhos` da sincronização (cifrado na conta, como os demais; `app/js/filhos.js`). Remover um filho não apaga os registros.
 
