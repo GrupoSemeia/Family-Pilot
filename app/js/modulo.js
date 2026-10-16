@@ -232,10 +232,10 @@
       return `<label class="campo">${E(c.rotulo)}<input type="${tipo}" data-m="rvin" data-id="${c.id}" value="${E(v)}"${inv} ${c.tipo === 'numero' ? 'min="0" max="1440" inputmode="numeric"' : ''} ${c.tipo === 'texto' ? 'maxlength="300"' : ''}></label>${aviso(c)}`;
     };
     return `<h1>${E(f.nome)}</h1><p class="lead">${E(f.descricao)}</p>
-    <form id="m-form" class="form card" novalidate>${Object.keys(er).length ? '<p class="msg" role="alert">Falta preencher alguns campos para salvar. Veja os avisos abaixo.</p>' : ''}${f.campos.map(campo).join('')}<button class="btn" type="submit">Salvar registro</button></form>
+    <form id="m-form" class="form card" novalidate>${s.editando ? '<p class="msg ok" role="status">Editando um registro. Salve as alterações ou cancele.</p>' : ''}${Object.keys(er).length ? '<p class="msg" role="alert">Falta preencher alguns campos para salvar. Veja os avisos abaixo.</p>' : ''}${f.campos.map(campo).join('')}<button class="btn" type="submit">${s.editando ? 'Salvar alterações' : 'Salvar registro'}</button>${s.editando ? ' <button class="mini" type="button" data-m="rcancel">Cancelar edição</button>' : ''}</form>
     ${resumo.length ? `<div class="card"><b>O que seus registros mostram</b>${lista_(resumo)}<p class="nota">Baseado só no que você anotou. Não é diagnóstico.</p></div>` : ''}
     ${lista.length ? `<h2 class="sec">Histórico (${lista.length})</h2><ul class="hist">${lista.slice(0, 40).map((r) => `<li><div><b>${fmtDia(r.v.data)}</b>${f.campos.filter((c) => c.id !== 'data' && r.v[c.id] !== '' && r.v[c.id] != null).map((c) => `<small>${E(c.rotulo)}: ${E(rotuloValor(c, r.v[c.id]))}</small>`).join('')}</div>
-      <button class="mini perigo" data-m="rdel" data-id="${r.id}" aria-label="Apagar registro">Apagar</button></li>`).join('')}</ul>` : '<p class="vazio">Nenhum registro ainda.</p>'}${X.aviso}`;
+      <button class="mini" data-m="redit" data-id="${r.id}" aria-label="Editar registro">Editar</button> <button class="mini perigo" data-m="rdel" data-id="${r.id}" aria-label="Apagar registro">Apagar</button></li>`).join('')}</ul>` : '<p class="vazio">Nenhum registro ainda.</p>'}${X.aviso}`;
   }
   const lista_ = (itens) => lista(itens);
 
@@ -278,7 +278,19 @@
       case 'cat': s.cat = el.dataset.v; break;
       case 'mod': s.id = el.dataset.v; break;
       case 'rv': s.v[el.dataset.k] = s.v[el.dataset.k] === el.dataset.v ? '' : el.dataset.v; if (s.erros) delete s.erros[el.dataset.k]; break;
-      case 'rdel': if (confirm('Apagar este registro?')) { const l = regs(m, f); const i = l.findIndex((r) => r.id === el.dataset.id); if (i >= 0) l.splice(i, 1); FamilySync.lapide(st, el.dataset.id); salvar(); } else return; break;
+      case 'rdel': {
+        // apaga na hora e oferece "Desfazer" por alguns segundos
+        const l = regs(m, f), i = l.findIndex((r) => r.id === el.dataset.id); if (i < 0) return;
+        const item = l[i]; l.splice(i, 1); FamilySync.lapide(st, item.id); salvar();
+        if (s.editando === item.id) { delete s.editando; s.v = {}; }
+        X.toast('Registro apagado', { rotulo: 'Desfazer', fn: () => { FamilySync.destapar(st, item.id); regs(m, f).push(Object.assign({}, item, { restaurado: Date.now() })); salvar(); X.reRender(); } });
+        break;
+      }
+      case 'redit': {
+        const r = regs(m, f).find((x) => x.id === el.dataset.id); if (!r) return;
+        s.v = Object.assign({}, r.v); s.editando = r.id; delete s.erros; X.reRender(); window.scrollTo(0, 0); return;
+      }
+      case 'rcancel': delete S[m.id + '/' + f.id]; break;
       default: return;
     }
     X.reRender();
@@ -321,9 +333,13 @@
       return;
     }
     delete s.erros;
-    regs(m, f).push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 5), criado: Date.now(), v });
-    if (st.reg[m.id + '/' + f.id].length > 300) st.reg[m.id + '/' + f.id].shift();
-    salvar(); delete S[m.id + '/' + f.id]; X.toast('Registro salvo'); X.reRender();
+    const editando = s.editando && regs(m, f).find((x) => x.id === s.editando);
+    if (editando) { editando.v = v; editando.editado = Date.now(); }
+    else {
+      regs(m, f).push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 5), criado: Date.now(), v });
+      if (st.reg[m.id + '/' + f.id].length > 300) st.reg[m.id + '/' + f.id].shift();
+    }
+    salvar(); delete S[m.id + '/' + f.id]; X.toast(editando ? 'Alterações salvas' : 'Registro salvo'); X.reRender();
   });
 
   /** Folha para imprimir (ou "Salvar como PDF" no próprio diálogo do aparelho): só o combinado, com espaço para assinaturas. */

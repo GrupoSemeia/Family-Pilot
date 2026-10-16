@@ -171,3 +171,7 @@ input[aria-invalid="true"]{border-color:#b3213f}
   #area-impressao .imp-ass span{display:block;border-bottom:1px solid #000;height:28pt;margin-bottom:4pt}
   #area-impressao .imp-rodape{margin-top:22pt;font:9pt Inter,sans-serif;color:#666}
 }
+
+/* aviso com botão (Desfazer) */
+#toast.com-acao{pointer-events:auto}
+#toast .toast-acao{margin-left:12px;background:none;border:0;color:#ffd9e1;font:700 .9rem Inter,sans-serif;text-decoration:underline;cursor:pointer;padding:4px 2px}

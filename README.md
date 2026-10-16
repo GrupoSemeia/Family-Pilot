@@ -70,6 +70,9 @@ Diário, radar e ferramentas dos módulos ficam na conta (tabela `dados`, migra�
 - Ao sair da conta, a cópia dos registros é retirada do aparelho (se houver algo sem enviar, o app avisa antes).
 - Texto jurídico atualizado em `app/privacidade.html` e `app/termos.html` (versão 2026-10-16, `VERSAO_TERMOS`): revisar com advogado, em especial o consentimento do responsável sobre dados de crianças (art. 14).
 
+### Editar e desfazer
+Nos diários (Birra e dos outros módulos) há **Editar** (volta ao formulário com os dados, mantém o mesmo registro e marca `editado`). **Apagar** não pergunta: apaga na hora e mostra "Desfazer" por 9 segundos (o Radar também desfaz). Para o desfazer e a edição valerem entre aparelhos, a junção da sincronização (`juntar` em `app/js/sync.js`) usa o carimbo mais novo de cada item (editado, restaurado ou criado) e só deixa a lápide apagar se for mais nova que o último "restaurado".
+
 ### Compras e ajuda (cliente)
 Em Módulos → "Compras e ajuda" (`#/ajuda`, `app/js/ajuda.js`; `GET /api/pedidos`): histórico das compras da própria conta, "Continuar o pagamento" para cobrança pendente (vale 3 dias; depois gera outra) e "Já paguei" (confere na Asaas). Traz garantia, reembolso e o botão de suporte por e-mail (`contato@familypilot.com.br`, com o e-mail da conta no texto).
 

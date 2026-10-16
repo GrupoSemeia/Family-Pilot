@@ -23,10 +23,18 @@
   /* ---------- juntar o que está neste aparelho com o que veio do servidor ---------- */
   function lapides(a, b) {
     const corte = Date.now() - DIAS_LAPIDE * 864e5, out = {};
-    [b && b.apagados, a && a.apagados].forEach((m) => Object.keys(m || {}).forEach((id) => { if (m[id] > corte) out[id] = m[id]; }));
+    [b && b.apagados, a && a.apagados].forEach((m) => Object.keys(m || {}).forEach((id) => { if (m[id] > corte) out[id] = Math.max(out[id] || 0, m[id]); }));
     return out;
   }
-  const uniao = (ap, x, y) => { const m = new Map(); (y || []).concat(x || []).forEach((i) => { if (i && i.id && !ap[i.id]) m.set(i.id, i); }); return [...m.values()]; };
+  // quando o item mudou por último (editado, restaurado ou criado). Vale a versão mais nova; empate fica com a deste aparelho.
+  const carimbo = (i) => Math.max(i.editado || 0, i.restaurado || 0, i.criado || 0);
+  // um item apagado só some se a exclusão for mais recente que o último "desfazer"
+  const apagado = (ap, i) => !!ap[i.id] && ap[i.id] >= (i.restaurado || 0);
+  const uniao = (ap, x, y) => {
+    const m = new Map();
+    (y || []).concat(x || []).forEach((i) => { if (!i || !i.id || apagado(ap, i)) return; const velho = m.get(i.id); if (!velho || carimbo(i) >= carimbo(velho)) m.set(i.id, i); });
+    return [...m.values()];
+  };
   /** a = deste aparelho, b = do servidor. mandaLocal: nos itens únicos (idade, faixa) vale o que está aqui. */
   function juntar(k, a, b, mandaLocal) {
     a = a || {}; b = b || {};
@@ -161,6 +169,9 @@
     puxar, offlineInit, agendar, antesDeSair, baixar, apagarRegistros, excluirConta, autorizar, revogar, pedir,
     ativo: () => ativo, estado: () => estado,
     lapide(obj, id) { obj.apagados = obj.apagados || {}; obj.apagados[id] = Date.now(); },
+    /** Desfazer uma exclusão: tira a lápide daqui; o item volta com "restaurado" mais novo que a lápide que já tenha chegado ao servidor. */
+    destapar(obj, id) { if (obj.apagados) delete obj.apagados[id]; },
+    _juntar: juntar,   // só para teste
     aoMudar(k, f) { (ouvintes[k] = ouvintes[k] || []).push(f); },
     zerarOuvintes() { CHAVES.forEach((k) => { ouvintes[k] = []; }); },
   };

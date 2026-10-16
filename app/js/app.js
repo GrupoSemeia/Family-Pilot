@@ -166,7 +166,7 @@ window.FamilyPilot = { _on: false, start: function (C, conta) {
       const d = DRAFT || { quando: agoraLocal(), idade: db.idade, motivo: 'nao-sei', local: 'casa', est: [], res: '', nota: '' };
       DRAFT = d;
       const sel = (arr, v) => arr.map((o) => `<option value="${o.id}" ${o.id === v ? 'selected' : ''}>${esc(o.nome || o.rotulo)}</option>`).join('');
-      return `${voltar('#/diario', 'Diário')}<h1>Registrar episódio</h1>
+      return `${voltar('#/diario', 'Diário')}<h1>${d.editId ? 'Editar episódio' : 'Registrar episódio'}</h1>
       <form id="form-diario" class="form">
         <label class="campo">Quando<input type="datetime-local" id="d-quando" value="${esc(d.quando)}" required></label>
         <label class="campo">Idade<select id="d-idade">${sel(D.IDADES, d.idade)}</select></label>
@@ -177,7 +177,7 @@ window.FamilyPilot = { _on: false, start: function (C, conta) {
         <p class="rotulo">Como terminou?</p>
         <div class="chips">${D.RESULTADOS.map((r) => chip('res', 'res', r.id, r.nome, d.res === r.id)).join('')}</div>
         <label class="campo">Anotações (opcional)<textarea id="d-nota" rows="3" maxlength="500" placeholder="O que ajudou? O que você faria diferente?">${esc(d.nota)}</textarea></label>
-        <button class="btn" type="submit">Salvar episódio</button>
+        <button class="btn" type="submit">${d.editId ? 'Salvar alterações' : 'Salvar episódio'}</button>
       </form>`;
     },
 
@@ -255,7 +255,7 @@ window.FamilyPilot = { _on: false, start: function (C, conta) {
       ${e.est.length ? `<small>Fiz: ${e.est.map((s) => esc(byId(D.ESTRATEGIAS, s).nome)).join(', ')}</small>` : ''}
       ${r ? `<span class="res ${r.id}">${esc(r.nome)}</span>` : ''}
       ${e.nota ? `<p class="obs">${esc(e.nota)}</p>` : ''}</div>
-      <button class="mini perigo" data-act="diario-apagar" data-id="${e.id}" aria-label="Apagar episódio">Apagar</button></li>`;
+      <button class="mini" data-act="diario-editar" data-id="${e.id}" aria-label="Editar episódio">Editar</button> <button class="mini perigo" data-act="diario-apagar" data-id="${e.id}" aria-label="Apagar episódio">Apagar</button></li>`;
   }
 
   /* ---------- Plano SOS ---------- */
@@ -358,9 +358,20 @@ window.FamilyPilot = { _on: false, start: function (C, conta) {
   }
 
   /* ---------- utilidades ---------- */
-  function toast(msg) {
-    const t = $('#toast'); t.textContent = msg; t.classList.add('show');
-    clearTimeout(toast.h); toast.h = setTimeout(() => t.classList.remove('show'), 2200);
+  /** Aviso rápido. Com "acao" ({ rotulo, fn }) mostra um botão, por mais tempo (usado no "Desfazer"). */
+  function toast(msg, acao) {
+    const t = $('#toast'); t.textContent = msg;
+    if (acao) { const b = document.createElement('button'); b.type = 'button'; b.className = 'toast-acao'; b.textContent = acao.rotulo; b.onclick = () => { clearTimeout(toast.h); t.classList.remove('show', 'com-acao'); acao.fn(); }; t.appendChild(b); }
+    t.classList.toggle('com-acao', !!acao); t.classList.add('show');
+    clearTimeout(toast.h); toast.h = setTimeout(() => t.classList.remove('show', 'com-acao'), acao ? 9000 : 2200);
+  }
+  /** Apaga na hora e oferece "Desfazer" por alguns segundos (no lugar de perguntar antes). */
+  function apagarComDesfazer(lista, id, aviso) {
+    const item = db[lista].find((e) => e.id === id); if (!item) return;
+    FamilySync.lapide(db, id); db[lista] = db[lista].filter((e) => e.id !== id); salvar(); reRender();
+    toast(aviso, { rotulo: 'Desfazer', fn: () => {
+      FamilySync.destapar(db, id); db[lista].push(Object.assign({}, item, { restaurado: Date.now() })); salvar(); reRender();
+    } });
   }
   function copiar(txt) {
     const ok = () => toast('Copiado!');
@@ -443,13 +454,17 @@ window.FamilyPilot = { _on: false, start: function (C, conta) {
         db.radar.push({ id: uid(), quando: q, tags: R.tags.slice() }); salvar();
         R = { tags: [], quando: null }; toast('Salvo no Radar'); reRender(); break;
       }
-      case 'radar-apagar': if (confirm('Apagar este registro?')) { FamilySync.lapide(db, el.dataset.id); db.radar = db.radar.filter((e) => e.id !== el.dataset.id); salvar(); reRender(); } break;
+      case 'radar-apagar': apagarComDesfazer('radar', el.dataset.id, 'Registro apagado'); break;
       case 'registrar-plano':
         DRAFT = { quando: agoraLocal(), idade: W.idade, motivo: W.motivo, local: W.local, est: [], res: '', nota: '' };
         location.hash = '#/diario/novo'; break;
       case 'est': syncDraft(); toggle(DRAFT.est, v); reRender(); break;
       case 'res': syncDraft(); DRAFT.res = DRAFT.res === v ? '' : v; reRender(); break;
-      case 'diario-apagar': if (confirm('Apagar este episódio?')) { FamilySync.lapide(db, el.dataset.id); db.diario = db.diario.filter((e) => e.id !== el.dataset.id); salvar(); reRender(); } break;
+      case 'diario-apagar': apagarComDesfazer('diario', el.dataset.id, 'Episódio apagado'); break;
+      case 'diario-editar': {
+        const e = byId(db.diario, el.dataset.id); if (!e) break;
+        DRAFT = Object.assign({}, e, { est: (e.est || []).slice(), editId: e.id, nota: e.nota || '' }); location.hash = '#/diario/novo'; break;
+      }
       case 'diario-copiar': copiar(db.diario.slice().sort((a, b) => b.quando.localeCompare(a.quando)).map((e) => {
         const m = byId(D.MOTIVOS, e.motivo), l = byId(D.LOCAIS, e.local), r = byId(D.RESULTADOS, e.res);
         return `${fmtData(e.quando)} — ${m ? m.nome : ''} (${l ? l.nome : ''}). Fiz: ${e.est.map((s) => byId(D.ESTRATEGIAS, s).nome).join(', ') || '—'}. Resultado: ${r ? r.nome : '—'}.${e.nota ? ' ' + e.nota : ''}`;
@@ -469,8 +484,11 @@ window.FamilyPilot = { _on: false, start: function (C, conta) {
     if (ev.target.id !== 'form-diario') return;
     ev.preventDefault();
     syncDraft();
-    db.diario.push({ id: uid(), quando: DRAFT.quando, idade: DRAFT.idade, motivo: DRAFT.motivo, local: DRAFT.local, est: DRAFT.est.slice(), res: DRAFT.res, nota: DRAFT.nota.trim() });
-    db.idade = DRAFT.idade; salvar(); DRAFT = null; toast('Episódio salvo');
+    const novo = { id: DRAFT.editId || uid(), quando: DRAFT.quando, idade: DRAFT.idade, motivo: DRAFT.motivo, local: DRAFT.local, est: DRAFT.est.slice(), res: DRAFT.res, nota: DRAFT.nota.trim() };
+    const pos = DRAFT.editId ? db.diario.findIndex((e) => e.id === DRAFT.editId) : -1;
+    if (pos >= 0) db.diario[pos] = Object.assign(novo, { editado: Date.now() }); else db.diario.push(novo);
+    const editou = pos >= 0;
+    db.idade = DRAFT.idade; salvar(); DRAFT = null; toast(editou ? 'Alterações salvas' : 'Episódio salvo');
     location.hash = '#/diario';
   });
 
