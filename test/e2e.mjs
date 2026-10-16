@@ -350,8 +350,15 @@ try {
   // registros na nuvem (LGPD): cifrados, por conta, com controle de versão, exportação e exclusão
   {
     assert.equal((await cliente()('GET', '/api/dados')).status, 401, 'registros exigem login')
+    let r0
     const p = cliente(), q = cliente()
     for (const [c, n] of [[p, 'lgpd'], [q, 'lgpdb']]) assert.equal((await c('POST', '/api/auth/cadastro', { nome: 'Pai ' + n, email: `${n}${S}@teste.com`, senha: 'senha-forte-1', aceite: true })).status, 201)
+    r0 = await p('GET', '/api/dados'); assert.equal(r0.status, 403, 'sem a autorização do responsável nada vai para a nuvem'); assert.equal(r0.d.consentimento, false)
+    assert.equal((await p('PUT', '/api/dados/birra', { base: 0, dados: { diario: [] } })).status, 403, 'nem salvar')
+    assert.equal((await p('POST', '/api/dados/consentimento', { aceite: 'sim' })).status, 400, 'autorização precisa ser explícita')
+    assert.equal((await p('GET', '/api/auth/eu')).d.usuario.consentRegistros, null)
+    assert.equal((await p('POST', '/api/dados/consentimento', { aceite: true })).status, 200)
+    assert.ok((await p('GET', '/api/auth/eu')).d.usuario.consentRegistros, 'a data da autorização fica registrada')
     assert.deepEqual((await p('GET', '/api/dados')).d, { birra: null, modulos: null }, 'conta nova começa vazia')
     const segredo = 'ZEBRA-' + S
     let r = await p('PUT', '/api/dados/birra', { base: 0, dados: { diario: [{ id: 'a1', nota: segredo }], radar: [], idade: '4-5' } })
@@ -360,7 +367,8 @@ try {
     r = await p('PUT', '/api/dados/birra', { base: 0, dados: { diario: [] } }); assert.equal(r.d.atual.versao, 1); assert.equal(r.d.atual.dados.diario[0].nota, segredo, '409 devolve a versão atual')
     r = await p('PUT', '/api/dados/birra', { base: 1, dados: { diario: [{ id: 'a1', nota: segredo }, { id: 'a2', nota: 'x' }], radar: [] } }); assert.equal(r.d.versao, 2)
     assert.equal((await p('GET', '/api/dados')).d.birra.dados.diario.length, 2, 'abre em qualquer aparelho (mesma conta)')
-    assert.equal((await q('GET', '/api/dados')).d.birra, null, 'outra conta não vê')
+    assert.equal((await q('GET', '/api/dados')).status, 403, 'quem não autorizou não usa a nuvem')
+    await q('POST', '/api/dados/consentimento', { aceite: true }); assert.equal((await q('GET', '/api/dados')).d.birra, null, 'outra conta não vê')
     assert.equal((await p('PUT', '/api/dados/outra', { base: 0, dados: {} })).status, 404, 'tipo desconhecido')
     assert.equal((await p('PUT', '/api/dados/modulos', { base: 0, dados: [1] })).status, 400, 'precisa ser objeto')
     assert.equal((await p('PUT', '/api/dados/modulos', { base: 0, dados: { x: 'a'.repeat(410000) } })).status, 413, 'limite de tamanho')
@@ -369,6 +377,10 @@ try {
     const ex = await p('GET', '/api/dados/exportar'); assert.equal(ex.d.conta.email, `lgpd${S}@teste.com`); assert.equal(ex.d.registros.birra.diario.length, 2, 'exportação traz os registros')
     assert.equal((await p('POST', '/api/dados/excluir-conta', { senha: 'errada-errada' })).status, 403, 'excluir conta pede a senha')
     assert.equal((await p('DELETE', '/api/dados')).status, 200); assert.equal((await p('GET', '/api/dados')).d.birra, null, 'registros apagados')
+    await p('PUT', '/api/dados/birra', { base: 0, dados: { diario: [{ id: 'w', nota: 'revoga' }] } })
+    assert.equal((await p('POST', '/api/dados/consentimento', { aceite: false })).status, 200)
+    assert.equal((await p('GET', '/api/dados')).status, 403, 'revogar volta a exigir a autorização'); assert.equal((await p('GET', '/api/auth/eu')).d.usuario.consentRegistros, null)
+    await p('POST', '/api/dados/consentimento', { aceite: true }); assert.equal((await p('GET', '/api/dados')).d.birra, null, 'revogar apagou o que estava na nuvem')
     await p('PUT', '/api/dados/birra', { base: 0, dados: { diario: [{ id: 'z', nota: 'y' }] } })
     assert.equal((await p('POST', '/api/dados/excluir-conta', { senha: 'senha-forte-1' })).status, 200)
     assert.equal((await p('GET', '/api/auth/eu')).d.usuario, null, 'sessão encerrada')

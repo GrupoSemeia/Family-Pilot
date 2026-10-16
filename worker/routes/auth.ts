@@ -15,9 +15,9 @@ async function resposta(c: any, s: { usuarioId: string; nome: string; email: str
     sessao ? acessoDaSessao(c.env, sessao) : acessoDe(c.env, s.usuarioId, s.email),
     ehSuper(c.env, s.usuarioId, s.email),
     sessao ? visaoValida(c.env, sessao) : Promise.resolve(null),
-    (c.env.DB as D1Database).prepare("SELECT senha_hash LIKE 'google$%' AS g FROM usuarios WHERE id=?").bind(s.usuarioId).first<{ g: number }>(),
+    (c.env.DB as D1Database).prepare("SELECT senha_hash LIKE 'google$%' AS g, consent_registros_em AS ce FROM usuarios WHERE id=?").bind(s.usuarioId).first<{ g: number; ce: string | null }>(),
   ])
-  return { usuario: { nome: s.nome, email: s.email, semSenha: !!sh?.g }, acesso, admin, visao, preco: precosDe(c.env).birra, precos: precosDe(c.env), precosCheios: precosCheios(c.env), pagamentoOnline: !!c.env.ASAAS_API_KEY, emailAtivo: emailAtivo(c.env), googleClientId: c.env.GOOGLE_CLIENT_ID || '' }
+  return { usuario: { nome: s.nome, email: s.email, semSenha: !!sh?.g, consentRegistros: sh?.ce ?? null }, acesso, admin, visao, preco: precosDe(c.env).birra, precos: precosDe(c.env), precosCheios: precosCheios(c.env), pagamentoOnline: !!c.env.ASAAS_API_KEY, emailAtivo: emailAtivo(c.env), googleClientId: c.env.GOOGLE_CLIENT_ID || '' }
 }
 
 auth.post('/cadastro', async c => {

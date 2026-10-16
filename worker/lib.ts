@@ -32,6 +32,8 @@ export const DIAS_ACESSO = 365              // acesso por 12 meses a partir da c
 export const MODULO_BASE = 'birra'
 /** Versão vigente dos Termos de Uso e da Política de Privacidade (data do texto em app/termos.html e app/privacidade.html). */
 export const VERSAO_TERMOS = '2026-10-16'
+/** Versão do texto do consentimento dos registros (a caixa separada que aparece na primeira vez que a pessoa salva algo). */
+export const VERSAO_CONSENT_REGISTROS = '2026-10-16-r1'
 export const MODULOS_IDS = ['birra', 'sono', 'telas', 'alimentacao', 'limites', 'escola', 'adolescencia']
 /** Pacote Família: um pedido que libera todos os módulos por 12 meses. */
 export const PACOTE = 'pacote'

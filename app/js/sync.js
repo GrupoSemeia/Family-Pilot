@@ -7,7 +7,7 @@
   const DIAS_LAPIDE = 180, MAX_REG = 300;
   let email = null, ativo = false, estado = 'local';   // local: só neste aparelho · ok · salvando · offline
   const versoes = { birra: 0, modulos: 0 }, pend = {}, timers = {}, ouvintes = {};
-  let ocupado = {};
+  let ocupado = {}, perguntou = false;
 
   const ler = (k) => { try { return JSON.parse(localStorage.getItem(LK[k](email)) || 'null'); } catch (e) { return null; } };
   const gravar = (k, v) => { try { localStorage.setItem(LK[k](email), JSON.stringify(v)); } catch (e) { /* sem armazenamento */ } };
@@ -58,6 +58,7 @@
           (ouvintes[k] || []).forEach((f) => { try { f(); } catch (e) { /* tela já saiu */ } });
           continue;
         }
+        if (r.status === 403 && r.d.consentimento === false) { ativo = false; delete pend[k]; def('consentimento'); return; }
         if (r.status === 503 || r.status === 401) { ativo = false; delete pend[k]; def('local'); return; }
         throw new Error('falhou');
       }
@@ -67,7 +68,7 @@
   }
 
   function agendar(k) {
-    if (!ativo) return;
+    if (!ativo) { if (estado === 'consentimento' && !perguntou) { perguntou = true; pedir(); } return; }
     pend[k] = true; clearTimeout(timers[k]);
     timers[k] = setTimeout(() => enviar(k), 1200);
   }
@@ -79,6 +80,7 @@
     let r;
     try { r = await http('GET', '/api/dados', null, { signal: AbortSignal.timeout(7000) }); } catch (e) { r = null; }
     if (!r) { ativo = true; CHAVES.forEach((k) => { versoes[k] = 0; pend[k] = !!ler(k); }); def('offline'); return; }   // sem internet: usa o aparelho e tenta depois
+    if (r.status === 403 && r.d.consentimento === false) { def('consentimento'); return; }   // falta a autorização do responsável: segue só no aparelho
     if (!r.ok) return;                                        // 503: nuvem ainda não ativa; segue só no aparelho
     ativo = true;
     CHAVES.forEach((k) => {
@@ -96,6 +98,37 @@
 
   window.addEventListener('online', () => { if (ativo) enviarPendentes(); });
   document.addEventListener('visibilitychange', () => { if (document.hidden && ativo) enviarPendentes(true); else if (ativo && Object.keys(pend).length) enviarPendentes(); });
+
+  /* ---------- consentimento do responsável (caixa separada, LGPD art. 14) ---------- */
+  async function autorizar() {
+    const r = await http('POST', '/api/dados/consentimento', { aceite: true });
+    if (!r.ok) throw new Error(r.d.erro || 'Não foi possível registrar agora.');
+    await puxar(email);
+  }
+  async function revogar() {
+    const r = await http('POST', '/api/dados/consentimento', { aceite: false });
+    if (!r.ok) throw new Error(r.d.erro || 'Não foi possível revogar agora.');
+    CHAVES.forEach((k) => { versoes[k] = 0; delete pend[k]; }); ativo = false; perguntou = true; def('consentimento');
+  }
+  /** Janela com a caixa de autorização, separada dos Termos. Sem marcar, os registros ficam só no aparelho. */
+  function pedir(aoFim) {
+    if (document.getElementById('cs-fundo')) return;
+    const f = document.createElement('div'); f.id = 'cs-fundo'; f.className = 'modal';
+    f.innerHTML = '<div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="cs-t"><h2 id="cs-t">Guardar seus registros na sua conta?</h2>' +
+      '<p>Assim você abre o diário, o radar e as anotações em qualquer aparelho. Tudo é cifrado, só você vê, e você pode apagar quando quiser. Se preferir, eles ficam só neste aparelho.</p>' +
+      '<label class="opt"><input type="checkbox" id="cs-ok"><span>Sou o pai, a mãe ou o responsável legal e autorizo o FamilyPilot a guardar, de forma cifrada na minha conta, os registros que eu fizer sobre meus filhos. Posso revogar e apagar a qualquer momento em Módulos → Seus dados. <a href="/privacidade" target="_blank" rel="noopener">Política de Privacidade</a></span></label>' +
+      '<p id="cs-msg" class="msg"></p><button class="btn" id="cs-sim" disabled>Autorizar e guardar na minha conta</button> <button class="mini" id="cs-nao" type="button">Agora não, só neste aparelho</button></div>';
+    document.body.appendChild(f);
+    const ok = f.querySelector('#cs-ok'), sim = f.querySelector('#cs-sim');
+    ok.onchange = () => { sim.disabled = !ok.checked; };
+    f.querySelector('#cs-nao').onclick = () => f.remove();
+    sim.onclick = async () => {
+      sim.disabled = true;
+      try { await autorizar(); f.remove(); if (aoFim) aoFim(); }
+      catch (e) { f.querySelector('#cs-msg').textContent = e.message; sim.disabled = !ok.checked; }
+    };
+    ok.focus();
+  }
 
   /* ---------- sair, baixar, apagar, excluir ---------- */
   const limparAparelho = () => { try { CHAVES.forEach((k) => localStorage.removeItem(LK[k](email))); } catch (e) { /* nada */ } };
@@ -125,7 +158,7 @@
   }
 
   window.FamilySync = {
-    puxar, offlineInit, agendar, antesDeSair, baixar, apagarRegistros, excluirConta,
+    puxar, offlineInit, agendar, antesDeSair, baixar, apagarRegistros, excluirConta, autorizar, revogar, pedir,
     ativo: () => ativo, estado: () => estado,
     lapide(obj, id) { obj.apagados = obj.apagados || {}; obj.apagados[id] = Date.now(); },
     aoMudar(k, f) { (ouvintes[k] = ouvintes[k] || []).push(f); },

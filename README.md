@@ -46,7 +46,7 @@ O endereço sem `www` (`familypilot.com.br`) também é atendido pelo Worker e r
 ## Publicar na Cloudflare (uma vez)
     npm install
     # banco "family-pilot" já criado (id em wrangler.jsonc)
-    npm run db:remote                            # migrações novas (0001 a 0008 já estão aplicadas no banco criado)
+    npm run db:remote                            # migrações novas (0001 a 0009 já estão aplicadas no banco criado)
     npx wrangler secret put ASAAS_API_KEY        # chave da Asaas (teste: $aact_hmlg_… usa o sandbox sozinha)
     npx wrangler secret put ASAAS_WEBHOOK_TOKEN  # texto secreto qualquer; o mesmo vai na Asaas
     npx wrangler secret put DADOS_CHAVE          # chave que cifra os registros dos pais (veja "Registros na nuvem")
@@ -64,6 +64,7 @@ Diário, radar e ferramentas dos módulos ficam na conta (tabela `dados`, migra�
   **Guarde `DADOS_CHAVE` em lugar seguro e nunca troque: sem ela os registros guardados ficam ilegíveis.** Sem o segredo a API responde 503 e o app segue só no aparelho.
 - **Vários aparelhos:** cada bloco (`birra`, `modulos`) tem versão; salvar com versão velha dá 409 e o app junta os dois (`app/js/sync.js`). Apagar vira "lápide" para o item não voltar.
 - **Direitos do titular, no próprio app (Módulos → Seus dados):** baixar tudo (`GET /api/dados/exportar`), apagar registros (`DELETE /api/dados`) e excluir a conta (`POST /api/dados/excluir-conta`, pede a senha). A exclusão apaga registros, sessões e dados de cadastro e anonimiza a conta; só ficam compras pagas/reembolsadas e o CPF/CNPJ delas (obrigação fiscal).
+- **Consentimento separado (art. 14):** a nuvem só liga depois que o responsável marca a caixa própria (janela que aparece na primeira vez que ele salva algo, ou em Seus dados → "Guardar na minha conta"). Guardamos data e versão (`consent_registros_em/versao`, `VERSAO_CONSENT_REGISTROS` em `worker/lib.ts`; migração 0009). Sem ele a API devolve 403 e os registros ficam só no aparelho. "Revogar e apagar da nuvem" apaga o que está no servidor. Se mudar o texto da caixa (`app/js/sync.js`, função `pedir`), mude também a versão.
 - Ao sair da conta, a cópia dos registros é retirada do aparelho (se houver algo sem enviar, o app avisa antes).
 - Texto jurídico atualizado em `app/privacidade.html` e `app/termos.html` (versão 2026-10-16, `VERSAO_TERMOS`): revisar com advogado, em especial o consentimento do responsável sobre dados de crianças (art. 14).
 

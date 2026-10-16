@@ -220,9 +220,13 @@ window.FamilyPilot = { _on: false, start: function (C, conta) {
 
   /** Seus dados (LGPD): onde ficam, baixar tudo, apagar registros, excluir a conta. */
   function meusDados() {
-    const nuvem = FamilySync.ativo();
-    return `<div class="card"><b>Seus dados</b><p>${nuvem ? 'Seus registros ficam guardados na sua conta, com criptografia, e abrem em qualquer aparelho em que você entrar.' : 'Seus registros estão salvos só neste aparelho no momento.'}</p>
-      <button class="mini" data-act="dados-baixar">Baixar meus dados</button> <button class="mini" data-act="dados-apagar">Apagar meus registros</button> <button class="mini" data-act="dados-excluir">Excluir minha conta</button></div>`;
+    const ce = conta.usuario.consentRegistros, nuvem = FamilySync.ativo();
+    const quando = ce ? new Date(String(ce).replace(' ', 'T') + 'Z').toLocaleDateString('pt-BR') : '';
+    const texto = ce && nuvem ? `Seus registros ficam guardados na sua conta, com criptografia, e abrem em qualquer aparelho em que você entrar. Autorizado em ${quando}.`
+      : ce ? 'Você autorizou guardar na conta, mas a cópia na nuvem não está disponível agora. Seus registros estão salvos neste aparelho.'
+      : 'Seus registros ficam só neste aparelho. Se quiser, você pode guardá-los na sua conta, cifrados, para abrir em qualquer aparelho.';
+    return `<div class="card"><b>Seus dados</b><p>${texto}</p>
+      ${ce ? '<button class="mini" data-act="dados-revogar">Revogar e apagar da nuvem</button> ' : '<button class="mini" data-act="dados-autorizar">Guardar na minha conta</button> '}<button class="mini" data-act="dados-baixar">Baixar meus dados</button> <button class="mini" data-act="dados-apagar">Apagar meus registros</button> <button class="mini" data-act="dados-excluir">Excluir minha conta</button></div>`;
   }
   function contaCard() {
     const ate = conta.acesso.livre ? 'acesso total (administrador)' : conta.acesso.ate ? 'acesso até ' + new Date(conta.acesso.ate).toLocaleDateString('pt-BR') : '';
@@ -410,6 +414,8 @@ window.FamilyPilot = { _on: false, start: function (C, conta) {
       case 'sair': window.FamilyAuth.sair(); break;
       case 'adm-preset': { const v = el.dataset.v; document.querySelectorAll('.adm-mod').forEach((c) => { c.checked = v === 'todos' || (v === 'birra' && c.value === 'birra'); }); break; }
       case 'adm-ver': window.FamilyAuth.verComo([...document.querySelectorAll('.adm-mod:checked')].map((c) => c.value), $('#adm-oferta').checked); break;
+      case 'dados-autorizar': FamilySync.pedir(() => location.reload()); break;
+      case 'dados-revogar': if (confirm('Revogar a autorização? Os registros guardados na sua conta serão apagados da nuvem. Os que estão neste aparelho continuam aqui.')) FamilySync.revogar().then(() => location.reload()).catch((e) => alert(e.message)); break;
       case 'dados-baixar': FamilySync.baixar().catch((e) => alert(e.message)); break;
       case 'dados-apagar': if (confirm('Apagar todos os seus registros (diário, radar e anotações das ferramentas)? Isso não pode ser desfeito.')) FamilySync.apagarRegistros().then(() => { alert('Registros apagados.'); location.reload(); }).catch((e) => alert(e.message)); break;
       case 'dados-excluir': {
