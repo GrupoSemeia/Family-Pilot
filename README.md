@@ -105,6 +105,9 @@ Para ativar:
 2. Em "Origens JavaScript autorizadas", coloque o endereço do app (`https://www.familypilot.com.br`) e, para testar, `http://localhost:8787`. Não precisa de URI de redirecionamento.
 3. O ID do cliente já está em `GOOGLE_CLIENT_ID` no `wrangler.jsonc`. Falta só cadastrar no Google a origem `https://www.familypilot.com.br` (passo 2) e fazer o deploy. Vazio = o botão não aparece. (O Client ID é público, não é segredo.)
 
+## Documento para o revisor de conteúdo
+`docs/revisao-de-conteudo.docx`: todo o texto dos 7 módulos, numerado (ex.: SONO-014), com coluna de parecer para o psicólogo ou pediatra. Para atualizar depois de mudar os textos: `sh scripts/revisao/gerar.sh` (precisa de `python-docx`).
+
 ## Desenvolver
     npm run db:local && npm run dev    # http://localhost:8787
     npm run test:e2e                   # cadastro → pagamento → acesso → reembolso → renovação
