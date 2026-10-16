@@ -50,7 +50,7 @@ export const pedidos = new Hono<App>()
 pedidos.use('*', exigirLogin)
 pedidos.get('/', async c => {
   const { results } = await c.env.DB.prepare(
-    `SELECT modulo, valor, status, forma, criado_em, pago_em, acesso_ate, url, criado_em > datetime('now','-3 days') AS recente FROM pedidos WHERE usuario_id=? ORDER BY criado_em DESC LIMIT 50`)
+    `SELECT modulo, valor, status, forma, criado_em, pago_em, acesso_ate, url, criado_em > datetime('now','-3 days') AS recente FROM pedidos WHERE usuario_id=? AND asaas_pagamento IS NOT NULL ORDER BY criado_em DESC LIMIT 50`)
     .bind(c.get('sessao').usuarioId).all<any>()
   return c.json({ pedidos: results.map(p => ({ modulo: p.modulo, nome: CATALOGO[p.modulo]?.nome ?? p.modulo, valor: p.valor, status: p.status, forma: p.forma, criadoEm: p.criado_em, pagoEm: p.pago_em, acessoAte: p.acesso_ate, url: p.status === 'pendente' && p.recente && p.url ? p.url : null })) })
 })
@@ -86,6 +86,22 @@ pagamento.post('/', async c => {
   const aberto = await db.prepare(`SELECT id, url FROM pedidos WHERE usuario_id=? AND modulo=? AND valor=? AND status='pendente' AND url IS NOT NULL AND criado_em > datetime('now','-3 days') ORDER BY criado_em DESC LIMIT 1`).bind(s.usuarioId, modulo, valor).first<any>()
   if (aberto) return c.json({ url: aberto.url })
 
+  // Duplo clique: reserva o pedido ANTES de falar com a Asaas. Só uma requisição consegue reservar (a outra espera e devolve o mesmo link),
+  // para não gerar duas cobranças e a pessoa pagar duas vezes. Uma reserva sem cobrança por mais de 2 minutos é considerada abandonada.
+  const pedidoId = novoId()
+  const reservou = await db.prepare(
+    `INSERT INTO pedidos (id, usuario_id, valor, modulo) SELECT ?1, ?2, ?3, ?4
+     WHERE NOT EXISTS (SELECT 1 FROM pedidos WHERE usuario_id=?2 AND modulo=?4 AND valor=?3 AND status='pendente' AND criado_em > datetime('now','-3 days')
+                       AND (asaas_pagamento IS NOT NULL OR criado_em > datetime('now','-2 minutes')))`).bind(pedidoId, s.usuarioId, valor, modulo).run()
+  if (!reservou.meta.changes) {
+    for (let i = 0; i < 24; i++) {
+      const pronto = await db.prepare(`SELECT url FROM pedidos WHERE usuario_id=? AND modulo=? AND valor=? AND status='pendente' AND url IS NOT NULL AND criado_em > datetime('now','-3 days') ORDER BY criado_em DESC LIMIT 1`).bind(s.usuarioId, modulo, valor).first<any>()
+      if (pronto) return c.json({ url: pronto.url })
+      await new Promise(r => setTimeout(r, 250))
+    }
+    throw erro(409, 'Seu pagamento está sendo preparado. Aguarde alguns segundos e tente de novo.')
+  }
+  try {
   const u = await db.prepare('SELECT nome, email, asaas_cliente FROM usuarios WHERE id=?').bind(s.usuarioId).first<any>()
   const dadosCliente = { name: u.nome, cpfCnpj: doc, email: u.email, externalReference: s.usuarioId }
   let cliente: string = u.asaas_cliente
@@ -93,14 +109,16 @@ pagamento.post('/', async c => {
   else cliente = exigir(await asaas(c.env, 'POST', 'customers', dadosCliente)).id
   await db.prepare('UPDATE usuarios SET cpf_cnpj=?, asaas_cliente=? WHERE id=?').bind(doc, cliente, s.usuarioId).run()
 
-  const pedidoId = novoId()
   const p = exigir(await asaas(c.env, 'POST', 'payments', {
     customer: cliente, billingType: 'UNDEFINED', value: valor / 100, dueDate: dataBR(3),
     description: `FamilyPilot · ${CATALOGO[modulo].nome} (acesso por 12 meses)`, externalReference: pedidoId,
   }))
-  await db.prepare('INSERT INTO pedidos (id, usuario_id, asaas_pagamento, valor, url, modulo) VALUES (?,?,?,?,?,?)')
-    .bind(pedidoId, s.usuarioId, String(p.id), valor, String(p.invoiceUrl ?? ''), modulo).run()
+  await db.prepare('UPDATE pedidos SET asaas_pagamento=?, url=? WHERE id=?').bind(String(p.id), String(p.invoiceUrl ?? ''), pedidoId).run()
   return c.json({ url: p.invoiceUrl ?? null })
+  } catch (e) {
+    await db.prepare('DELETE FROM pedidos WHERE id=? AND asaas_pagamento IS NULL').bind(pedidoId).run()   // a Asaas falhou: libera a reserva para tentar de novo
+    throw e
+  }
 })
 
 /** Botão "Já paguei": confere na Asaas (caso o webhook demore) e libera o acesso. */

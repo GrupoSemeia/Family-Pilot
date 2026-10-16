@@ -441,6 +441,63 @@ try {
     assert.ok(!(await a('GET', '/api/pedidos')).d.pedidos.some(p => JSON.stringify(p).includes('dani')), 'cada conta vê só as próprias compras')
   }
 
+  // Matriz de checkout (conta comum): abandono, vencida, módulo certo, duplo clique, confirmação repetida, reembolso tardio, chargeback, expiração, recompra
+  {
+    const q = (email) => cliente()
+    const eva = cliente()
+    await eva('POST', '/api/auth/cadastro', { nome: 'Eva', email: `eva${S}@teste.com`, senha: 'senha-forte-1', aceite: true })
+    const sql = (cmd) => execFileSync('npx', ['wrangler', 'd1', 'execute', 'family-pilot', '--local', '--command', cmd], { stdio: 'ignore' })
+    const meusPedidos = async () => (await eva('GET', '/api/pedidos')).d.pedidos
+    const idDe = (url) => url.split('/').pop()
+    // abandono: gerou a cobrança e saiu
+    const idSono = idDe((await eva('POST', '/api/pagamento', { cpfCnpj: '52998224725', modulo: 'sono' })).d.url)
+    assert.equal((await eva('GET', '/api/conteudo')).status, 402, 'abandono: sem pagamento, sem acesso')
+    assert.equal((await eva('POST', '/api/pagamento/verificar')).d.acesso.ativo, false, 'abandono: a Asaas ainda diz pendente')
+    await webhook(eva, 'PAYMENT_OVERDUE', idSono, 'OVERDUE', 37)
+    assert.equal((await eva('GET', '/api/conteudo')).status, 402, 'cobrança vencida não libera')
+    assert.equal((await webhook(eva, 'EVENTO_QUE_NAO_EXISTE', idSono, 'PENDING', 37)).status, 200, 'evento desconhecido é ignorado sem erro')
+    assert.equal((await webhook(eva, 'PAYMENT_CONFIRMED', 'pay_que_nao_e_nosso', 'CONFIRMED', 37)).status, 200, 'cobrança de fora é ignorada')
+    // confirmação duas vezes ao mesmo tempo: libera uma vez só
+    await Promise.all([webhook(eva, 'PAYMENT_CONFIRMED', idSono, 'CONFIRMED', 37), webhook(eva, 'PAYMENT_RECEIVED', idSono, 'RECEIVED', 37)])
+    let ac = (await eva('GET', '/api/auth/eu')).d.acesso
+    const dias = (new Date(ac.modulos.sono.ate) - Date.now()) / 864e5
+    assert.ok(ac.modulos.sono.ativo && dias > 364.9 && dias < 365.1, 'confirmação dupla libera uma vez só (365 dias), deu ' + dias)
+    // libera só o módulo certo
+    const cont = (await eva('GET', '/api/conteudo')).d
+    assert.ok(cont.modulos.sono && !cont.birra && !cont.modulos.telas, 'só o SOS Sono foi liberado')
+    assert.equal(cont.catalogo.find(m => m.id === 'birra').estado, 'a-venda')
+    // duplo clique em "Ir para o pagamento": uma cobrança só
+    const duplo = await Promise.all([eva('POST', '/api/pagamento', { cpfCnpj: '52998224725', modulo: 'adolescencia' }), eva('POST', '/api/pagamento', { cpfCnpj: '52998224725', modulo: 'adolescencia' })])
+    assert.equal(duplo[0].d.url, duplo[1].d.url, 'duplo clique reaproveita a mesma cobrança')
+    assert.equal((await meusPedidos()).filter(p => p.modulo === 'adolescencia' && p.status === 'pendente').length, 1, 'duplo clique não cria dois pedidos')
+    // reembolso e depois um aviso de confirmação atrasado: continua sem acesso
+    await webhook(eva, 'PAYMENT_REFUNDED', idSono, 'REFUNDED', 37)
+    assert.equal((await eva('GET', '/api/conteudo')).status, 402, 'reembolsado, sem acesso')
+    await webhook(eva, 'PAYMENT_CONFIRMED', idSono, 'CONFIRMED', 37)
+    assert.equal((await eva('GET', '/api/conteudo')).status, 402, 'confirmação atrasada não devolve o acesso reembolsado')
+    // chargeback
+    const idAdol = idDe(duplo[0].d.url)
+    await webhook(eva, 'PAYMENT_CONFIRMED', idAdol, 'CONFIRMED', 47)
+    assert.equal((await eva('GET', '/api/conteudo')).status, 200)
+    await webhook(eva, 'PAYMENT_CHARGEBACK_REQUESTED', idAdol, 'CONFIRMED', 47)
+    assert.equal((await eva('GET', '/api/conteudo')).status, 402, 'chargeback tira o acesso')
+    // expiração e recompra: o prazo novo conta a partir de agora
+    const idBirra = idDe((await eva('POST', '/api/pagamento', { cpfCnpj: '52998224725' })).d.url)
+    await webhook(eva, 'PAYMENT_CONFIRMED', idBirra, 'CONFIRMED', 47)
+    assert.equal((await eva('GET', '/api/conteudo')).status, 200)
+    sql(`UPDATE pedidos SET acesso_ate=datetime('now','-1 day') WHERE asaas_pagamento='${idBirra}'`)
+    assert.equal((await eva('GET', '/api/conteudo')).status, 402, 'prazo vencido: acesso termina')
+    assert.equal((await eva('GET', '/api/auth/eu')).d.acesso.ativo, false)
+    const idRenova = idDe((await eva('POST', '/api/pagamento', { cpfCnpj: '52998224725' })).d.url)
+    await webhook(eva, 'PAYMENT_CONFIRMED', idRenova, 'CONFIRMED', 47)
+    ac = (await eva('GET', '/api/auth/eu')).d.acesso
+    const d2 = (new Date(ac.modulos.birra.ate) - Date.now()) / 864e5
+    assert.ok(ac.modulos.birra.ativo && d2 > 364.9 && d2 < 365.1, 'recompra depois de vencer: 365 dias a partir de agora, deu ' + d2)
+    // isolamento: a compra da Eva não aparece nem libera nada para outra conta
+    const out = cliente(); await out('POST', '/api/auth/cadastro', { nome: 'Outra', email: `outra${S}@teste.com`, senha: 'senha-forte-1', aceite: true })
+    assert.equal((await out('GET', '/api/conteudo')).status, 402); assert.deepEqual((await out('GET', '/api/pedidos')).d.pedidos, [])
+  }
+
   // logout
   await rec('POST', '/api/auth/sair', {}); assert.equal((await rec('GET', '/api/conteudo')).status, 401)
   console.log('OK: todos os testes passaram'); fim(0)
