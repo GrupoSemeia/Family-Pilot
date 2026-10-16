@@ -79,8 +79,8 @@ Nos diários (Birra e dos outros módulos) há **Editar** (volta ao formulário 
 ### Compras e ajuda (cliente)
 Em Módulos → "Compras e ajuda" (`#/ajuda`, `app/js/ajuda.js`; `GET /api/pedidos`): histórico das compras da própria conta, "Continuar o pagamento" para cobrança pendente (vale 3 dias; depois gera outra) e "Já paguei" (confere na Asaas). Traz garantia, reembolso e o botão de suporte por e-mail (`contato@familypilot.com.br`, com o e-mail da conta no texto).
 
-### Combinados para imprimir
-Nos combinados (Telas, Refeição, Regras da Casa, Estudo, Acordo da Família) o botão "Imprimir ou salvar em PDF" monta uma folha só com o combinado, com espaço para assinaturas (`imprimir` em `app/js/modulo.js`, estilos `@media print` em `app/css/app.css`). O "Salvar como PDF" é do próprio diálogo de impressão do aparelho.
+### Combinados e rotina para imprimir
+Na Rotina da Noite (SOS Sono) também há "Imprimir ou salvar em PDF". Nos combinados (Telas, Refeição, Regras da Casa, Estudo, Acordo da Família) o botão "Imprimir ou salvar em PDF" monta uma folha só com o combinado, com espaço para assinaturas (`imprimir` em `app/js/modulo.js`, estilos `@media print` em `app/css/app.css`). O "Salvar como PDF" é do próprio diálogo de impressão do aparelho.
 
 ### Painel de clientes e pedidos (administrador)
 Em Módulos → "Clientes e pedidos" (`#/admin`, `app/js/admin.js`; rotas `GET /api/admin/resumo|clientes|pedidos` em `worker/routes/admin.ts`): resumo de contas e faturamento, lista de clientes (busca por nome/e-mail, módulos ativos, total pago) e pedidos por status.

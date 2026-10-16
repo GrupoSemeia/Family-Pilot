@@ -94,7 +94,7 @@
     <label class="campo">Hora de acordar<input type="time" data-m="hora" data-k="acordar" value="${E(s.acordar)}"></label></div>
     ${status ? `<div class="card"><b>Horas de sono</b><p>${E(status)}</p><p class="dica">${E(pf.dica)}</p></div>` : ''}
     ${passos.length ? `<section class="bloco"><h2>Rotina da noite</h2><ul class="tempo">${passos.map((p) => `<li><b>${p.hora}</b><span>${E(p.texto)}</span></li>`).join('')}</ul>
-    <button class="mini" data-m="copiar" data-t="${E('Rotina da noite\n' + texto)}" aria-label="Copiar a rotina da noite">Copiar rotina</button></section>` : ''}
+    <button class="mini" data-m="copiar" data-t="${E('Rotina da noite\n' + texto)}" aria-label="Copiar a rotina da noite">Copiar rotina</button> <button class="mini" data-m="imprimir-rotina" data-t="${E(texto)}" aria-label="Imprimir ou salvar a rotina da noite em PDF">Imprimir ou salvar em PDF</button></section>` : ''}
     ${X.aviso}`;
   }
 
@@ -271,6 +271,7 @@
     if (a === 'copiar') { X.copiar(el.dataset.t); return; }
     if (a === 'filtro') { FPFilhos.definirFiltro(el.dataset.v); X.reRender(); return; }
     if (a === 'imprimir') { imprimir(m, f); return; }
+    if (a === 'imprimir-rotina') { imprimir(m, f, el.dataset.t); return; }
     if (a === 'copiar-saida') { const o = document.getElementById('m-saida'); if (o) X.copiar(o.textContent); return; }
     if (!m || !f) return;
     const s = S[m.id + '/' + f.id];
@@ -347,13 +348,13 @@
   });
 
   /** Folha para imprimir (ou "Salvar como PDF" no próprio diálogo do aparelho): só o combinado, com espaço para assinaturas. */
-  function imprimir(m, f) {
-    const o = document.getElementById('m-saida'); if (!o) return;
+  function imprimir(m, f, texto) {
+    const o = texto ? { textContent: texto } : document.getElementById('m-saida'); if (!o) return;
     const velha = document.getElementById('area-impressao'); if (velha) velha.remove();
     const a = document.createElement('div'); a.id = 'area-impressao';
     const hoje = new Date().toLocaleDateString('pt-BR');
     a.innerHTML = `<p class="imp-marca">FamilyPilot · ${E(m.nome)}</p><h1>${E(f.nome)}</h1><pre>${E(o.textContent)}</pre>
-      <div class="imp-ass"><div><span></span>Assinatura do responsável</div><div><span></span>Assinatura da criança</div><div><span></span>Data (${hoje})</div></div>
+      ${texto ? `<p class="imp-rodape">Rotina montada em ${hoje}.</p>` : `<div class="imp-ass"><div><span></span>Assinatura do responsável</div><div><span></span>Assinatura da criança</div><div><span></span>Data (${hoje})</div></div>`}
       <p class="imp-rodape">Orientação educativa para pais e responsáveis. Um produto Grupo Semeia Digital.</p>`;
     document.body.appendChild(a);
     const limpa = () => { a.remove(); window.removeEventListener('afterprint', limpa); };

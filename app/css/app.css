@@ -27,7 +27,7 @@ a{color:inherit}
 .btn[disabled]{opacity:.45;cursor:not-allowed;box-shadow:none}
 .btn.claro{background:var(--surface);color:var(--deep);border:2px solid var(--line);box-shadow:none}
 .btn.sos{background:#fff;color:var(--cta);box-shadow:none;font-size:1.1rem}
-.mini{background:var(--sand);border:0;border-radius:999px;font:600 .8rem Inter,sans-serif;padding:7px 14px;cursor:pointer;color:var(--deep)}
+.mini{background:var(--sand);border:0;border-radius:999px;font:600 .8rem Inter,sans-serif;padding:10px 16px;cursor:pointer;color:var(--deep)}
 .mini.perigo{color:#b3213f;background:#ffe9ee}
 .mini-btn{display:inline-block;width:auto;padding:8px 18px;font-size:.85rem;margin-top:8px;box-shadow:none}
 
