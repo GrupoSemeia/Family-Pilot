@@ -153,3 +153,5 @@ a.alerta:hover{filter:brightness(.97)}
 .campo-erro,.card .campo-erro{color:#b3213f;font-size:.9rem;margin:4px 0 8px;min-height:0}
 .campo-erro:empty{display:none}
 input[aria-invalid="true"]{border-color:#b3213f}
+
+.card.preco .desconto{margin-top:6px;color:var(--ok);font-weight:600}

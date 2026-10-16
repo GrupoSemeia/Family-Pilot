@@ -149,6 +149,7 @@
       <div class="card preco"><b>${esc(item.nome)}</b>
         ${item.precoCheio ? `<div class="de"><s>de ${brl(item.precoCheio)}</s> <span class="selo-lanc">preço de lançamento</span></div>` : ''}
         <div class="valor">${brl(item.preco)}</div>
+        ${item.desconto > 0 ? `<p class="desconto">Descontamos <b>${brl(item.desconto)}</b> do que você já pagou nos seus módulos ativos. Pacote completo: ${brl(item.preco + item.desconto)}.</p>` : ''}
         <p>Pagamento único. Acesso por 12 meses a partir da confirmação do pagamento. Pix, boleto ou cartão.</p></div>
       ${me.pagamentoOnline ? `<form id="f-pag" class="form" novalidate>
         <label class="campo">CPF ou CNPJ (exigido pela empresa de pagamento)<input id="p-doc" inputmode="numeric" autocomplete="off" maxlength="18" placeholder="Somente números"></label>
@@ -194,7 +195,7 @@
     if (/[?&]comprar=pacote/.test(location.search) && me.precos && me.precos.pacote) {
       const todos = Object.values((me.acesso && me.acesso.modulos) || {});
       history.replaceState(null, '', location.pathname + location.hash);
-      if (!(todos.length >= 7 && todos.every((m) => m.ativo))) return telaAssinar({ id: 'pacote', nome: 'Pacote Família: todos os 7 módulos', preco: me.precos.pacote, precoCheio: me.precosCheios && me.precosCheios.pacote });
+      if (!(todos.length >= 7 && todos.every((m) => m.ativo))) return telaAssinar({ id: 'pacote', nome: 'Pacote Família: todos os 7 módulos', preco: me.pacote ? me.pacote.preco : me.precos.pacote, desconto: me.pacote ? me.pacote.credito : 0, precoCheio: me.precosCheios && me.precosCheios.pacote });
     }
     if (!me.acesso.ativo) return telaAssinar();
     try {
@@ -252,6 +253,6 @@
     catch (e) { alert(e.message); }
   }
   $('#faixa-sair').onclick = sairVisao;
-  window.FamilyAuth = { api, sair, verComo, sairVisao, comprar: (item) => { if (item) telaAssinar({ id: item.id, nome: item.nome, preco: item.preco, precoCheio: item.precoCheio, oferta: !!item.oferta }); } };
+  window.FamilyAuth = { api, sair, verComo, sairVisao, comprar: (item) => { if (item) telaAssinar({ id: item.id, nome: item.nome, preco: item.preco, precoCheio: item.precoCheio, desconto: item.desconto || 0, oferta: !!item.oferta }); } };
   iniciar();
 })();

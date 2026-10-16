@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
 import {
   type App, type Env, erro, novoId, digitos, paraBanco, agoraBanco, acessoDe, exigirLogin, visaoValida,
-  precosDe, ofertaDe, DIAS_ACESSO, MODULO_BASE, PRODUTOS_IDS,
+  precosDe, ofertaDe, precoPacote, DIAS_ACESSO, MODULO_BASE, PRODUTOS_IDS, PACOTE,
 } from '../lib'
 import { CATALOGO } from '../modulos'
 
@@ -62,6 +62,7 @@ pagamento.post('/', async c => {
   if (!PRODUTOS_IDS.includes(modulo)) throw erro(400, 'Módulo inválido.')
   let valor = precosDe(c.env)[modulo]
   if (!valor) throw erro(503, 'Este módulo ainda não está à venda.')
+  if (modulo === PACOTE) valor = (await precoPacote(c.env, s.usuarioId))!.preco   // desconta o que a pessoa já pagou nos módulos ativos
   if (b.oferta) {
     // preço de boas-vindas: o servidor confere se a pessoa tem direito (nunca confia no navegador)
     const o = await ofertaDe(c.env, s.usuarioId)

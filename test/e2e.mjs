@@ -95,7 +95,7 @@ try {
   assert.equal(r.d.catalogo.find(m => m.id === 'sono').precoCheio, 7700, 'preço "de" do sono')
   assert.equal(r.d.catalogo.find(m => m.id === 'telas').precoCheio, null, '"de" menor que o preço atual é ignorado')
   const pacote = r.d.catalogo.find(m => m.id === 'pacote')
-  assert.deepEqual([pacote.estado, pacote.preco], ['a-venda', 9900], 'pacote à venda')
+  assert.deepEqual([pacote.estado, pacote.preco, pacote.desconto, pacote.precoSemDesconto], ['a-venda', 5200, 4700, 9900], 'pacote à venda, abatendo os R$ 47 do SOS Birra já pago')
 
   // outro módulo: preço vem de PRECOS_MODULOS; sem preço não vende; módulo inexistente é recusado
   assert.equal((await a('POST', '/api/pagamento', { cpfCnpj: '52998224725', modulo: 'telas' })).status, 503, 'módulo sem preço')
@@ -136,8 +136,8 @@ try {
   // Pacote Família libera todos os módulos de uma vez
   assert.equal((await b('GET', '/api/conteudo')).d.oferta !== null, true, 'b acabou de pagar o SOS Birra e tem a oferta')
   const idPac = (await b('POST', '/api/pagamento', { cpfCnpj: '52998224725', modulo: 'pacote' })).d.url.split('/').pop()
-  assert.equal(pagamentos.get(idPac).value, 99, 'cobra o preço do pacote')
-  await webhook(b, 'PAYMENT_CONFIRMED', idPac, 'CONFIRMED', 99)
+  assert.equal(pagamentos.get(idPac).value, 52, 'cobra o pacote menos o que já pagou (99 - 47)')
+  await webhook(b, 'PAYMENT_CONFIRMED', idPac, 'CONFIRMED', 52)
   r = await b('GET', '/api/conteudo')
   assert.equal(Object.keys(r.d.modulos).length, 6, 'pacote libera os 6 módulos novos')
   assert.ok(r.d.birra, 'e o SOS Birra')
@@ -402,6 +402,22 @@ try {
     const cont = (await dono('GET', '/api/conteudo')).d
     const f = cont.modulos.telas.ferramentas.find(x => x.tipo === 'situacoes')
     assert.deepEqual(f.situacoes.filter(x => x.semDicaDaIdade).map(x => x.id), ['conteudo'])
+  }
+
+  // Pacote Família com desconto do que já foi pago (nunca abaixo de R$ 10, sem desconto na renovação do pacote)
+  {
+    const c = cliente()
+    await c('POST', '/api/auth/cadastro', { nome: 'Cris', email: `cris${S}@teste.com`, senha: 'senha-forte-1', aceite: true })
+    const pagar = async (modulo, valor) => { const id = (await c('POST', '/api/pagamento', { cpfCnpj: '52998224725', modulo })).d.url.split('/').pop(); await webhook(c, 'PAYMENT_CONFIRMED', id, 'CONFIRMED', valor); return id }
+    const pac = async () => (await c('GET', '/api/conteudo')).d.catalogo.find(m => m.id === 'pacote')
+    await pagar('birra', 47); assert.deepEqual([(await pac()).preco, (await pac()).desconto], [5200, 4700], 'com o SOS Birra: 99 - 47')
+    await pagar('sono', 37); assert.deepEqual([(await pac()).preco, (await pac()).desconto], [1500, 8400], 'com Birra e Sono: 99 - 84')
+    await pagar('adolescencia', 47); assert.equal((await pac()).preco, 1000, 'nunca abaixo de R$ 10')
+    const idP = (await c('POST', '/api/pagamento', { cpfCnpj: '52998224725', modulo: 'pacote' })).d.url.split('/').pop()
+    assert.equal(pagamentos.get(idP).value, 10, 'a cobrança do pacote usa o preço com desconto')
+    await webhook(c, 'PAYMENT_CONFIRMED', idP, 'CONFIRMED', 10)
+    assert.equal((await c('GET', '/api/conteudo')).d.catalogo.find(m => m.id === 'pacote').estado, 'liberado')
+    assert.equal((await c('GET', '/api/auth/eu')).d.pacote.preco, 9900, 'com o pacote ativo, renovar custa o preço cheio')
   }
 
   // logout

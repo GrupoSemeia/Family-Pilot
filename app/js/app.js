@@ -205,6 +205,7 @@ window.FamilyPilot = { _on: false, start: function (C, conta) {
     if (!p || p.estado !== 'a-venda') return '';
     return `<div class="card pacote"><b>🎁 Pacote Família: todos os 7 módulos</b>
       <p>${brl(p.preco)} <small>em vez de ${p.somaSeparados ? brl(p.somaSeparados) : 'comprar um a um'}${p.somaSeparados ? ' se comprados separados' : ''}. Pagamento único, 12 meses de acesso.</small></p>
+      ${p.desconto > 0 ? `<p class="nota">Já descontamos <b>${brl(p.desconto)}</b> do que você pagou nos módulos que já tem (pacote completo: ${brl(p.preco + p.desconto)}).</p>` : ''}
       <button class="btn mini-btn" data-act="comprar" data-id="pacote">Liberar todos por ${brl(p.preco)}</button></div>`;
   }
 

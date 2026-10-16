@@ -29,6 +29,8 @@ Cada módulo tem acesso próprio de 12 meses (tabela `pedidos`, coluna `modulo`)
 | **Pacote Família** (todos os 7 módulos) | R$ 147 (separados somam R$ 279) |
 | Oferta de boas-vindas: SOS Sono logo depois de pagar o SOS Birra | R$ 27, por 72 horas, uma vez |
 
+**Pacote com desconto:** quem já tem módulos pagos e ativos paga o pacote menos o que pagou neles (valor do último pedido de cada módulo), nunca menos de R$ 10 nem mais do que custariam os módulos que faltam. Com o pacote ativo (renovação) vale o preço cheio. Cálculo em `precoPacote` (`worker/lib.ts`); o servidor cobra esse valor.
+
 Os preços de lançamento ficam em `wrangler.jsonc`. O preço "de" (riscado, mostrado como "preço de lançamento") vem de `PRECOS_DE` e é o valor que será cobrado depois do lançamento: só deixe valores que você realmente vai praticar. Também em `wrangler.jsonc`: `PRECOS_MODULOS` (em centavos, incluindo a chave `pacote`) e `OFERTA_POS_COMPRA`
 (`{"modulo":"sono","preco":2700,"horas":72}`). Produto sem preço aparece como "em breve". O servidor sempre decide o
 preço e confere se a pessoa tem direito à oferta. Quem está em `ACESSO_LIVRE` vê todos os módulos.

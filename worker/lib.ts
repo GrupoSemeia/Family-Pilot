@@ -197,6 +197,26 @@ export async function acessoDe(env: Env, usuarioId: string, email: string): Prom
   return { ativo: !!maior && maior > agora, ate: maior ? paraISO(maior) : null, livre: false, modulos, ...(livrePendente ? { livrePendente } : {}) }
 }
 
+/** Preço do Pacote Família para esta conta. Quem já tem módulos pagos e ainda ativos recebe como desconto o que pagou por eles
+ *  (o valor do último pedido pago de cada módulo). Nunca fica abaixo de R$ 10, nem acima do que custariam os módulos que faltam.
+ *  Com o pacote ainda ativo (renovação) não há desconto. Sem preço do pacote: null. */
+export const PACOTE_MINIMO = 1000
+export async function precoPacote(env: Env, usuarioId: string): Promise<{ preco: number; credito: number; cheio: number } | null> {
+  const precos = precosDe(env), cheio = precos[PACOTE]
+  if (!cheio) return null
+  const agora = agoraBanco()
+  const { results } = await env.DB.prepare(`SELECT modulo, valor, acesso_ate FROM pedidos WHERE usuario_id=? AND status='pago' AND acesso_ate > ? ORDER BY acesso_ate`).bind(usuarioId, agora).all<{ modulo: string; valor: number; acesso_ate: string }>()
+  if (results.some(r => r.modulo === PACOTE)) return { preco: cheio, credito: 0, cheio }
+  const ultimo: Record<string, number> = {}                      // ordenado por prazo: o último pedido de cada módulo é o que vale
+  for (const r of results) if (MODULOS_IDS.includes(r.modulo)) ultimo[r.modulo] = r.valor
+  const credito = Object.values(ultimo).reduce((t, v) => t + v, 0)
+  const faltam = MODULOS_IDS.filter(id => !ultimo[id])
+  let preco = Math.max(cheio - credito, PACOTE_MINIMO)
+  if (credito > 0 && faltam.length && faltam.every(id => precos[id])) preco = Math.min(preco, faltam.reduce((t, id) => t + precos[id], 0))
+  preco = Math.min(preco, cheio)
+  return { preco, credito: credito > 0 ? cheio - preco : 0, cheio }
+}
+
 /** Oferta de boas-vindas: quem acabou de pagar o SOS Birra pode levar um módulo por preço especial, por tempo limitado.
     Vale uma vez, só para quem ainda não tem o módulo nem o pacote. */
 export type Oferta = { modulo: string; preco: number; precoNormal: number; ate: string }
