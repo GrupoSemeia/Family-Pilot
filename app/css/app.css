@@ -175,3 +175,10 @@ input[aria-invalid="true"]{border-color:#b3213f}
 /* aviso com botão (Desfazer) */
 #toast.com-acao{pointer-events:auto}
 #toast .toast-acao{margin-left:12px;background:none;border:0;color:#ffd9e1;font:700 .9rem Inter,sans-serif;text-decoration:underline;cursor:pointer;padding:4px 2px}
+
+/* meus filhos */
+.lista-filhos{list-style:none;padding:0;margin:8px 0}
+.lista-filhos li{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line)}
+.lista-filhos li > span:first-child{font-weight:700}
+#form-filho input{flex:1;min-width:0;border:2px solid var(--line);border-radius:12px;padding:8px 12px;font:inherit}
+.filtro-filho{margin:10px 0}

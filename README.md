@@ -70,6 +70,9 @@ Diário, radar e ferramentas dos módulos ficam na conta (tabela `dados`, migra�
 - Ao sair da conta, a cópia dos registros é retirada do aparelho (se houver algo sem enviar, o app avisa antes).
 - Texto jurídico atualizado em `app/privacidade.html` e `app/termos.html` (versão 2026-10-16, `VERSAO_TERMOS`): revisar com advogado, em especial o consentimento do responsável sobre dados de crianças (art. 14).
 
+### Filhos (apelidos)
+Em Módulos → "Meus filhos" a pessoa cadastra um **apelido** por filho (até 6, até 20 letras, sem sobrenome; o app não pede o nome completo). O apelido aparece como "Filho(a)" nos episódios do Diário SOS, no Radar e nos diários dos módulos, e há filtro "Todos | apelidos" (o filho em foco fica só no aparelho). A lista é o bloco `filhos` da sincronização (cifrado na conta, como os demais; `app/js/filhos.js`). Remover um filho não apaga os registros.
+
 ### Editar e desfazer
 Nos diários (Birra e dos outros módulos) há **Editar** (volta ao formulário com os dados, mantém o mesmo registro e marca `editado`). **Apagar** não pergunta: apaga na hora e mostra "Desfazer" por 9 segundos (o Radar também desfaz). Para o desfazer e a edição valerem entre aparelhos, a junção da sincronização (`juntar` em `app/js/sync.js`) usa o carimbo mais novo de cada item (editado, restaurado ou criado) e só deixa a lápide apagar se for mais nova que o último "restaurado".
 

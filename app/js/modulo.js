@@ -221,7 +221,9 @@
   function registro(m, f) {
     const s = estado(m, f, () => ({ v: {} }));
     f.campos.forEach((c) => { if (s.v[c.id] === undefined) s.v[c.id] = c.tipo === 'data' ? hojeISO() : c.padrao || ''; });
-    const lista = regs(m, f).slice().sort((a, b) => (b.v.data || '').localeCompare(a.v.data || '') || b.criado - a.criado);
+    if (s.v.filho === undefined) s.v.filho = FPFilhos.padrao();
+    const foco = FPFilhos.filtro();
+    const lista = regs(m, f).filter((r) => !foco || r.v.filho === foco).sort((a, b) => (b.v.data || '').localeCompare(a.v.data || '') || b.criado - a.criado);
     const resumo = resumoRegistro(f, lista);
     const er = s.erros || {};
     const aviso = (c) => `<p class="campo-erro" id="erro-${c.id}" role="alert">${er[c.id] ? E(er[c.id]) : ''}</p>`;
@@ -232,9 +234,10 @@
       return `<label class="campo">${E(c.rotulo)}<input type="${tipo}" data-m="rvin" data-id="${c.id}" value="${E(v)}"${inv} ${c.tipo === 'numero' ? 'min="0" max="1440" inputmode="numeric"' : ''} ${c.tipo === 'texto' ? 'maxlength="300"' : ''}></label>${aviso(c)}`;
     };
     return `<h1>${E(f.nome)}</h1><p class="lead">${E(f.descricao)}</p>
-    <form id="m-form" class="form card" novalidate>${s.editando ? '<p class="msg ok" role="status">Editando um registro. Salve as alterações ou cancele.</p>' : ''}${Object.keys(er).length ? '<p class="msg" role="alert">Falta preencher alguns campos para salvar. Veja os avisos abaixo.</p>' : ''}${f.campos.map(campo).join('')}<button class="btn" type="submit">${s.editando ? 'Salvar alterações' : 'Salvar registro'}</button>${s.editando ? ' <button class="mini" type="button" data-m="rcancel">Cancelar edição</button>' : ''}</form>
+    <form id="m-form" class="form card" novalidate>${s.editando ? '<p class="msg ok" role="status">Editando um registro. Salve as alterações ou cancele.</p>' : ''}${FPFilhos.todos().length ? `<p class="rotulo">Qual filho? <small>(opcional)</small></p><div class="chips" role="group" aria-label="Qual filho">${FPFilhos.todos().map((x) => chip('rv', 'filho', x.id, x.apelido, s.v.filho === x.id)).join('')}</div>` : ''}${Object.keys(er).length ? '<p class="msg" role="alert">Falta preencher alguns campos para salvar. Veja os avisos abaixo.</p>' : ''}${f.campos.map(campo).join('')}<button class="btn" type="submit">${s.editando ? 'Salvar alterações' : 'Salvar registro'}</button>${s.editando ? ' <button class="mini" type="button" data-m="rcancel">Cancelar edição</button>' : ''}</form>
     ${resumo.length ? `<div class="card"><b>O que seus registros mostram</b>${lista_(resumo)}<p class="nota">Baseado só no que você anotou. Não é diagnóstico.</p></div>` : ''}
-    ${lista.length ? `<h2 class="sec">Histórico (${lista.length})</h2><ul class="hist">${lista.slice(0, 40).map((r) => `<li><div><b>${fmtDia(r.v.data)}</b>${f.campos.filter((c) => c.id !== 'data' && r.v[c.id] !== '' && r.v[c.id] != null).map((c) => `<small>${E(c.rotulo)}: ${E(rotuloValor(c, r.v[c.id]))}</small>`).join('')}</div>
+    ${FPFilhos.chipsFiltro(E, 'data-m="filtro"')}
+    ${lista.length ? `<h2 class="sec">Histórico (${lista.length})</h2><ul class="hist">${lista.slice(0, 40).map((r) => `<li><div><b>${fmtDia(r.v.data)}</b>${r.v.filho && FPFilhos.nome(r.v.filho) ? `<small>Filho(a): ${E(FPFilhos.nome(r.v.filho))}</small>` : ''}${f.campos.filter((c) => c.id !== 'data' && r.v[c.id] !== '' && r.v[c.id] != null).map((c) => `<small>${E(c.rotulo)}: ${E(rotuloValor(c, r.v[c.id]))}</small>`).join('')}</div>
       <button class="mini" data-m="redit" data-id="${r.id}" aria-label="Editar registro">Editar</button> <button class="mini perigo" data-m="rdel" data-id="${r.id}" aria-label="Apagar registro">Apagar</button></li>`).join('')}</ul>` : '<p class="vazio">Nenhum registro ainda.</p>'}${X.aviso}`;
   }
   const lista_ = (itens) => lista(itens);
@@ -266,6 +269,7 @@
     if (tag === 'INPUT' || tag === 'TEXTAREA') return; // campos tratam em change/input
     const a = el.dataset.m, { m, f } = toolDe();
     if (a === 'copiar') { X.copiar(el.dataset.t); return; }
+    if (a === 'filtro') { FPFilhos.definirFiltro(el.dataset.v); X.reRender(); return; }
     if (a === 'imprimir') { imprimir(m, f); return; }
     if (a === 'copiar-saida') { const o = document.getElementById('m-saida'); if (o) X.copiar(o.textContent); return; }
     if (!m || !f) return;

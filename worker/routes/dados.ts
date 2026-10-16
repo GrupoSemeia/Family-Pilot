@@ -7,7 +7,7 @@ import { cofreAtivo, cifrar, decifrar } from '../cofre'
 export const dados = new Hono<App>()
 dados.use(exigirLogin)
 
-const CHAVES = ['birra', 'modulos']
+const CHAVES = ['birra', 'modulos', 'filhos']
 const MAX_BYTES = 400_000     // por tipo de registro, já em JSON
 
 const exigirCofre = (c: C) => { if (!cofreAtivo(c.env)) throw erro(503, 'A cópia dos registros na nuvem ainda não está ativa. Eles continuam salvos neste aparelho.') }
@@ -81,7 +81,7 @@ dados.get('/exportar', async c => {
   const { results: pedidos } = await db.prepare('SELECT modulo, valor, status, forma, criado_em, pago_em, acesso_ate FROM pedidos WHERE usuario_id=? ORDER BY criado_em').bind(s.usuarioId).all()
   const registros = cofreAtivo(c.env) ? await lerTodos(c, s.usuarioId) : null
   c.header('content-disposition', 'attachment; filename="meus-dados-familypilot.json"')
-  return c.json({ geradoEm: new Date().toISOString(), conta: u, compras: pedidos, registros: registros && { birra: registros.birra?.dados ?? null, modulos: registros.modulos?.dados ?? null } })
+  return c.json({ geradoEm: new Date().toISOString(), conta: u, compras: pedidos, registros: registros && { birra: registros.birra?.dados ?? null, modulos: registros.modulos?.dados ?? null, filhos: registros.filhos?.dados ?? null } })
 })
 
 /** Apagar todos os registros guardados na nuvem (a conta continua). */

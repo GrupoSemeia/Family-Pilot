@@ -2,7 +2,7 @@
    Diário/radar (SOS Birra) e as ferramentas dos outros módulos viram dois blocos: "birra" e "modulos".
    Apagar vira "lápide" (id → quando), para o item não voltar quando outro aparelho ainda o tem. */
 (function () {
-  const LK = { birra: (e) => 'familypilot.v1.' + e, modulos: (e) => 'familypilot.m.' + e };
+  const LK = { birra: (e) => 'familypilot.v1.' + e, modulos: (e) => 'familypilot.m.' + e, filhos: (e) => 'familypilot.f.' + e };
   const CHAVES = Object.keys(LK);
   const DIAS_LAPIDE = 180, MAX_REG = 300;
   let email = null, ativo = false, estado = 'local';   // local: só neste aparelho · ok · salvando · offline
@@ -39,6 +39,7 @@
   function juntar(k, a, b, mandaLocal) {
     a = a || {}; b = b || {};
     const ap = lapides(a, b), pref = mandaLocal ? [a, b] : [b, a];
+    if (k === 'filhos') return { lista: uniao(ap, a.lista, b.lista), apagados: ap };
     if (k === 'birra') {
       return { diario: uniao(ap, a.diario, b.diario), radar: uniao(ap, a.radar, b.radar), idade: pref[0].idade || pref[1].idade || '4-5', apagados: ap };
     }
@@ -166,6 +167,8 @@
   }
 
   window.FamilySync = {
+    /** lê/grava um bloco no aparelho (e agenda o envio): usado pela lista de filhos */
+    dados: (k) => ler(k), salvarLocal(k, obj) { gravar(k, obj); agendar(k); },
     puxar, offlineInit, agendar, antesDeSair, baixar, apagarRegistros, excluirConta, autorizar, revogar, pedir,
     ativo: () => ativo, estado: () => estado,
     lapide(obj, id) { obj.apagados = obj.apagados || {}; obj.apagados[id] = Date.now(); },

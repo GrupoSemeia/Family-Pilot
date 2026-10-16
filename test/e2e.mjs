@@ -359,7 +359,7 @@ try {
     assert.equal((await p('GET', '/api/auth/eu')).d.usuario.consentRegistros, null)
     assert.equal((await p('POST', '/api/dados/consentimento', { aceite: true })).status, 200)
     assert.ok((await p('GET', '/api/auth/eu')).d.usuario.consentRegistros, 'a data da autorização fica registrada')
-    assert.deepEqual((await p('GET', '/api/dados')).d, { birra: null, modulos: null }, 'conta nova começa vazia')
+    assert.deepEqual((await p('GET', '/api/dados')).d, { birra: null, modulos: null, filhos: null }, 'conta nova começa vazia')
     const segredo = 'ZEBRA-' + S
     let r = await p('PUT', '/api/dados/birra', { base: 0, dados: { diario: [{ id: 'a1', nota: segredo }], radar: [], idade: '4-5' } })
     assert.equal(r.status, 200); assert.equal(r.d.versao, 1)
@@ -369,6 +369,9 @@ try {
     assert.equal((await p('GET', '/api/dados')).d.birra.dados.diario.length, 2, 'abre em qualquer aparelho (mesma conta)')
     assert.equal((await q('GET', '/api/dados')).status, 403, 'quem não autorizou não usa a nuvem')
     await q('POST', '/api/dados/consentimento', { aceite: true }); assert.equal((await q('GET', '/api/dados')).d.birra, null, 'outra conta não vê')
+    r = await p('PUT', '/api/dados/filhos', { base: 0, dados: { lista: [{ id: 'f1', apelido: 'Bia', criado: 1 }], apagados: {} } }); assert.equal(r.status, 200, 'a lista de apelidos também vai cifrada para a conta')
+    assert.equal((await p('GET', '/api/dados')).d.filhos.dados.lista[0].apelido, 'Bia')
+    assert.equal((await p('GET', '/api/dados/exportar')).d.registros.filhos.lista[0].apelido, 'Bia', 'a exportação inclui os apelidos')
     assert.equal((await p('PUT', '/api/dados/outra', { base: 0, dados: {} })).status, 404, 'tipo desconhecido')
     assert.equal((await p('PUT', '/api/dados/modulos', { base: 0, dados: [1] })).status, 400, 'precisa ser objeto')
     assert.equal((await p('PUT', '/api/dados/modulos', { base: 0, dados: { x: 'a'.repeat(410000) } })).status, 413, 'limite de tamanho')

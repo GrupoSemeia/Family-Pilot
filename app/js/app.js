@@ -15,6 +15,7 @@ window.FamilyPilot = { _on: false, start: function (C, conta) {
   let db = vazio();
   try { db = Object.assign(vazio(), JSON.parse(localStorage.getItem(KEY) || '{}')); } catch (e) { db = vazio(); }
   const salvar = () => { try { localStorage.setItem(KEY, JSON.stringify(db)); } catch (e) { /* sem armazenamento: segue na memória */ } FamilySync.agendar('birra'); };
+  FPFilhos.init(conta.usuario.email);
   FamilySync.zerarOuvintes();
   FamilySync.aoMudar('birra', () => { try { db = Object.assign(vazio(), JSON.parse(localStorage.getItem(KEY) || '{}')); } catch (e) { /* mantém */ } reRender(); });
   const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
@@ -141,21 +142,24 @@ window.FamilyPilot = { _on: false, start: function (C, conta) {
           ${topG.length ? `<div class="card"><b>Checklist para se preparar</b>${lista(topG.map(([t]) => byId(rec, t).dica), 'check')}</div>` : ''}
           <p class="nota">São pistas sobre os dados que você informou, não um diagnóstico. Situações intensas ou persistentes podem pedir avaliação profissional.</p>`;
       }
-      const ultimos = db.radar.slice().sort((a, b) => b.quando.localeCompare(a.quando)).slice(0, 6);
+      const ultimos = doFoco(db.radar).slice().sort((a, b) => b.quando.localeCompare(a.quando)).slice(0, 6);
       return `${voltar('#/', 'Início')}<h1>Radar de Gatilhos</h1><p class="lead">Perceba o que costuma acontecer antes da birra.</p>
+      ${FPFilhos.chipsFiltro(esc, 'data-act="filtro"')}
       <div class="card"><b>Registrar um momento</b>
+        ${escolhaFilho(R.filho === undefined ? FPFilhos.padrao() : R.filho, 'rfilho')}
         <label class="campo">Quando<input type="datetime-local" id="r-quando" value="${esc(q)}"></label>
         <p class="rotulo">O que estava acontecendo antes? (marque o que couber)</p>
         <div class="chips">${rec.map((g) => chip('tag', 'tag', g.id, g.nome, R.tags.includes(g.id))).join('')}</div>
         <button class="btn" data-act="radar-salvar" ${R.tags.length ? '' : 'disabled'}>Salvar no Radar</button></div>
       ${analise}
-      ${ultimos.length ? `<h2 class="sec">Últimos registros do Radar</h2><ul class="hist">${ultimos.map((e) => `<li><div><b>${fmtData(e.quando)}</b><small>${e.tags.map((t) => esc(byId(rec, t).nome)).join(' · ')}</small></div><button class="mini perigo" data-act="radar-apagar" data-id="${e.id}" aria-label="Apagar registro">Apagar</button></li>`).join('')}</ul>` : ''}`;
+      ${ultimos.length ? `<h2 class="sec">Últimos registros do Radar</h2><ul class="hist">${ultimos.map((e) => `<li><div><b>${fmtData(e.quando)}</b><small>${e.tags.map((t) => esc(byId(rec, t).nome)).join(' · ')}</small>${rotuloFilho(e)}</div><button class="mini perigo" data-act="radar-apagar" data-id="${e.id}" aria-label="Apagar registro">Apagar</button></li>`).join('')}</ul>` : ''}`;
     },
 
     diario() {
-      const itens = db.diario.slice().sort((a, b) => b.quando.localeCompare(a.quando));
+      const itens = doFoco(db.diario).slice().sort((a, b) => b.quando.localeCompare(a.quando));
       const stats = estrategiasStats();
       return `${voltar('#/', 'Início')}<h1>Diário SOS</h1><p class="lead">Registre episódios, o que você fez e como terminou.</p>
+      ${FPFilhos.chipsFiltro(esc, 'data-act="filtro"')}
       <a class="btn" href="#/diario/novo">+ Registrar episódio</a>
       ${stats ? `<div class="card"><b>O que ajudou nos seus registros</b>${lista(stats, 'lista')}<p class="nota">Baseado só nos episódios que você anotou.</p></div>` : ''}
       ${itens.length ? `<h2 class="sec">Histórico (${itens.length})</h2><ul class="hist">${itens.map(itemDiario).join('')}</ul>
@@ -163,11 +167,12 @@ window.FamilyPilot = { _on: false, start: function (C, conta) {
     },
 
     diarioNovo() {
-      const d = DRAFT || { quando: agoraLocal(), idade: db.idade, motivo: 'nao-sei', local: 'casa', est: [], res: '', nota: '' };
+      const d = DRAFT || { quando: agoraLocal(), idade: db.idade, motivo: 'nao-sei', local: 'casa', est: [], res: '', nota: '', filho: FPFilhos.padrao() };
       DRAFT = d;
       const sel = (arr, v) => arr.map((o) => `<option value="${o.id}" ${o.id === v ? 'selected' : ''}>${esc(o.nome || o.rotulo)}</option>`).join('');
       return `${voltar('#/diario', 'Diário')}<h1>${d.editId ? 'Editar episódio' : 'Registrar episódio'}</h1>
       <form id="form-diario" class="form">
+        ${escolhaFilho(d.filho, 'dfilho')}
         <label class="campo">Quando<input type="datetime-local" id="d-quando" value="${esc(d.quando)}" required></label>
         <label class="campo">Idade<select id="d-idade">${sel(D.IDADES, d.idade)}</select></label>
         <label class="campo">Motivo aparente<select id="d-motivo">${sel(D.MOTIVOS, d.motivo)}</select></label>
@@ -220,6 +225,14 @@ window.FamilyPilot = { _on: false, start: function (C, conta) {
     ${ofertaCard()}${meusModulos()}<a class="outros" href="#/modulos">Ver todos os módulos →</a>${aviso}`;
   }
 
+  /** Meus filhos: um apelido por filho (não o nome completo), para identificar e filtrar os registros. */
+  function filhosCard() {
+    const t = FPFilhos.todos();
+    return `<div class="card"><b>Meus filhos</b><p>Cadastre um <b>apelido</b> para cada filho (não use o nome completo). Assim cada registro mostra de quem é e você filtra por filho. O apelido fica cifrado junto dos seus outros registros.</p>
+      ${t.length ? `<ul class="lista-filhos">${t.map((f) => `<li><span>${esc(f.apelido)}</span><span><button class="mini" data-act="filho-ren" data-id="${f.id}" aria-label="Renomear ${esc(f.apelido)}">Renomear</button> <button class="mini perigo" data-act="filho-rem" data-id="${f.id}" aria-label="Remover ${esc(f.apelido)}">Remover</button></span></li>`).join('')}</ul>` : ''}
+      ${t.length < FPFilhos.max ? `<form id="form-filho" class="predef"><input id="filho-novo" maxlength="${FPFilhos.maxLen}" placeholder="Apelido do filho" aria-label="Apelido do filho" autocomplete="off"><button class="mini" type="submit">Adicionar</button></form>` : '<p class="nota">Você chegou ao limite de filhos.</p>'}
+      <p class="msg" id="filho-msg" role="alert"></p></div>`;
+  }
   /** Seus dados (LGPD): onde ficam, baixar tudo, apagar registros, excluir a conta. */
   function meusDados() {
     const ce = conta.usuario.consentRegistros, nuvem = FamilySync.ativo();
@@ -232,7 +245,7 @@ window.FamilyPilot = { _on: false, start: function (C, conta) {
   }
   function contaCard() {
     const ate = conta.acesso.livre ? 'acesso total (administrador)' : conta.acesso.ate ? 'acesso até ' + new Date(conta.acesso.ate).toLocaleDateString('pt-BR') : '';
-    return `<div class="card"><b>${esc(conta.usuario.nome)}</b><p>${esc(conta.usuario.email)}${ate ? ' · ' + ate : ''}${conta.visao ? ' · <b>visão de usuário</b>' : ''}</p><button class="mini" data-act="sair">Sair da conta</button> <a class="mini" href="#/ajuda" style="text-decoration:none;display:inline-block">Compras e ajuda</a> <small><a href="/termos" target="_blank" rel="noopener">Termos</a> · <a href="/privacidade" target="_blank" rel="noopener">Privacidade</a></small></div>${meusDados()}${conta.admin ? adminPanel() : ''}`;
+    return `<div class="card"><b>${esc(conta.usuario.nome)}</b><p>${esc(conta.usuario.email)}${ate ? ' · ' + ate : ''}${conta.visao ? ' · <b>visão de usuário</b>' : ''}</p><button class="mini" data-act="sair">Sair da conta</button> <a class="mini" href="#/ajuda" style="text-decoration:none;display:inline-block">Compras e ajuda</a> <small><a href="/termos" target="_blank" rel="noopener">Termos</a> · <a href="/privacidade" target="_blank" rel="noopener">Privacidade</a></small></div>${filhosCard()}${meusDados()}${conta.admin ? adminPanel() : ''}`;
   }
 
   /** Só para o administrador: escolhe os módulos para ver o app como um cliente veria. */
@@ -251,7 +264,7 @@ window.FamilyPilot = { _on: false, start: function (C, conta) {
   function itemDiario(e) {
     const m = byId(D.MOTIVOS, e.motivo), l = byId(D.LOCAIS, e.local), r = byId(D.RESULTADOS, e.res);
     return `<li><div><b>${fmtData(e.quando)}</b> · ${esc((byId(D.IDADES, e.idade) || {}).rotulo || '')}
-      <small>${esc(m ? m.nome : '')} — ${esc(l ? l.nome : '')}</small>
+      <small>${esc(m ? m.nome : '')} — ${esc(l ? l.nome : '')}</small>${rotuloFilho(e)}
       ${e.est.length ? `<small>Fiz: ${e.est.map((s) => esc(byId(D.ESTRATEGIAS, s).nome)).join(', ')}</small>` : ''}
       ${r ? `<span class="res ${r.id}">${esc(r.nome)}</span>` : ''}
       ${e.nota ? `<p class="obs">${esc(e.nota)}</p>` : ''}</div>
@@ -289,18 +302,23 @@ window.FamilyPilot = { _on: false, start: function (C, conta) {
   }
 
   /* ---------- Radar e Diário: dados ---------- */
+  /** Registros do filho em foco (ou todos). */
+  const doFoco = (arr) => { const f = FPFilhos.filtro(); return f ? arr.filter((e) => e.filho === f) : arr; };
+  const rotuloFilho = (e) => { const n = e.filho ? FPFilhos.nome(e.filho) : ''; return n ? `<small>Filho(a): ${esc(n)}</small>` : ''; };
+  const escolhaFilho = (atual, acao) => { const t = FPFilhos.todos(); return t.length ? `<p class="rotulo">Qual filho? (opcional)</p><div class="chips">${t.map((f) => chip(acao, 'filho', f.id, f.apelido, atual === f.id)).join('')}</div>` : ''; };
+
   function eventosRadar() {
-    const doDiario = db.diario.map((e) => {
+    const doDiario = doFoco(db.diario).map((e) => {
       const m = byId(D.MOTIVOS, e.motivo);
       return { quando: e.quando, tags: m && m.gatilho ? [m.gatilho] : [] };
     });
-    return db.radar.concat(doDiario);
+    return doFoco(db.radar).concat(doDiario);
   }
 
   function estrategiasStats() {
     const out = [];
     D.ESTRATEGIAS.forEach((s) => {
-      const usos = db.diario.filter((e) => e.est.includes(s.id) && e.res);
+      const usos = doFoco(db.diario).filter((e) => e.est.includes(s.id) && e.res);
       if (usos.length >= 3) {
         const ok = usos.filter((e) => e.res === 'ajudou').length;
         out.push(`${s.nome}: ajudou em ${ok} de ${usos.length} vezes`);
@@ -451,7 +469,7 @@ window.FamilyPilot = { _on: false, start: function (C, conta) {
         const q = $('#r-quando').value || agoraLocal();
         const igual = db.radar.some((e) => e.quando === q && e.tags.length === R.tags.length && R.tags.every((t) => e.tags.includes(t)));
         if (igual && !confirm('Já existe um registro igual neste mesmo horário. Salvar de novo mesmo assim?')) break;
-        db.radar.push({ id: uid(), quando: q, tags: R.tags.slice() }); salvar();
+        db.radar.push({ id: uid(), quando: q, tags: R.tags.slice(), filho: R.filho === undefined ? FPFilhos.padrao() : R.filho }); salvar();
         R = { tags: [], quando: null }; toast('Salvo no Radar'); reRender(); break;
       }
       case 'radar-apagar': apagarComDesfazer('radar', el.dataset.id, 'Registro apagado'); break;
@@ -461,13 +479,18 @@ window.FamilyPilot = { _on: false, start: function (C, conta) {
       case 'est': syncDraft(); toggle(DRAFT.est, v); reRender(); break;
       case 'res': syncDraft(); DRAFT.res = DRAFT.res === v ? '' : v; reRender(); break;
       case 'diario-apagar': apagarComDesfazer('diario', el.dataset.id, 'Episódio apagado'); break;
+      case 'filtro': FPFilhos.definirFiltro(v); reRender(); break;
+      case 'dfilho': syncDraft(); DRAFT.filho = DRAFT.filho === v ? '' : v; reRender(); break;
+      case 'rfilho': { const q = $('#r-quando'); if (q) R.quando = q.value; const at = R.filho === undefined ? FPFilhos.padrao() : R.filho; R.filho = at === v ? '' : v; reRender(); break; }
+      case 'filho-ren': { const at = FPFilhos.nome(el.dataset.id); const n = prompt('Novo apelido (curto, sem sobrenome):', at); if (n === null) break; try { FPFilhos.renomear(el.dataset.id, n); reRender(); } catch (e) { alert(e.message); } break; }
+      case 'filho-rem': if (confirm('Remover este filho da lista? Os registros continuam, só sem o apelido.')) { FPFilhos.remover(el.dataset.id); reRender(); } break;
       case 'diario-editar': {
         const e = byId(db.diario, el.dataset.id); if (!e) break;
         DRAFT = Object.assign({}, e, { est: (e.est || []).slice(), editId: e.id, nota: e.nota || '' }); location.hash = '#/diario/novo'; break;
       }
-      case 'diario-copiar': copiar(db.diario.slice().sort((a, b) => b.quando.localeCompare(a.quando)).map((e) => {
+      case 'diario-copiar': copiar(doFoco(db.diario).slice().sort((a, b) => b.quando.localeCompare(a.quando)).map((e) => {
         const m = byId(D.MOTIVOS, e.motivo), l = byId(D.LOCAIS, e.local), r = byId(D.RESULTADOS, e.res);
-        return `${fmtData(e.quando)} — ${m ? m.nome : ''} (${l ? l.nome : ''}). Fiz: ${e.est.map((s) => byId(D.ESTRATEGIAS, s).nome).join(', ') || '—'}. Resultado: ${r ? r.nome : '—'}.${e.nota ? ' ' + e.nota : ''}`;
+        return `${fmtData(e.quando)}${e.filho && FPFilhos.nome(e.filho) ? ' [' + FPFilhos.nome(e.filho) + ']' : ''} — ${m ? m.nome : ''} (${l ? l.nome : ''}). Fiz: ${e.est.map((s) => byId(D.ESTRATEGIAS, s).nome).join(', ') || '—'}. Resultado: ${r ? r.nome : '—'}.${e.nota ? ' ' + e.nota : ''}`;
       }).join('\n')); break;
     }
   });
@@ -481,10 +504,15 @@ window.FamilyPilot = { _on: false, start: function (C, conta) {
   }
 
   document.addEventListener('submit', (ev) => {
+    if (ev.target.id === 'form-filho') {
+      ev.preventDefault();
+      try { FPFilhos.adicionar($('#filho-novo').value); reRender(); } catch (e) { const m = $('#filho-msg'); if (m) m.textContent = e.message; }
+      return;
+    }
     if (ev.target.id !== 'form-diario') return;
     ev.preventDefault();
     syncDraft();
-    const novo = { id: DRAFT.editId || uid(), quando: DRAFT.quando, idade: DRAFT.idade, motivo: DRAFT.motivo, local: DRAFT.local, est: DRAFT.est.slice(), res: DRAFT.res, nota: DRAFT.nota.trim() };
+    const novo = { id: DRAFT.editId || uid(), quando: DRAFT.quando, idade: DRAFT.idade, motivo: DRAFT.motivo, local: DRAFT.local, est: DRAFT.est.slice(), res: DRAFT.res, nota: DRAFT.nota.trim(), filho: DRAFT.filho || '' };
     const pos = DRAFT.editId ? db.diario.findIndex((e) => e.id === DRAFT.editId) : -1;
     if (pos >= 0) db.diario[pos] = Object.assign(novo, { editado: Date.now() }); else db.diario.push(novo);
     const editou = pos >= 0;
