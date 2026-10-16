@@ -46,9 +46,10 @@ O endereço sem `www` (`familypilot.com.br`) também é atendido pelo Worker e r
 ## Publicar na Cloudflare (uma vez)
     npm install
     # banco "family-pilot" já criado (id em wrangler.jsonc)
-    npm run db:remote                            # migrações novas (0001 a 0006 já estão aplicadas; a 0007 — visão de usuário — é nova)
+    npm run db:remote                            # migrações novas (0001 a 0008 já estão aplicadas no banco criado)
     npx wrangler secret put ASAAS_API_KEY        # chave da Asaas (teste: $aact_hmlg_… usa o sandbox sozinha)
     npx wrangler secret put ASAAS_WEBHOOK_TOKEN  # texto secreto qualquer; o mesmo vai na Asaas
+    npx wrangler secret put DADOS_CHAVE          # chave que cifra os registros dos pais (veja "Registros na nuvem")
     npm run deploy
 
 Na Asaas (Integrações → Webhooks): URL `https://www.familypilot.com.br/api/asaas/webhook`, o mesmo token no campo de
@@ -56,6 +57,15 @@ autenticação e os eventos de **Cobranças** (confirmada, recebida, estornada/r
 `ACESSO_LIVRE` em `wrangler.jsonc` lista os **super usuários** (hoje `gruposemeiadigital@gmail.com`): veem todos os módulos, sem prazo e sem pagar.
 O acesso só vale com o **e-mail confirmado**, para ninguém ganhar acesso criando conta com o e-mail da equipe: entre com o **Google** (que já confirma) ou conclua o **"Esqueci minha senha"**.
 Enquanto não confirmar, a pessoa vê um aviso explicando o que fazer (`livrePendente`).
+
+## Registros na nuvem (LGPD)
+Diário, radar e ferramentas dos módulos ficam na conta (tabela `dados`, migração 0008) e abrem em qualquer aparelho; o aparelho guarda uma cópia para uso sem internet.
+- **Cifrados no servidor:** AES-256-GCM, chave diferente por conta (HKDF do segredo `DADOS_CHAVE` + id da conta), amarrada à conta e ao tipo (`worker/cofre.ts`). Não existe rota de administrador que leia registros.
+  **Guarde `DADOS_CHAVE` em lugar seguro e nunca troque: sem ela os registros guardados ficam ilegíveis.** Sem o segredo a API responde 503 e o app segue só no aparelho.
+- **Vários aparelhos:** cada bloco (`birra`, `modulos`) tem versão; salvar com versão velha dá 409 e o app junta os dois (`app/js/sync.js`). Apagar vira "lápide" para o item não voltar.
+- **Direitos do titular, no próprio app (Módulos → Seus dados):** baixar tudo (`GET /api/dados/exportar`), apagar registros (`DELETE /api/dados`) e excluir a conta (`POST /api/dados/excluir-conta`, pede a senha). A exclusão apaga registros, sessões e dados de cadastro e anonimiza a conta; só ficam compras pagas/reembolsadas e o CPF/CNPJ delas (obrigação fiscal).
+- Ao sair da conta, a cópia dos registros é retirada do aparelho (se houver algo sem enviar, o app avisa antes).
+- Texto jurídico atualizado em `app/privacidade.html` e `app/termos.html` (versão 2026-10-16, `VERSAO_TERMOS`): revisar com advogado, em especial o consentimento do responsável sobre dados de crianças (art. 14).
 
 ### Ver como usuário (administrador)
 Quem está em `ACESSO_LIVRE` (com e-mail confirmado) vê, na aba **Módulos**, o painel "Ver como usuário": escolhe quais módulos simular, se quer ver a oferta de boas-vindas, e o app passa a se comportar como para um cliente (catálogo, cadeados, tela de pagamento).

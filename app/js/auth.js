@@ -200,6 +200,7 @@
       const conteudo = await api('GET', '/api/conteudo');
       guardar({ me, conteudo });
       history.replaceState(null, '', location.pathname + location.hash);
+      await FamilySync.puxar(me.usuario.email);   // registros da conta (cifrados no servidor) → este aparelho
       sairVisivel(true); faixa();
       window.FamilyPilot.start(conteudo, me);
     } catch (e) {
@@ -213,12 +214,14 @@
   function offline() {
     const c = lerCache();
     if (c && c.me && c.me.acesso && (c.me.acesso.livre || (c.me.acesso.ate && new Date(c.me.acesso.ate) > new Date()))) {
+      FamilySync.offlineInit(c.me.usuario.email);
       sairVisivel(true); faixa(); window.FamilyPilot.start(c.conteudo, c.me); return;
     }
     tela('<section class="hero-app"><h1>Sem conexão</h1><p>Conecte-se à internet para entrar.</p></section><button class="btn" onclick="location.reload()">Tentar de novo</button>');
   }
 
   async function sair() {
+    if (!(await FamilySync.antesDeSair()) && !confirm('Alguns registros ainda não foram enviados para a sua conta (sem internet). Se sair agora, eles ficam só neste aparelho e podem ser perdidos. Sair mesmo assim?')) return;
     try { await api('POST', '/api/auth/sair', {}); }
     catch (e) {
       // sem internet não dá para encerrar a sessão no servidor: avisa em vez de fingir que saiu
@@ -248,6 +251,6 @@
     catch (e) { alert(e.message); }
   }
   $('#faixa-sair').onclick = sairVisao;
-  window.FamilyAuth = { sair, verComo, sairVisao, comprar: (item) => { if (item) telaAssinar({ id: item.id, nome: item.nome, preco: item.preco, precoCheio: item.precoCheio, oferta: !!item.oferta }); } };
+  window.FamilyAuth = { api, sair, verComo, sairVisao, comprar: (item) => { if (item) telaAssinar({ id: item.id, nome: item.nome, preco: item.preco, precoCheio: item.precoCheio, oferta: !!item.oferta }); } };
   iniciar();
 })();

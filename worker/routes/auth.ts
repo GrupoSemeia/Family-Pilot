@@ -11,12 +11,13 @@ const MAX_FALHAS = 8   // por e-mail, em 15 minutos
 /** Resposta de login/cadastro/"quem sou eu". Com a sessão em mãos, vale a visão "ver como usuário" do administrador. */
 async function resposta(c: any, s: { usuarioId: string; nome: string; email: string; sessaoId?: string; visao?: any }) {
   const sessao = s.sessaoId ? (s as Sessao) : null
-  const [acesso, admin, visao] = await Promise.all([
+  const [acesso, admin, visao, sh] = await Promise.all([
     sessao ? acessoDaSessao(c.env, sessao) : acessoDe(c.env, s.usuarioId, s.email),
     ehSuper(c.env, s.usuarioId, s.email),
     sessao ? visaoValida(c.env, sessao) : Promise.resolve(null),
+    (c.env.DB as D1Database).prepare("SELECT senha_hash LIKE 'google$%' AS g FROM usuarios WHERE id=?").bind(s.usuarioId).first<{ g: number }>(),
   ])
-  return { usuario: { nome: s.nome, email: s.email }, acesso, admin, visao, preco: precosDe(c.env).birra, precos: precosDe(c.env), precosCheios: precosCheios(c.env), pagamentoOnline: !!c.env.ASAAS_API_KEY, emailAtivo: emailAtivo(c.env), googleClientId: c.env.GOOGLE_CLIENT_ID || '' }
+  return { usuario: { nome: s.nome, email: s.email, semSenha: !!sh?.g }, acesso, admin, visao, preco: precosDe(c.env).birra, precos: precosDe(c.env), precosCheios: precosCheios(c.env), pagamentoOnline: !!c.env.ASAAS_API_KEY, emailAtivo: emailAtivo(c.env), googleClientId: c.env.GOOGLE_CLIENT_ID || '' }
 }
 
 auth.post('/cadastro', async c => {

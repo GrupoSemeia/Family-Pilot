@@ -1,6 +1,6 @@
 /* Motor dos módulos do FamilyPilot (Sono, Telas, Alimentação, Limites, Escola, Adolescência).
    Cada módulo vem do servidor como dados (worker/modulos/*.ts) e este arquivo desenha as ferramentas de cada tipo:
-   situacoes, rotinaSono, combinado, ideias, modelo, registro e ajuda. Registros ficam só neste aparelho. */
+   situacoes, rotinaSono, combinado, ideias, modelo, registro e ajuda. Registros ficam no aparelho e, cifrados, na conta (sync.js). */
 (function () {
   let X = null;        // utilidades do app (esc, toast, copiar, reRender, email, aviso)
   let MODS = {};       // módulos liberados: id → módulo
@@ -16,7 +16,7 @@
   /* ---------- armazenamento (uma chave por conta) ---------- */
   const KEY = () => 'familypilot.m.' + X.email;
   function carregar() { try { st = Object.assign({ faixa: {}, reg: {} }, JSON.parse(localStorage.getItem(KEY()) || '{}')); } catch (e) { st = { faixa: {}, reg: {} }; } }
-  function salvar() { try { localStorage.setItem(KEY(), JSON.stringify(st)); } catch (e) { /* sem armazenamento */ } }
+  function salvar() { try { localStorage.setItem(KEY(), JSON.stringify(st)); } catch (e) { /* sem armazenamento */ } FamilySync.agendar('modulos'); }
   const faixaDe = (m) => { const f = st.faixa[m.id]; return byId(m.faixas, f) ? f : m.faixas[Math.min(1, m.faixas.length - 1)].id; };
   const regs = (m, f) => (st.reg[m.id + '/' + f.id] = st.reg[m.id + '/' + f.id] || []);
   const estado = (m, f, ini) => (S[m.id + '/' + f.id] = S[m.id + '/' + f.id] || ini());
@@ -257,7 +257,7 @@
       case 'cat': s.cat = el.dataset.v; break;
       case 'mod': s.id = el.dataset.v; break;
       case 'rv': s.v[el.dataset.k] = s.v[el.dataset.k] === el.dataset.v ? '' : el.dataset.v; break;
-      case 'rdel': if (confirm('Apagar este registro?')) { const l = regs(m, f); const i = l.findIndex((r) => r.id === el.dataset.id); if (i >= 0) l.splice(i, 1); salvar(); } else return; break;
+      case 'rdel': if (confirm('Apagar este registro?')) { const l = regs(m, f); const i = l.findIndex((r) => r.id === el.dataset.id); if (i >= 0) l.splice(i, 1); FamilySync.lapide(st, el.dataset.id); salvar(); } else return; break;
       default: return;
     }
     X.reRender();
@@ -300,7 +300,7 @@
 
   /* ---------- API usada pelo app.js ---------- */
   window.FPModulo = {
-    init(ctx, modulos) { X = ctx; MODS = modulos || {}; carregar(); },
+    init(ctx, modulos) { X = ctx; MODS = modulos || {}; carregar(); FamilySync.aoMudar('modulos', () => { carregar(); X.reRender(); }); },
     reset() { S = {}; },
     /** devolve o HTML da rota /m/<módulo>[/<ferramenta>] ou null se a rota não for de módulo */
     view(rota) {

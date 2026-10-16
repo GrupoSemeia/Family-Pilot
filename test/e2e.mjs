@@ -1,7 +1,7 @@
 /* Teste de ponta a ponta: sobe uma Asaas falsa, o Worker local (wrangler dev) e percorre cadastro → pagamento → acesso.
    Rodar:  npm run db:local && npm run test:e2e */
 import { createServer, request as httpRequest } from 'node:http'
-import { spawn, execFileSync } from 'node:child_process'
+import { execFileSync, spawn } from 'node:child_process'
 import assert from 'node:assert/strict'
 import { generateKeyPairSync, sign as assinar } from 'node:crypto'
 
@@ -35,7 +35,7 @@ const mock = createServer((req, res) => {
   })
 }).listen(MOCK)
 
-const wr = spawn('npx', ['wrangler', 'dev', '--port', String(PORTA), '--var', `ASAAS_URL:http://127.0.0.1:${MOCK}`, '--var', 'ASAAS_API_KEY:chave-teste', '--var', `ASAAS_WEBHOOK_TOKEN:${TOKEN}`, '--var', `ACESSO_LIVRE:super${S}@gmail.com, equipe${S}@teste.com`, '--var', 'APP_URL:https://www.teste.local', '--var', `GOOGLE_CLIENT_ID:${GOOGLE_ID}`, '--var', `GOOGLE_CERTS_URL:http://127.0.0.1:${MOCK}/certs`, '--var', 'RESEND_API_KEY:rk-teste', '--var', 'EMAIL_DE:FamilyPilot <nao-responda@teste.com>', '--var', `RESEND_URL:http://127.0.0.1:${MOCK}`, '--var', 'PRECOS_MODULOS:{"sono":3700,"adolescencia":4700,"pacote":9900}', '--var', 'PRECOS_DE:{"sono":7700,"telas":100}', '--var', 'OFERTA_POS_COMPRA:{"modulo":"sono","preco":2700,"horas":72}'], { stdio: 'pipe', detached: true })
+const wr = spawn('npx', ['wrangler', 'dev', '--port', String(PORTA), '--var', `ASAAS_URL:http://127.0.0.1:${MOCK}`, '--var', 'ASAAS_API_KEY:chave-teste', '--var', `ASAAS_WEBHOOK_TOKEN:${TOKEN}`, '--var', `ACESSO_LIVRE:super${S}@gmail.com, equipe${S}@teste.com`, '--var', 'DADOS_CHAVE:chave-de-teste-com-mais-de-16-caracteres', '--var', 'APP_URL:https://www.teste.local', '--var', `GOOGLE_CLIENT_ID:${GOOGLE_ID}`, '--var', `GOOGLE_CERTS_URL:http://127.0.0.1:${MOCK}/certs`, '--var', 'RESEND_API_KEY:rk-teste', '--var', 'EMAIL_DE:FamilyPilot <nao-responda@teste.com>', '--var', `RESEND_URL:http://127.0.0.1:${MOCK}`, '--var', 'PRECOS_MODULOS:{"sono":3700,"adolescencia":4700,"pacote":9900}', '--var', 'PRECOS_DE:{"sono":7700,"telas":100}', '--var', 'OFERTA_POS_COMPRA:{"modulo":"sono","preco":2700,"horas":72}'], { stdio: 'pipe', detached: true })
 let log = ''; wr.stdout.on('data', d => (log += d)); wr.stderr.on('data', d => (log += d))
 const fim = (cod) => { try { process.kill(-wr.pid, 'SIGTERM') } catch { wr.kill('SIGTERM') }; mock.close(); process.exit(cod) }
 
@@ -244,7 +244,7 @@ try {
   pg = await cliente().pagina('/privacidade'); assert.equal(pg.status, 200)
   assert.match(pg.texto, /Semeia Digital Consultoria em TI LTDA/); assert.match(pg.texto, /LGPD/); assert.match(pg.texto, /gruposemeiadigital@gmail\.com/)
   const aceite = JSON.parse(execFileSync('npx', ['wrangler', 'd1', 'execute', 'family-pilot', '--local', '--json', '--command', `SELECT aceite_versao, aceite_em FROM usuarios WHERE email='${quem}'`]).toString())[0].results[0]
-  assert.equal(aceite.aceite_versao, '2026-10-15', 'o aceite fica registrado com a versão'); assert.ok(aceite.aceite_em)
+  assert.equal(aceite.aceite_versao, '2026-10-16', 'o aceite fica registrado com a versão'); assert.ok(aceite.aceite_em)
 
   // endereço sem "www" redireciona para o principal (regra isolada em worker/dominio.ts)
   const { redirecionarSemWww } = await import('../worker/dominio.ts')
@@ -327,6 +327,36 @@ try {
   eu = (await dono('GET', '/api/auth/eu')).d
   assert.equal(eu.visao, null); assert.equal(eu.acesso.livre, true, 'voltou à visão de administrador')
   assert.equal((await dono('POST', '/api/admin/visao', { modulos: 'x' })).status, 400, 'lista inválida')
+
+  // registros na nuvem (LGPD): cifrados, por conta, com controle de versão, exportação e exclusão
+  {
+    assert.equal((await cliente()('GET', '/api/dados')).status, 401, 'registros exigem login')
+    const p = cliente(), q = cliente()
+    for (const [c, n] of [[p, 'lgpd'], [q, 'lgpdb']]) assert.equal((await c('POST', '/api/auth/cadastro', { nome: 'Pai ' + n, email: `${n}${S}@teste.com`, senha: 'senha-forte-1', aceite: true })).status, 201)
+    assert.deepEqual((await p('GET', '/api/dados')).d, { birra: null, modulos: null }, 'conta nova começa vazia')
+    const segredo = 'ZEBRA-' + S
+    let r = await p('PUT', '/api/dados/birra', { base: 0, dados: { diario: [{ id: 'a1', nota: segredo }], radar: [], idade: '4-5' } })
+    assert.equal(r.status, 200); assert.equal(r.d.versao, 1)
+    assert.equal((await p('PUT', '/api/dados/birra', { base: 0, dados: { diario: [] } })).status, 409, 'base velha não sobrescreve')
+    r = await p('PUT', '/api/dados/birra', { base: 0, dados: { diario: [] } }); assert.equal(r.d.atual.versao, 1); assert.equal(r.d.atual.dados.diario[0].nota, segredo, '409 devolve a versão atual')
+    r = await p('PUT', '/api/dados/birra', { base: 1, dados: { diario: [{ id: 'a1', nota: segredo }, { id: 'a2', nota: 'x' }], radar: [] } }); assert.equal(r.d.versao, 2)
+    assert.equal((await p('GET', '/api/dados')).d.birra.dados.diario.length, 2, 'abre em qualquer aparelho (mesma conta)')
+    assert.equal((await q('GET', '/api/dados')).d.birra, null, 'outra conta não vê')
+    assert.equal((await p('PUT', '/api/dados/outra', { base: 0, dados: {} })).status, 404, 'tipo desconhecido')
+    assert.equal((await p('PUT', '/api/dados/modulos', { base: 0, dados: [1] })).status, 400, 'precisa ser objeto')
+    assert.equal((await p('PUT', '/api/dados/modulos', { base: 0, dados: { x: 'a'.repeat(410000) } })).status, 413, 'limite de tamanho')
+    const banco = execFileSync('npx', ['wrangler', 'd1', 'execute', 'family-pilot', '--local', '--json', '--command', 'SELECT conteudo FROM dados'], { encoding: 'utf8' })
+    assert.ok(banco.includes('"v1.') && !banco.includes(segredo), 'no banco o registro está cifrado')
+    const ex = await p('GET', '/api/dados/exportar'); assert.equal(ex.d.conta.email, `lgpd${S}@teste.com`); assert.equal(ex.d.registros.birra.diario.length, 2, 'exportação traz os registros')
+    assert.equal((await p('POST', '/api/dados/excluir-conta', { senha: 'errada-errada' })).status, 403, 'excluir conta pede a senha')
+    assert.equal((await p('DELETE', '/api/dados')).status, 200); assert.equal((await p('GET', '/api/dados')).d.birra, null, 'registros apagados')
+    await p('PUT', '/api/dados/birra', { base: 0, dados: { diario: [{ id: 'z', nota: 'y' }] } })
+    assert.equal((await p('POST', '/api/dados/excluir-conta', { senha: 'senha-forte-1' })).status, 200)
+    assert.equal((await p('GET', '/api/auth/eu')).d.usuario, null, 'sessão encerrada')
+    assert.equal((await cliente()('POST', '/api/auth/entrar', { email: `lgpd${S}@teste.com`, senha: 'senha-forte-1' })).status, 401, 'conta excluída não entra')
+    const resto = execFileSync('npx', ['wrangler', 'd1', 'execute', 'family-pilot', '--local', '--json', '--command', `SELECT (SELECT COUNT(*) FROM dados WHERE usuario_id IN (SELECT id FROM usuarios WHERE excluido_em IS NOT NULL)) AS d, (SELECT COUNT(*) FROM usuarios WHERE email='lgpd${S}@teste.com') AS u`], { encoding: 'utf8' })
+    assert.ok(/"d":\s*0/.test(resto) && /"u":\s*0/.test(resto), 'registros apagados e e-mail anonimizado')
+  }
 
   // logout
   await rec('POST', '/api/auth/sair', {}); assert.equal((await rec('GET', '/api/conteudo')).status, 401)

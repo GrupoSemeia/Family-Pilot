@@ -17,6 +17,8 @@ export type Env = {
   EMAIL?: { send(msg: { from: string | { email: string; name?: string }; to: string; subject: string; html?: string; text?: string }): Promise<unknown> }
   /** Entrar com o Google: Client ID público do tipo "Aplicativo da Web" (vazio = botão escondido). GOOGLE_CERTS_URL só para testes. */
   GOOGLE_CLIENT_ID?: string; GOOGLE_CERTS_URL?: string
+  /** Segredo (npx wrangler secret put DADOS_CHAVE) que cifra os registros dos pais no banco. Sem ele a sincronização fica desligada. Nunca troque nem perca. */
+  DADOS_CHAVE?: string
 }
 /** Visão de administrador: ver o app como um usuário com só estes módulos (e, se pedido, com a oferta de boas-vindas). */
 export type Visao = { modulos: string[]; oferta: boolean }
@@ -29,7 +31,7 @@ export const PRECO_CENTAVOS = 4700          // R$ 47, SOS Birra, pagamento únic
 export const DIAS_ACESSO = 365              // acesso por 12 meses a partir da confirmação do pagamento
 export const MODULO_BASE = 'birra'
 /** Versão vigente dos Termos de Uso e da Política de Privacidade (data do texto em app/termos.html e app/privacidade.html). */
-export const VERSAO_TERMOS = '2026-10-15'
+export const VERSAO_TERMOS = '2026-10-16'
 export const MODULOS_IDS = ['birra', 'sono', 'telas', 'alimentacao', 'limites', 'escola', 'adolescencia']
 /** Pacote Família: um pedido que libera todos os módulos por 12 meses. */
 export const PACOTE = 'pacote'

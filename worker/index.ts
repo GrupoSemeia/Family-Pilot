@@ -3,6 +3,7 @@ import { type App, ErroApp, exigirLogin, exigirAcesso, lerSessao, acessoDaSessao
 import { auth } from './routes/auth'
 import { pagamento, asaasWebhook } from './routes/pagamento'
 import { admin } from './routes/admin'
+import { dados } from './routes/dados'
 import { CONTEUDO } from './conteudo'
 import { redirecionarSemWww } from './dominio'
 import { MODULOS, CATALOGO } from './modulos'
@@ -33,6 +34,7 @@ app.use('/api/*', async (c, next) => {
 app.route('/api/auth', auth)
 app.route('/api/pagamento', pagamento)
 app.route('/api/admin', admin)
+app.route('/api/dados', dados)
 app.route('/api/asaas/webhook', asaasWebhook)
 
 // O conteúdo só sai do servidor para quem está logado, e só dos módulos com acesso ativo.

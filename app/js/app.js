@@ -1,4 +1,4 @@
-/* FamilyPilot — app dos pais. Sem servidor: tudo fica salvo no aparelho (localStorage). */
+/* FamilyPilot — app dos pais. Registros: cópia no aparelho (localStorage) e na conta, cifrados no servidor (sync.js). */
 /* Chamado por auth.js depois do login, com o conteúdo liberado pelo servidor e os dados da conta. */
 window.FamilyPilot = { _on: false, start: function (C, conta) {
   window.FamilyPilot._on = true;
@@ -14,7 +14,9 @@ window.FamilyPilot = { _on: false, start: function (C, conta) {
   const vazio = () => ({ diario: [], radar: [], idade: '4-5' });
   let db = vazio();
   try { db = Object.assign(vazio(), JSON.parse(localStorage.getItem(KEY) || '{}')); } catch (e) { db = vazio(); }
-  const salvar = () => { try { localStorage.setItem(KEY, JSON.stringify(db)); } catch (e) { /* sem armazenamento: segue na memória */ } };
+  const salvar = () => { try { localStorage.setItem(KEY, JSON.stringify(db)); } catch (e) { /* sem armazenamento: segue na memória */ } FamilySync.agendar('birra'); };
+  FamilySync.zerarOuvintes();
+  FamilySync.aoMudar('birra', () => { try { db = Object.assign(vazio(), JSON.parse(localStorage.getItem(KEY) || '{}')); } catch (e) { /* mantém */ } reRender(); });
   const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 
   /* ---------- datas ---------- */
@@ -40,7 +42,7 @@ window.FamilyPilot = { _on: false, start: function (C, conta) {
     ['#/modulos', 'Módulos', '🧭'],
   ];
 
-  const aviso = '<p class="nota">Orientações educativas para pais e responsáveis. Não substituem acompanhamento pediátrico ou psicológico. Seus registros ficam só neste aparelho.</p>';
+  const aviso = '<p class="nota">Orientações educativas para pais e responsáveis. Não substituem acompanhamento pediátrico ou psicológico. Seus registros ficam guardados, com proteção, na sua conta.</p>';
 
   const chip = (act, k, v, label, on) => `<button type="button" class="chip${on ? ' on' : ''}" data-act="${act}" data-k="${k}" data-v="${esc(v)}" aria-pressed="${!!on}">${esc(label)}</button>`;
   const idadeChips = (act, sel) => `<div class="chips">${D.IDADES.map((i) => chip(act, 'idade', i.id, i.rotulo, i.id === sel)).join('')}</div>`;
@@ -215,9 +217,15 @@ window.FamilyPilot = { _on: false, start: function (C, conta) {
     ${ofertaCard()}${meusModulos()}<a class="outros" href="#/modulos">Ver todos os módulos →</a>${aviso}`;
   }
 
+  /** Seus dados (LGPD): onde ficam, baixar tudo, apagar registros, excluir a conta. */
+  function meusDados() {
+    const nuvem = FamilySync.ativo();
+    return `<div class="card"><b>Seus dados</b><p>${nuvem ? 'Seus registros ficam guardados na sua conta, com criptografia, e abrem em qualquer aparelho em que você entrar.' : 'Seus registros estão salvos só neste aparelho no momento.'}</p>
+      <button class="mini" data-act="dados-baixar">Baixar meus dados</button> <button class="mini" data-act="dados-apagar">Apagar meus registros</button> <button class="mini" data-act="dados-excluir">Excluir minha conta</button></div>`;
+  }
   function contaCard() {
     const ate = conta.acesso.livre ? 'acesso total (administrador)' : conta.acesso.ate ? 'acesso até ' + new Date(conta.acesso.ate).toLocaleDateString('pt-BR') : '';
-    return `<div class="card"><b>${esc(conta.usuario.nome)}</b><p>${esc(conta.usuario.email)}${ate ? ' · ' + ate : ''}${conta.visao ? ' · <b>visão de usuário</b>' : ''}</p><button class="mini" data-act="sair">Sair da conta</button> <small><a href="/termos" target="_blank" rel="noopener">Termos</a> · <a href="/privacidade" target="_blank" rel="noopener">Privacidade</a></small></div>${conta.admin ? adminPanel() : ''}`;
+    return `<div class="card"><b>${esc(conta.usuario.nome)}</b><p>${esc(conta.usuario.email)}${ate ? ' · ' + ate : ''}${conta.visao ? ' · <b>visão de usuário</b>' : ''}</p><button class="mini" data-act="sair">Sair da conta</button> <small><a href="/termos" target="_blank" rel="noopener">Termos</a> · <a href="/privacidade" target="_blank" rel="noopener">Privacidade</a></small></div>${meusDados()}${conta.admin ? adminPanel() : ''}`;
   }
 
   /** Só para o administrador: escolhe os módulos para ver o app como um cliente veria. */
@@ -401,6 +409,16 @@ window.FamilyPilot = { _on: false, start: function (C, conta) {
       case 'sair': window.FamilyAuth.sair(); break;
       case 'adm-preset': { const v = el.dataset.v; document.querySelectorAll('.adm-mod').forEach((c) => { c.checked = v === 'todos' || (v === 'birra' && c.value === 'birra'); }); break; }
       case 'adm-ver': window.FamilyAuth.verComo([...document.querySelectorAll('.adm-mod:checked')].map((c) => c.value), $('#adm-oferta').checked); break;
+      case 'dados-baixar': FamilySync.baixar().catch((e) => alert(e.message)); break;
+      case 'dados-apagar': if (confirm('Apagar todos os seus registros (diário, radar e anotações das ferramentas)? Isso não pode ser desfeito.')) FamilySync.apagarRegistros().then(() => { alert('Registros apagados.'); location.reload(); }).catch((e) => alert(e.message)); break;
+      case 'dados-excluir': {
+        if (!confirm('Excluir sua conta? Seus registros e acessos serão apagados e não podem ser recuperados. Só guardamos o que a lei fiscal exige sobre compras já pagas.')) break;
+        const semSenha = !!conta.usuario.semSenha;
+        const v = prompt(semSenha ? 'Para confirmar, digite EXCLUIR' : 'Para confirmar, digite a sua senha');
+        if (!v) break;
+        FamilySync.excluirConta(semSenha ? { confirmar: v } : { senha: v }).then(() => { alert('Conta excluída.'); location.href = '/'; }).catch((e) => alert(e.message));
+        break;
+      }
       case 'adm-sair': window.FamilyAuth.sairVisao(); break;
       case 'comprar': window.FamilyAuth.comprar(CAT.find((m) => m.id === el.dataset.id)); break;
       case 'comprar-oferta': { const m = CAT.find((x) => x.id === OFERTA.modulo); window.FamilyAuth.comprar({ id: m.id, nome: m.nome + ' (oferta de boas-vindas)', preco: OFERTA.preco, oferta: true }); break; }
@@ -412,13 +430,13 @@ window.FamilyPilot = { _on: false, start: function (C, conta) {
         db.radar.push({ id: uid(), quando: q, tags: R.tags.slice() }); salvar();
         R = { tags: [], quando: null }; toast('Salvo no Radar'); reRender(); break;
       }
-      case 'radar-apagar': if (confirm('Apagar este registro?')) { db.radar = db.radar.filter((e) => e.id !== el.dataset.id); salvar(); reRender(); } break;
+      case 'radar-apagar': if (confirm('Apagar este registro?')) { FamilySync.lapide(db, el.dataset.id); db.radar = db.radar.filter((e) => e.id !== el.dataset.id); salvar(); reRender(); } break;
       case 'registrar-plano':
         DRAFT = { quando: agoraLocal(), idade: W.idade, motivo: W.motivo, local: W.local, est: [], res: '', nota: '' };
         location.hash = '#/diario/novo'; break;
       case 'est': syncDraft(); toggle(DRAFT.est, v); reRender(); break;
       case 'res': syncDraft(); DRAFT.res = DRAFT.res === v ? '' : v; reRender(); break;
-      case 'diario-apagar': if (confirm('Apagar este episódio?')) { db.diario = db.diario.filter((e) => e.id !== el.dataset.id); salvar(); reRender(); } break;
+      case 'diario-apagar': if (confirm('Apagar este episódio?')) { FamilySync.lapide(db, el.dataset.id); db.diario = db.diario.filter((e) => e.id !== el.dataset.id); salvar(); reRender(); } break;
       case 'diario-copiar': copiar(db.diario.slice().sort((a, b) => b.quando.localeCompare(a.quando)).map((e) => {
         const m = byId(D.MOTIVOS, e.motivo), l = byId(D.LOCAIS, e.local), r = byId(D.RESULTADOS, e.res);
         return `${fmtData(e.quando)} — ${m ? m.nome : ''} (${l ? l.nome : ''}). Fiz: ${e.est.map((s) => byId(D.ESTRATEGIAS, s).nome).join(', ') || '—'}. Resultado: ${r ? r.nome : '—'}.${e.nota ? ' ' + e.nota : ''}`;
