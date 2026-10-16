@@ -53,6 +53,7 @@ window.FamilyPilot = { _on: false, start: function (C, conta) {
   /* ---------- telas ---------- */
   const views = {
     admin() { return conta.admin ? window.FPAdmin.view() : views.home(); },
+    ajuda() { return window.FPAjuda.view(); },
     home() {
       if (!D) return homeGeral();
       return `
@@ -231,7 +232,7 @@ window.FamilyPilot = { _on: false, start: function (C, conta) {
   }
   function contaCard() {
     const ate = conta.acesso.livre ? 'acesso total (administrador)' : conta.acesso.ate ? 'acesso até ' + new Date(conta.acesso.ate).toLocaleDateString('pt-BR') : '';
-    return `<div class="card"><b>${esc(conta.usuario.nome)}</b><p>${esc(conta.usuario.email)}${ate ? ' · ' + ate : ''}${conta.visao ? ' · <b>visão de usuário</b>' : ''}</p><button class="mini" data-act="sair">Sair da conta</button> <small><a href="/termos" target="_blank" rel="noopener">Termos</a> · <a href="/privacidade" target="_blank" rel="noopener">Privacidade</a></small></div>${meusDados()}${conta.admin ? adminPanel() : ''}`;
+    return `<div class="card"><b>${esc(conta.usuario.nome)}</b><p>${esc(conta.usuario.email)}${ate ? ' · ' + ate : ''}${conta.visao ? ' · <b>visão de usuário</b>' : ''}</p><button class="mini" data-act="sair">Sair da conta</button> <a class="mini" href="#/ajuda" style="text-decoration:none;display:inline-block">Compras e ajuda</a> <small><a href="/termos" target="_blank" rel="noopener">Termos</a> · <a href="/privacidade" target="_blank" rel="noopener">Privacidade</a></small></div>${meusDados()}${conta.admin ? adminPanel() : ''}`;
   }
 
   /** Só para o administrador: escolhe os módulos para ver o app como um cliente veria. */
@@ -371,13 +372,13 @@ window.FamilyPilot = { _on: false, start: function (C, conta) {
   function toggle(arr, v) { const i = arr.indexOf(v); if (i >= 0) arr.splice(i, 1); else arr.push(v); }
 
   /* ---------- roteador ---------- */
-  const MAPA = { '/': 'home', '/plano': 'plano', '/frase': 'frase', '/pausa': 'pausa', '/radar': 'radar', '/diario': 'diario', '/diario/novo': 'diarioNovo', '/modulos': 'modulos', '/admin': 'admin' };
+  const MAPA = { '/': 'home', '/plano': 'plano', '/frase': 'frase', '/pausa': 'pausa', '/radar': 'radar', '/diario': 'diario', '/diario/novo': 'diarioNovo', '/modulos': 'modulos', '/admin': 'admin', '/ajuda': 'ajuda' };
   function rotaAtual() { return (location.hash || '#/').replace(/^#/, '') || '/'; }
   function render() {
     pausaParar();
     const r = rotaAtual();
     // sem o SOS Birra na conta, as telas dele não existem: volta para o início
-    if (!D && r !== '/' && r !== '/modulos' && r !== '/admin' && !r.startsWith('/m/')) { location.hash = '#/'; return; }
+    if (!D && r !== '/' && r !== '/modulos' && r !== '/admin' && r !== '/ajuda' && !r.startsWith('/m/')) { location.hash = '#/'; return; }
     $('#app').innerHTML = htmlDaRota(r);
     const selo = document.querySelector('.selo'), cm = r.startsWith('/m/') && CAT.find((x) => x.id === r.split('/')[2]);
     if (selo) selo.textContent = cm ? cm.nome : D ? 'SOS Birra' : 'FamilyPilot';
@@ -475,6 +476,7 @@ window.FamilyPilot = { _on: false, start: function (C, conta) {
 
   /* ---------- início ---------- */
   window.FPAdmin.init({ esc, reRender });
+  window.FPAjuda.init({ esc, reRender, email: conta.usuario.email });
   window.FPModulo.init({ esc, toast, copiar, reRender, aviso, email: conta.usuario.email }, C.modulos);
   $('#tabs').hidden = false;
   $('#tabs').innerHTML = nav.map(([h, t, i]) => `<a href="${h}"><span aria-hidden="true">${i}</span>${t}</a>`).join('');

@@ -70,6 +70,9 @@ Diário, radar e ferramentas dos módulos ficam na conta (tabela `dados`, migra�
 - Ao sair da conta, a cópia dos registros é retirada do aparelho (se houver algo sem enviar, o app avisa antes).
 - Texto jurídico atualizado em `app/privacidade.html` e `app/termos.html` (versão 2026-10-16, `VERSAO_TERMOS`): revisar com advogado, em especial o consentimento do responsável sobre dados de crianças (art. 14).
 
+### Compras e ajuda (cliente)
+Em Módulos → "Compras e ajuda" (`#/ajuda`, `app/js/ajuda.js`; `GET /api/pedidos`): histórico das compras da própria conta, "Continuar o pagamento" para cobrança pendente (vale 3 dias; depois gera outra) e "Já paguei" (confere na Asaas). Traz garantia, reembolso e o botão de suporte por e-mail (`contato@familypilot.com.br`, com o e-mail da conta no texto).
+
 ### Painel de clientes e pedidos (administrador)
 Em Módulos → "Clientes e pedidos" (`#/admin`, `app/js/admin.js`; rotas `GET /api/admin/resumo|clientes|pedidos` em `worker/routes/admin.ts`): resumo de contas e faturamento, lista de clientes (busca por nome/e-mail, módulos ativos, total pago) e pedidos por status.
 Só leitura e só para super usuário (os outros recebem 404). **Não mostra CPF/CNPJ nem registros das famílias**; o teste e2e garante isso.

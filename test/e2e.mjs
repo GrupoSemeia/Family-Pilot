@@ -420,6 +420,24 @@ try {
     assert.equal((await c('GET', '/api/auth/eu')).d.pacote.preco, 9900, 'com o pacote ativo, renovar custa o preço cheio')
   }
 
+  // Compras e ajuda: histórico da própria conta, continuar pagamento pendente, cobrança vencida gera outra
+  {
+    assert.equal((await cliente()('GET', '/api/pedidos')).status, 401, 'pedidos exigem login')
+    const d = cliente()
+    await d('POST', '/api/auth/cadastro', { nome: 'Dani', email: `dani${S}@teste.com`, senha: 'senha-forte-1', aceite: true })
+    assert.deepEqual((await d('GET', '/api/pedidos')).d.pedidos, [], 'conta nova sem compras')
+    const url1 = (await d('POST', '/api/pagamento', { cpfCnpj: '52998224725', modulo: 'sono' })).d.url
+    let lista = (await d('GET', '/api/pedidos')).d.pedidos
+    assert.equal(lista.length, 1); assert.deepEqual([lista[0].nome, lista[0].valor, lista[0].status, lista[0].url], ['SOS Sono', 3700, 'pendente', url1], 'pedido pendente pode ser continuado')
+    execFileSync('npx', ['wrangler', 'd1', 'execute', 'family-pilot', '--local', '--command', `UPDATE pedidos SET criado_em=datetime('now','-4 days') WHERE usuario_id=(SELECT id FROM usuarios WHERE email='dani${S}@teste.com')`], { stdio: 'ignore' })
+    lista = (await d('GET', '/api/pedidos')).d.pedidos; assert.equal(lista[0].url, null, 'pendente vencido não oferece continuar')
+    const url2 = (await d('POST', '/api/pagamento', { cpfCnpj: '52998224725', modulo: 'sono' })).d.url
+    assert.notEqual(url2, url1, 'cobrança vencida gera uma nova')
+    assert.equal((await d('GET', '/api/pedidos')).d.pedidos.length, 2)
+    assert.equal((await a('GET', '/api/pedidos')).d.pedidos.every(p => p.nome), true)
+    assert.ok(!(await a('GET', '/api/pedidos')).d.pedidos.some(p => JSON.stringify(p).includes('dani')), 'cada conta vê só as próprias compras')
+  }
+
   // logout
   await rec('POST', '/api/auth/sair', {}); assert.equal((await rec('GET', '/api/conteudo')).status, 401)
   console.log('OK: todos os testes passaram'); fim(0)

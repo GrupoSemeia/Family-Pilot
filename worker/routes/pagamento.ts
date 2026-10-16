@@ -45,6 +45,16 @@ export async function conceder(env: Env, pedido: { id: string; usuario_id: strin
   return (r.meta.changes ?? 0) > 0
 }
 
+/** Compras da própria conta (a lista de "Compras e ajuda"). "aberto" = cobrança pendente ainda dentro do prazo de 3 dias: dá para continuar o pagamento pelo mesmo link. */
+export const pedidos = new Hono<App>()
+pedidos.use('*', exigirLogin)
+pedidos.get('/', async c => {
+  const { results } = await c.env.DB.prepare(
+    `SELECT modulo, valor, status, forma, criado_em, pago_em, acesso_ate, url, criado_em > datetime('now','-3 days') AS recente FROM pedidos WHERE usuario_id=? ORDER BY criado_em DESC LIMIT 50`)
+    .bind(c.get('sessao').usuarioId).all<any>()
+  return c.json({ pedidos: results.map(p => ({ modulo: p.modulo, nome: CATALOGO[p.modulo]?.nome ?? p.modulo, valor: p.valor, status: p.status, forma: p.forma, criadoEm: p.criado_em, pagoEm: p.pago_em, acessoAte: p.acesso_ate, url: p.status === 'pendente' && p.recente && p.url ? p.url : null })) })
+})
+
 export const pagamento = new Hono<App>()
 pagamento.use('*', exigirLogin)
 // No modo "ver como usuário" o administrador só olha: nada de cobrança de verdade.
@@ -73,7 +83,7 @@ pagamento.post('/', async c => {
   if (!c.env.ASAAS_API_KEY) throw erro(503, 'O pagamento online ainda não foi ativado. Fale com o Grupo Semeia Digital.')
 
   // já existe cobrança em aberto e ainda válida? reaproveita
-  const aberto = await db.prepare(`SELECT id, url FROM pedidos WHERE usuario_id=? AND modulo=? AND valor=? AND status='pendente' AND url IS NOT NULL ORDER BY criado_em DESC LIMIT 1`).bind(s.usuarioId, modulo, valor).first<any>()
+  const aberto = await db.prepare(`SELECT id, url FROM pedidos WHERE usuario_id=? AND modulo=? AND valor=? AND status='pendente' AND url IS NOT NULL AND criado_em > datetime('now','-3 days') ORDER BY criado_em DESC LIMIT 1`).bind(s.usuarioId, modulo, valor).first<any>()
   if (aberto) return c.json({ url: aberto.url })
 
   const u = await db.prepare('SELECT nome, email, asaas_cliente FROM usuarios WHERE id=?').bind(s.usuarioId).first<any>()

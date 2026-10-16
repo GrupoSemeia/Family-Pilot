@@ -158,6 +158,7 @@
         <button class="btn claro" id="ja-paguei">Já paguei. Liberar meu acesso</button>`
         : '<div class="alerta">O pagamento online ainda não está ativo. Fale com o Grupo Semeia Digital para liberar seu acesso.</div>'}
       <p class="nota">Garantia incondicional de 7 dias: se não gostar, peça o reembolso integral dentro desse prazo.</p>
+      <p class="nota">Problema com o pagamento? Escreva para <a href="mailto:contato@familypilot.com.br">contato@familypilot.com.br</a>.</p>
       ${dentro ? '<button class="voltar" id="sair" style="margin-top:10px">← Voltar ao app</button>' : `<button class="voltar" id="sair" style="margin-top:10px">Sair da conta (${esc(me.usuario.email)})</button>`}`);
     $('#sair').onclick = dentro ? () => location.reload() : sair;
     if (!me.pagamentoOnline) return;

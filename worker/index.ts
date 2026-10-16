@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
 import { type App, ErroApp, exigirLogin, exigirAcesso, lerSessao, acessoDaSessao, visaoValida, precosDe, precosCheios, ofertaDe, ofertaSimulada, precoPacote, MODULOS_IDS, PACOTE } from './lib'
 import { auth } from './routes/auth'
-import { pagamento, asaasWebhook } from './routes/pagamento'
+import { pagamento, pedidos, asaasWebhook } from './routes/pagamento'
 import { admin } from './routes/admin'
 import { dados } from './routes/dados'
 import { CONTEUDO } from './conteudo'
@@ -33,6 +33,7 @@ app.use('/api/*', async (c, next) => {
 
 app.route('/api/auth', auth)
 app.route('/api/pagamento', pagamento)
+app.route('/api/pedidos', pedidos)
 app.route('/api/admin', admin)
 app.route('/api/dados', dados)
 app.route('/api/asaas/webhook', asaasWebhook)
