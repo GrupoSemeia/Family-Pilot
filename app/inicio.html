@@ -172,6 +172,16 @@ footer b{color:#fff}
 }
 @media(prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
 </style>
+<style>
+/* aviso de cookies (Pixel da Meta só depois do aceite) */
+#aviso-cookies{position:fixed;left:12px;right:12px;bottom:12px;z-index:60;background:#fff;color:#1f2540;border:1px solid #f3ddd3;border-radius:16px;box-shadow:0 8px 28px rgba(31,42,74,.22);padding:14px 16px;max-width:560px;margin:0 auto;font-size:.92rem;line-height:1.45}
+#aviso-cookies[hidden]{display:none}
+#aviso-cookies p{margin:0 0 10px}
+#aviso-cookies .linha{display:flex;gap:8px;flex-wrap:wrap}
+#aviso-cookies button{font:700 .9rem Inter,system-ui,sans-serif;border-radius:999px;padding:11px 18px;cursor:pointer;border:2px solid #1f2a4a;background:#fff;color:#1f2a4a}
+#aviso-cookies button.sim{background:#1f2a4a;color:#fff}
+body.com-aviso .sticky{bottom:96px}
+</style>
 </head>
 <body>
 
@@ -439,10 +449,16 @@ footer b{color:#fff}
 <footer>
   <div class="wrap">
     <p><b>SOS Birra</b> | Um módulo FamilyPilot</p>
-    <p style="margin-top:.6rem"><a href="/termos" style="color:#fff">Termos de Uso</a> · <a href="/privacidade" style="color:#fff">Política de Privacidade</a> · Semeia Digital Consultoria em TI LTDA · CNPJ 69.290.380/0001-42</p>
+    <p style="margin-top:.6rem"><a href="/termos" style="color:#fff">Termos de Uso</a> · <a href="/privacidade" style="color:#fff">Política de Privacidade</a> · <a href="#" id="abrir-cookies" style="color:#fff">Preferências de cookies</a> · Semeia Digital Consultoria em TI LTDA · CNPJ 69.290.380/0001-42</p>
     <p style="margin-top:.6rem"><em>Orientações educativas para pais e responsáveis. Não substitui acompanhamento pediátrico ou psicológico.</em></p>
   </div>
 </footer>
+
+
+<div id="aviso-cookies" role="dialog" aria-labelledby="ck-t" hidden>
+  <p id="ck-t"><b>Cookies de anúncios.</b> Com a sua permissão, usamos o Pixel da Meta (Facebook e Instagram) nesta página de vendas para medir nossos anúncios. Não usamos esse pixel dentro do aplicativo. <a href="/privacidade#cookies">Saiba mais</a></p>
+  <div class="linha"><button type="button" class="sim" id="ck-sim">Aceitar</button><button type="button" id="ck-nao">Recusar</button></div>
+</div>
 
 <!-- barra fixa no celular -->
 <div class="sticky" id="sticky" aria-hidden="true">
@@ -463,6 +479,26 @@ document.querySelectorAll("a.cta-pacote").forEach(function (a) { a.href = "/entr
     var visivel = e[0].isIntersecting, acima = e[0].boundingClientRect.top < 0;
     bar.classList.toggle("show", !visivel && acima);
   }).observe(alvo);
+})();
+
+// Pixel da Meta: só carrega depois que o visitante aceitar (LGPD). A escolha fica neste aparelho; o rodapé permite mudar.
+(function () {
+  var CHAVE = "fp_cookies_anuncios", ID = "2185385712085277";
+  function ler() { try { return localStorage.getItem(CHAVE); } catch (e) { return null; } }
+  function gravar(v) { try { localStorage.setItem(CHAVE, v); } catch (e) { /* sem armazenamento */ } }
+  function carregaPixel() {
+    if (window.fbq) return;
+    !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
+    window.fbq("init", ID); window.fbq("track", "PageView");
+  }
+  var aviso = document.getElementById("aviso-cookies");
+  function mostra(on) { aviso.hidden = !on; document.body.classList.toggle("com-aviso", on); }
+  function escolher(v) { gravar(v); mostra(false); if (v === "sim") carregaPixel(); else if (window.fbq) { location.reload(); } }
+  document.getElementById("ck-sim").onclick = function () { escolher("sim"); };
+  document.getElementById("ck-nao").onclick = function () { escolher("nao"); };
+  var abrir = document.getElementById("abrir-cookies"); if (abrir) abrir.onclick = function (e) { e.preventDefault(); mostra(true); };
+  var atual = ler();
+  if (atual === "sim") carregaPixel(); else if (atual !== "nao") mostra(true);
 })();
 </script>
 </body>

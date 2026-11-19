@@ -93,6 +93,9 @@ Só leitura e só para super usuário (os outros recebem 404). **Não mostra CPF
 Quem está em `ACESSO_LIVRE` (com e-mail confirmado) vê, na aba **Módulos**, o painel "Ver como usuário": escolhe quais módulos simular, se quer ver a oferta de boas-vindas, e o app passa a se comportar como para um cliente (catálogo, cadeados, tela de pagamento).
 A escolha fica só na sessão atual (`sessoes.ver_como`, migração 0007); uma faixa no topo traz o botão "Voltar à minha visão". Nesse modo os pagamentos ficam bloqueados (409). Rotas em `worker/routes/admin.ts`; quem não é super usuário recebe 404.
 
+## Pixel da Meta (anúncios)
+O Pixel (ID `2185385712085277`) está só na página de vendas (`app/inicio.html`) e **só carrega depois que o visitante clica em "Aceitar"** no aviso de cookies (a escolha fica em `localStorage`, chave `fp_cookies_anuncios`; o rodapé tem "Preferências de cookies"). Não há `noscript` do pixel (rastrearia sem consentimento) e **não há pixel dentro do aplicativo** (`/entrar`, app logado). A Política de Privacidade (versão 2026-11-19) cita a Meta como fornecedor, o consentimento e os cookies. Eventos de conversão (cadastro, compra) não estão ligados; se ligar, envie só o evento, sem e-mail, nome, CPF nem dados de filhos.
+
 ## Termos de Uso e Política de Privacidade
 Páginas públicas `/termos` e `/privacidade` (`app/termos.html` e `app/privacidade.html`), com a empresa **Semeia Digital Consultoria em TI LTDA, CNPJ 69.290.380/0001-42**,
 contato `contato@familypilot.com.br`, foro de Curitiba/PR e garantia de 7 dias corridos. São um rascunho: peça a revisão de um advogado antes de divulgar.

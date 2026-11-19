@@ -249,7 +249,7 @@ try {
   pg = await cliente().pagina('/privacidade'); assert.equal(pg.status, 200)
   assert.match(pg.texto, /Semeia Digital Consultoria em TI LTDA/); assert.match(pg.texto, /LGPD/); assert.match(pg.texto, /contato@familypilot\.com\.br/)
   const aceite = JSON.parse(execFileSync('npx', ['wrangler', 'd1', 'execute', 'family-pilot', '--local', '--json', '--command', `SELECT aceite_versao, aceite_em FROM usuarios WHERE email='${quem}'`]).toString())[0].results[0]
-  assert.equal(aceite.aceite_versao, '2026-10-16', 'o aceite fica registrado com a versão'); assert.ok(aceite.aceite_em)
+  assert.equal(aceite.aceite_versao, '2026-11-19', 'o aceite fica registrado com a versão'); assert.ok(aceite.aceite_em)
 
   // endereço sem "www" redireciona para o principal (regra isolada em worker/dominio.ts)
   const { redirecionarSemWww } = await import('../worker/dominio.ts')
@@ -496,6 +496,20 @@ try {
     // isolamento: a compra da Eva não aparece nem libera nada para outra conta
     const out = cliente(); await out('POST', '/api/auth/cadastro', { nome: 'Outra', email: `outra${S}@teste.com`, senha: 'senha-forte-1', aceite: true })
     assert.equal((await out('GET', '/api/conteudo')).status, 402); assert.deepEqual((await out('GET', '/api/pedidos')).d.pedidos, [])
+  }
+
+  // Pixel da Meta: só na página de vendas, só depois do aceite; nunca no aplicativo
+  {
+    const venda = (await cliente().pagina('/')).texto
+    assert.ok(venda.includes('2185385712085277') && venda.includes('id="aviso-cookies"') && venda.includes('fp_cookies_anuncios'), 'a landing tem o aviso de cookies e o Pixel')
+    assert.ok(!/<script[^>]+src=["']https:\/\/connect\.facebook\.net/i.test(venda), 'o Pixel não é carregado por tag fixa (só depois do aceite)')
+    assert.ok(!/<noscript>[\s\S]{0,200}facebook\.com\/tr/i.test(venda), 'sem noscript que rastreia sem consentimento')
+    assert.ok(/Preferências de cookies/.test(venda), 'o rodapé permite mudar a escolha')
+    const app = (await cliente().pagina('/entrar')).texto
+    assert.ok(!/facebook|fbq|fbevents/i.test(app), 'dentro do aplicativo não há Pixel')
+    const pol = (await cliente().pagina('/privacidade')).texto
+    assert.ok(/Pixel da Meta/.test(pol) && /Meta Platforms/.test(pol) && /só se você aceitar/.test(pol), 'a política explica o Pixel e o consentimento')
+    assert.ok(!/Não usamos cookies de publicidade ou de rastreamento/.test(pol), 'a política não afirma mais o contrário')
   }
 
   // logout
