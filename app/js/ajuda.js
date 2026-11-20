@@ -11,7 +11,7 @@
   async function carregar() {
     S.erro = '';
     try { const r = await fetch('/api/pedidos', { credentials: 'same-origin' }); const d = await r.json().catch(() => ({})); if (!r.ok) throw new Error(d.erro || 'Não foi possível carregar suas compras.'); S.dados = d.pedidos; }
-    catch (e) { S.erro = e.message; S.dados = S.dados || []; }
+    catch (e) { S.erro = e.message; S.dados = S.dados || []; FPAviso.erro(e.message); }
     X.reRender();
   }
   function pedido(p) {
@@ -34,7 +34,8 @@
       <div class="card"><b>Garantia e reembolso</b><p>Você tem 7 dias corridos, a partir da compra, para pedir o reembolso integral. Escreva para ${CONTATO} com o e-mail da sua conta e o módulo comprado.</p></div>
       <div class="card"><b>Meus registros e privacidade</b><p>Em <a href="#/modulos">Módulos</a> → "Seus dados" você baixa, apaga ou exclui tudo. Veja também os <a href="/termos" target="_blank" rel="noopener">Termos</a> e a <a href="/privacidade" target="_blank" rel="noopener">Política de Privacidade</a>.</p></div>
       <a class="btn" href="${mail}">Falar com o suporte</a>
-      <p class="nota">Respondemos por e-mail, em até 1 dia útil. Endereço: ${CONTATO}</p>`;
+      <p class="nota centro">Respondemos por e-mail, em até 1 dia útil. Endereço: ${CONTATO}</p>
+      <p class="nota centro">Semeia Digital Consultoria em TI LTDA · CNPJ 69.290.380/0001-42 · <a href="https://www.gruposemeiadigital.com.br" target="_blank" rel="noopener">www.gruposemeiadigital.com.br</a></p>`;
   }
   document.addEventListener('click', async (ev) => {
     const el = ev.target.closest('[data-aj]');
@@ -44,9 +45,10 @@
       try {
         const r = await window.FamilyAuth.api('POST', '/api/pagamento/verificar');
         const ativos = Object.values((r.acesso && r.acesso.modulos) || {}).filter((m) => m.ativo).length;
-        S.aviso = 'Conferimos seus pagamentos. ' + (ativos ? 'Seu acesso está liberado.' : 'Ainda não recebemos a confirmação.');
-        S.dados = null; if (ativos) setTimeout(() => location.reload(), 1200);
-      } catch (e) { S.aviso = e.message; }
+        S.dados = null;
+        if (ativos) { await FPAviso.ok('Seu acesso está liberado.', { titulo: 'Pagamento confirmado' }); location.reload(); return; }
+        FPAviso.info('Ainda não recebemos a confirmação do pagamento. Pix costuma levar segundos e boleto 1 a 2 dias úteis.', { titulo: 'Conferimos seus pagamentos' });
+      } catch (e) { FPAviso.erro(e.message); }
       X.reRender();
     }
   });

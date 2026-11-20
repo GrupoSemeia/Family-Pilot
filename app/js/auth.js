@@ -4,7 +4,10 @@
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const CK = 'familypilot.cache';
   const brl = (c) => (c / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-  let modo = /criar=1/.test(location.search) ? 'criar' : 'entrar';
+  // Neste aparelho já houve login? Então o link de cadastro da landing (?criar=1) abre em "Entrar": quem volta não precisa procurar.
+  const JA = 'familypilot.ja_entrou';
+  const jaEntrou = () => { try { return localStorage.getItem(JA) === '1'; } catch (e) { return false; } };
+  let modo = /criar=1/.test(location.search) && !jaEntrou() ? 'criar' : 'entrar';
   let me = null;
   let atual = null; // módulo em compra (tela de pagamento)
 
@@ -27,8 +30,14 @@
     const lista = v.modulos.length ? v.modulos.map((m) => NOMES[m] || m).join(', ') : 'nenhum módulo';
     $('#faixa-txt').textContent = 'Visão de usuário: ' + lista + (v.oferta ? ' + oferta de boas-vindas' : '');
   }
+  /** Rodapé de confiança: quem vende, CNPJ e site. */
+  const rodapeEmpresa = () => `<p class="nota centro">Um produto <b>Grupo Semeia Digital</b>. Orientações educativas para pais e responsáveis.<br>Semeia Digital Consultoria em TI LTDA · CNPJ 69.290.380/0001-42<br><a href="https://www.gruposemeiadigital.com.br" target="_blank" rel="noopener">www.gruposemeiadigital.com.br</a></p>`;
   const tela = (html) => { sairVisivel(!!(me && me.usuario)); faixa(); $('#tabs').hidden = true; $('#app').innerHTML = html; $('#app').focus({ preventScroll: true }); window.scrollTo(0, 0); };
-  const msg = (t, ok) => { const e = $('#msg'); if (e) { e.textContent = t || ''; e.className = 'msg' + (ok ? ' ok' : ''); } };
+  /** Mensagens do formulário viram janela (popup), para a pessoa não deixar de ver. Texto vazio só limpa. */
+  const msg = (t, ok, titulo) => { const e = $('#msg'); if (e) { e.textContent = ''; e.className = 'msg'; } if (t) (ok ? FPAviso.ok : FPAviso.erro)(t, titulo ? { titulo } : undefined); };
+  const avisoAceite = () => FPAviso.aviso('Para criar a conta, marque que leu e aceita os Termos de Uso e a Política de Privacidade.', { titulo: 'Falta aceitar os termos', aoFechar: () => {
+    const c = $('#aceite'); if (!c) return; c.focus(); const l = c.closest('.aceite'); if (l) { l.classList.remove('destaque'); void l.offsetWidth; l.classList.add('destaque'); }
+  } });
   const ocupado = (btn, on, txt) => { btn.disabled = on; if (txt) btn.textContent = txt; };
 
   /* ---------- telas ---------- */
@@ -46,8 +55,8 @@
       </form>
       ${criar ? '' : '<button class="voltar" id="esqueci" style="margin-top:14px">Esqueci minha senha</button><br>'}
       <div id="g-area" hidden><p class="ou">ou</p><div id="g-btn"></div>${criar ? '' : '<p class="nota" style="text-align:center">Se for o seu primeiro acesso com o Google, você concorda com os <a href="/termos" target="_blank" rel="noopener">Termos de Uso</a> e a <a href="/privacidade" target="_blank" rel="noopener">Política de Privacidade</a>.</p>'}</div>
-      <button class="voltar" id="troca" style="margin-top:6px">${criar ? 'Já tenho conta. Entrar' : 'Ainda não tenho conta. Criar agora'}</button>
-      <p class="nota">Um produto Grupo Semeia Digital. Orientações educativas para pais e responsáveis.</p>`);
+      <button type="button" class="btn claro" id="troca" style="margin-top:14px">${criar ? 'Já tenho conta · Entrar' : 'Ainda não tenho conta · Criar agora'}</button>
+      ${rodapeEmpresa()}`);
     $('#troca').onclick = () => { modo = criar ? 'entrar' : 'criar'; telaEntrar(); };
     if (!criar) $('#esqueci').onclick = telaEsqueci;
     botaoGoogle(criar);
@@ -58,7 +67,7 @@
       try {
         const corpo = { email: $('#a-email').value, senha: $('#a-senha').value };
         if (criar) {
-          if (!$('#aceite').checked) { msg('Para criar a conta, marque que leu e aceita os Termos e a Política de Privacidade.'); return ocupado(btn, false, t); }
+          if (!$('#aceite').checked) { avisoAceite(); return ocupado(btn, false, t); }
           corpo.nome = $('#a-nome').value; corpo.aceite = true;
         }
         me = await api('POST', criar ? '/api/auth/cadastro' : '/api/auth/entrar', corpo);
@@ -84,7 +93,7 @@
       client_id: me.googleClientId, auto_select: false,
       callback: async (resp) => {
         msg('');
-        if (criar && !$('#aceite').checked) return msg('Para criar a conta, marque que leu e aceita os Termos e a Política de Privacidade.');
+        if (criar && !$('#aceite').checked) return avisoAceite();
         try { me = await api('POST', '/api/auth/google', { credential: resp.credential, aceite: true }); seguir(); }
         catch (e) { msg(e.message); }
       },
@@ -128,7 +137,7 @@
     $('#f-nova').onsubmit = async (ev) => {
       ev.preventDefault();
       const s1 = $('#n-senha').value;
-      if (s1 !== $('#n-senha2').value) return msg('As duas senhas precisam ser iguais.');
+      if (s1 !== $('#n-senha2').value) return msg('As duas senhas precisam ser iguais.', false, 'Senhas diferentes');
       const btn = ev.target.querySelector('button[type=submit]'), t = btn.textContent;
       ocupado(btn, true, 'Salvando…'); msg('');
       try { me = await api('POST', '/api/auth/nova-senha', { token, senha: s1 }); seguir(); }
@@ -158,7 +167,8 @@
         <button class="btn claro" id="ja-paguei">Já paguei. Liberar meu acesso</button>`
         : '<div class="alerta">O pagamento online ainda não está ativo. Fale com o Grupo Semeia Digital para liberar seu acesso.</div>'}
       <p class="nota">Garantia incondicional de 7 dias: se não gostar, peça o reembolso integral dentro desse prazo.</p>
-      <p class="nota">Problema com o pagamento? Escreva para <a href="mailto:contato@familypilot.com.br">contato@familypilot.com.br</a>.</p>
+      <p class="nota centro">Problema com o pagamento? Escreva para <a href="mailto:contato@familypilot.com.br">contato@familypilot.com.br</a>.</p>
+      ${rodapeEmpresa()}
       ${dentro ? '<button class="voltar" id="sair" style="margin-top:10px">← Voltar ao app</button>' : `<button class="voltar" id="sair" style="margin-top:10px">Sair da conta (${esc(me.usuario.email)})</button>`}`);
     $('#sair').onclick = dentro ? () => location.reload() : sair;
     if (!me.pagamentoOnline) return;
@@ -184,7 +194,7 @@
         if (window.FamilyPilot && window.FamilyPilot._on) return location.reload();   // recarrega com o módulo novo
         return seguir();
       }
-      msg('Ainda não recebemos a confirmação. Pix costuma levar poucos segundos; boleto pode levar 1 a 2 dias úteis.');
+      FPAviso.info('Pix costuma levar poucos segundos; boleto pode levar 1 a 2 dias úteis. Se já pagou, tente de novo em instantes.', { titulo: 'Ainda não recebemos a confirmação' });
     } catch (e) { msg(e.message); }
     if (btn) ocupado(btn, false, 'Já paguei. Liberar meu acesso');
   }
@@ -192,6 +202,7 @@
   /* ---------- fluxo ---------- */
   async function seguir() {
     if (!me.usuario) return telaEntrar();
+    try { localStorage.setItem(JA, '1'); } catch (e) { /* sem armazenamento */ }
     // veio da landing pelo botão do Pacote Família: vai direto para o pagamento do pacote
     if (/[?&]comprar=pacote/.test(location.search) && me.precos && me.precos.pacote) {
       const todos = Object.values((me.acesso && me.acesso.modulos) || {});
@@ -224,11 +235,11 @@
   }
 
   async function sair() {
-    if (!(await FamilySync.antesDeSair()) && !confirm('Alguns registros ainda não foram enviados para a sua conta (sem internet). Se sair agora, eles ficam só neste aparelho e podem ser perdidos. Sair mesmo assim?')) return;
+    if (!(await FamilySync.antesDeSair()) && !(await FPAviso.confirmar('Alguns registros ainda não foram enviados para a sua conta (sem internet). Se sair agora, eles ficam só neste aparelho e podem ser perdidos.', { titulo: 'Sair mesmo assim?', ok: 'Sair mesmo assim', cancelar: 'Ficar no app', perigo: true }))) return;
     try { await api('POST', '/api/auth/sair', {}); }
     catch (e) {
       // sem internet não dá para encerrar a sessão no servidor: avisa em vez de fingir que saiu
-      if (!e.status) return alert('Sem conexão com a internet. Conecte-se para sair da conta.');
+      if (!e.status) return FPAviso.aviso('Conecte-se à internet para sair da conta.', { titulo: 'Sem conexão' });
     }
     guardar(null); location.href = location.pathname;
   }
@@ -247,11 +258,11 @@
   // Administrador: escolher a visão de usuário e voltar à própria visão
   async function verComo(modulos, oferta) {
     try { await api('POST', '/api/admin/visao', { modulos, oferta: !!oferta }); location.reload(); }
-    catch (e) { alert(e.message); }
+    catch (e) { FPAviso.erro(e.message); }
   }
   async function sairVisao() {
     try { await api('POST', '/api/admin/visao', { modulos: null }); location.reload(); }
-    catch (e) { alert(e.message); }
+    catch (e) { FPAviso.erro(e.message); }
   }
   $('#faixa-sair').onclick = sairVisao;
   window.FamilyAuth = { api, sair, verComo, sairVisao, comprar: (item) => { if (item) telaAssinar({ id: item.id, nome: item.nome, preco: item.preco, precoCheio: item.precoCheio, desconto: item.desconto || 0, oferta: !!item.oferta }); } };

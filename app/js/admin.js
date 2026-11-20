@@ -12,7 +12,7 @@
     const q = S.aba === 'resumo' ? '/api/admin/resumo' : S.aba === 'clientes' ? '/api/admin/clientes?pagina=' + S.pagina + '&busca=' + encodeURIComponent(S.busca) : '/api/admin/pedidos?pagina=' + S.pagina + '&status=' + S.status;
     S.carregando = true; S.erro = ''; X.reRender();
     try { const r = await fetch(q, { credentials: 'same-origin' }); const d = await r.json().catch(() => ({})); if (!r.ok) throw new Error(d.erro || 'Não foi possível carregar.'); S.dados[S.aba] = d; }
-    catch (e) { S.erro = e.message; }
+    catch (e) { S.erro = e.message; FPAviso.erro(e.message); }
     S.carregando = false; X.reRender();
   }
 
