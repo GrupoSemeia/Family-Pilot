@@ -4,6 +4,7 @@ import {
   precosDe, ofertaDe, precoPacote, DIAS_ACESSO, MODULO_BASE, PRODUTOS_IDS, PACOTE,
 } from '../lib'
 import { CATALOGO } from '../modulos'
+import { idsMeta, enviarCompraMeta } from '../meta'
 
 /* ---------- Pagamento pela Asaas (pagamento único de R$ 47) ----------
    O usuário informa CPF/CNPJ → criamos cliente + cobrança (billingType UNDEFINED: Pix, boleto ou cartão na página da
@@ -42,7 +43,9 @@ export async function conceder(env: Env, pedido: { id: string; usuario_id: strin
   const r = await env.DB.prepare(
     `UPDATE pedidos SET status='pago', pago_em=?, acesso_ate=?, forma=COALESCE(?, forma) WHERE id=? AND status IN ('pendente','cancelado')`)
     .bind(agora, ate, forma ?? null, pedido.id).run()
-  return (r.meta.changes ?? 0) > 0
+  const liberou = (r.meta.changes ?? 0) > 0
+  if (liberou) await enviarCompraMeta(env, pedido.id)   // medição de anúncios; só com consentimento e nunca atrapalha o pagamento
+  return liberou
 }
 
 /** Compras da própria conta (a lista de "Compras e ajuda"). "aberto" = cobrança pendente ainda dentro do prazo de 3 dias: dá para continuar o pagamento pelo mesmo link. */
@@ -68,6 +71,7 @@ pagamento.post('/', async c => {
   const s = c.get('sessao'), db = c.env.DB
   const b = await c.req.json<any>().catch(() => ({}))
   const doc = digitos(b.cpfCnpj)
+  const ads = idsMeta(c.req.header('cookie'))   // cookies do Pixel (só existem se a pessoa aceitou o aviso na página de vendas)
   const modulo = String(b.modulo ?? MODULO_BASE)
   if (!PRODUTOS_IDS.includes(modulo)) throw erro(400, 'Módulo inválido.')
   let valor = precosDe(c.env)[modulo]
@@ -84,7 +88,10 @@ pagamento.post('/', async c => {
 
   // já existe cobrança em aberto e ainda válida? reaproveita
   const aberto = await db.prepare(`SELECT id, url FROM pedidos WHERE usuario_id=? AND modulo=? AND valor=? AND status='pendente' AND url IS NOT NULL AND criado_em > datetime('now','-3 days') ORDER BY criado_em DESC LIMIT 1`).bind(s.usuarioId, modulo, valor).first<any>()
-  if (aberto) return c.json({ url: aberto.url })
+  if (aberto) {
+    if (ads.fbp || ads.fbc) await db.prepare('UPDATE pedidos SET fbp=COALESCE(?,fbp), fbc=COALESCE(?,fbc) WHERE id=?').bind(ads.fbp, ads.fbc, aberto.id).run()
+    return c.json({ url: aberto.url })
+  }
 
   // Duplo clique: reserva o pedido ANTES de falar com a Asaas. Só uma requisição consegue reservar (a outra espera e devolve o mesmo link),
   // para não gerar duas cobranças e a pessoa pagar duas vezes. Uma reserva sem cobrança por mais de 2 minutos é considerada abandonada.
@@ -113,7 +120,7 @@ pagamento.post('/', async c => {
     customer: cliente, billingType: 'UNDEFINED', value: valor / 100, dueDate: dataBR(3),
     description: `FamilyPilot · ${CATALOGO[modulo].nome} (acesso por 12 meses)`, externalReference: pedidoId,
   }))
-  await db.prepare('UPDATE pedidos SET asaas_pagamento=?, url=? WHERE id=?').bind(String(p.id), String(p.invoiceUrl ?? ''), pedidoId).run()
+  await db.prepare('UPDATE pedidos SET asaas_pagamento=?, url=?, fbp=?, fbc=? WHERE id=?').bind(String(p.id), String(p.invoiceUrl ?? ''), ads.fbp, ads.fbc, pedidoId).run()
   return c.json({ url: p.invoiceUrl ?? null })
   } catch (e) {
     await db.prepare('DELETE FROM pedidos WHERE id=? AND asaas_pagamento IS NULL').bind(pedidoId).run()   // a Asaas falhou: libera a reserva para tentar de novo

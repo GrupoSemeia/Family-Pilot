@@ -48,10 +48,11 @@ O endereço sem `www` (`familypilot.com.br`) também é atendido pelo Worker e r
 ## Publicar na Cloudflare (uma vez)
     npm install
     # banco "family-pilot" já criado (id em wrangler.jsonc)
-    npm run db:remote                            # migrações novas (0001 a 0009 já estão aplicadas no banco criado)
+    npm run db:remote                            # migrações novas (0001 a 0009 já estão aplicadas no banco criado; a 0010 é nova)
     npx wrangler secret put ASAAS_API_KEY        # chave da Asaas (teste: $aact_hmlg_… usa o sandbox sozinha)
     npx wrangler secret put ASAAS_WEBHOOK_TOKEN  # texto secreto qualquer; o mesmo vai na Asaas
     npx wrangler secret put DADOS_CHAVE          # chave que cifra os registros dos pais (veja "Registros na nuvem")
+    npx wrangler secret put META_CAPI_TOKEN      # token da API de Conversões (veja "Medição de anúncios")
     npm run deploy
 
 Na Asaas (Integrações → Webhooks): URL `https://www.familypilot.com.br/api/asaas/webhook`, o mesmo token no campo de
@@ -140,3 +141,15 @@ Para ativar:
 - Cadastrar no cliente OAuth do Google a origem `https://www.familypilot.com.br`.
 - Revisão do conteúdo de todos os módulos por psicólogo ou pediatra antes do lançamento.
 - Revisão jurídica dos Termos de Uso e da Política de Privacidade.
+
+## Medição de anúncios (Pixel + API de Conversões da Meta)
+- **Pixel** (navegador): só na página de vendas (`app/inicio.html`) e só depois que o visitante aceita o aviso de cookies. Registra o `PageView`.
+- **Compra** (`Purchase`): enviada **pelo servidor** (`worker/meta.ts`) no momento em que o pagamento é confirmado, seja pelo webhook da Asaas ou pelo botão "Já paguei".
+  Não depende de a pessoa voltar para uma página de obrigado (quem paga por Pix e fecha a janela também conta).
+- **Consentimento:** ao criar a cobrança, guardamos os cookies `_fbp`/`_fbc` do navegador (que só existem se a pessoa aceitou o aviso). Sem eles, **nada é enviado à Meta**.
+  O que sai: valor, moeda BRL, módulo, e-mail em hash SHA-256 e esses dois identificadores. Nunca registros dos pais ou dados dos filhos.
+- **Ativar:** em Gerenciador de Eventos → o Pixel → Configurações → API de Conversões → *Gerar token de acesso*; depois `npx wrangler secret put META_CAPI_TOKEN`
+  e `npm run db:remote` (migração 0010) e `npm run deploy`. O ID do Pixel já está em `META_PIXEL_ID` (`wrangler.jsonc`). Sem o token, nada é enviado e o resto do app funciona igual.
+- **Testar sem contar como venda:** na aba *Eventos de teste* do Pixel copie o código (ex.: `TEST12345`), rode `npx wrangler secret put META_TEST_EVENT_CODE`, faça uma compra de teste
+  e veja o `Purchase` aparecer na aba. Depois **apague** o segredo (`npx wrangler secret delete META_TEST_EVENT_CODE`), senão as vendas reais seguiriam como teste.
+- Eventos que a Meta recusa aparecem no log do Worker como `Meta CAPI recusou o evento`.
