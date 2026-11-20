@@ -75,6 +75,8 @@ Diário, radar e ferramentas dos módulos ficam na conta (tabela `dados`, migra�
 O atalho (Android e iPhone) se chama **FamilyPilot** e usa o ícone do coração. `app/manifest.webmanifest` (nome e `short_name` "FamilyPilot"; ícones PNG 192 e 512 `any` e 512 `maskable`) e, para o iPhone, `apple-touch-icon` 180×180 sem transparência (o iOS ignora SVG) e `apple-mobile-web-app-title`. Os PNGs ficam em `app/icons/` e foram gerados do `app/icon.svg` (o `maskable` com o coração dentro da zona segura; o do iPhone sem cantos arredondados, porque o iOS arredonda sozinho). As marcas estão no app, na página de vendas, nos Termos e na Privacidade. Se mudar o logo, refaça os PNGs.
 
 ### Entrar / Criar conta
+A tela de entrada e de cadastro chama-se "FamilyPilot" e lista os 7 módulos (não só o SOS Birra); o selo do módulo no topo só aparece dentro do app.
+
 O botão de trocar de tela é secundário (com borda): "Já tenho conta · Entrar" no cadastro e "Ainda não tenho conta · Criar agora" no login. Em aparelho onde já houve login (`familypilot.ja_entrou`, gravado no aparelho), o link de cadastro da landing (`?criar=1`) abre em "Entrar"; sem login anterior, abre no cadastro.
 
 ### Avisos em janela

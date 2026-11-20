@@ -32,7 +32,10 @@
   }
   /** Rodapé de confiança: quem vende, CNPJ e site. */
   const rodapeEmpresa = () => `<p class="nota centro">Um produto <b>Grupo Semeia Digital</b>. Orientações educativas para pais e responsáveis.<br>Semeia Digital Consultoria em TI LTDA · CNPJ 69.290.380/0001-42<br><a href="https://www.gruposemeiadigital.com.br" target="_blank" rel="noopener">www.gruposemeiadigital.com.br</a></p>`;
-  const tela = (html) => { sairVisivel(!!(me && me.usuario)); faixa(); $('#tabs').hidden = true; $('#app').innerHTML = html; $('#app').focus({ preventScroll: true }); window.scrollTo(0, 0); };
+  /** Os 7 módulos do FamilyPilot, mostrados na entrada para a tela não parecer só do SOS Birra. */
+  const MODULOS_LINHA = [['🧩', 'SOS Birra'], ['🌙', 'SOS Sono'], ['📱', 'SOS Telas'], ['🍽️', 'SOS Alimentação'], ['❤️', 'SOS Limites'], ['🎒', 'SOS Escola'], ['🌱', 'SOS Adolescência']];
+  const modulosLinha = () => `<div class="mods-linha" aria-label="Módulos do FamilyPilot">${MODULOS_LINHA.map(([i, n]) => `<span><span aria-hidden="true">${i}</span> ${n}</span>`).join('')}</div>`;
+  const tela = (html) => { sairVisivel(!!(me && me.usuario)); faixa(); const sl = document.querySelector('.selo'); if (sl) sl.hidden = true; $('#tabs').hidden = true; $('#app').innerHTML = html; $('#app').focus({ preventScroll: true }); window.scrollTo(0, 0); };
   /** Mensagens do formulário viram janela (popup), para a pessoa não deixar de ver. Texto vazio só limpa. */
   const msg = (t, ok, titulo) => { const e = $('#msg'); if (e) { e.textContent = ''; e.className = 'msg'; } if (t) (ok ? FPAviso.ok : FPAviso.erro)(t, titulo ? { titulo } : undefined); };
   const avisoAceite = () => FPAviso.aviso('Para criar a conta, marque que leu e aceita os Termos de Uso e a Política de Privacidade.', { titulo: 'Falta aceitar os termos', aoFechar: () => {
@@ -43,8 +46,8 @@
   /* ---------- telas ---------- */
   function telaEntrar() {
     const criar = modo === 'criar';
-    tela(`<section class="hero-app"><p class="eyebrow">FamilyPilot · SOS Birra</p><h1>${criar ? 'Crie sua conta' : 'Entrar'}</h1>
-      <p>${criar ? 'Em seguida você escolhe como pagar.' : 'Use o e-mail e a senha da sua conta.'}</p></section>
+    tela(`<section class="hero-app"><p class="eyebrow">FamilyPilot</p><h1>${criar ? 'Crie sua conta' : 'Entrar'}</h1>
+      <p>${criar ? 'Em seguida você escolhe como pagar.' : 'Use o e-mail e a senha da sua conta.'}</p>${modulosLinha()}</section>
       <form id="f-auth" class="form" novalidate>
         ${criar ? '<label class="campo">Seu nome<input id="a-nome" autocomplete="name" maxlength="80" required></label>' : ''}
         <label class="campo">E-mail<input id="a-email" type="email" inputmode="email" autocomplete="email" maxlength="160" required></label>

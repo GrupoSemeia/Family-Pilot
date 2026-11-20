@@ -599,6 +599,14 @@ try {
     assert.ok(/<title>FamilyPilot<\/title>/.test((await cliente().pagina('/entrar')).texto), 'título do app sem "SOS Birra"')
   }
 
+  // tela de entrada: FamilyPilot com os 7 módulos (não só o SOS Birra) e sem selo fixo no topo
+  {
+    const js = (await cliente().pagina('/js/auth.js')).texto
+    for (const n of ['SOS Birra', 'SOS Sono', 'SOS Telas', 'SOS Alimentação', 'SOS Limites', 'SOS Escola', 'SOS Adolescência']) assert.ok(js.includes(`'${n}'`), `a tela de entrada cita ${n}`)
+    assert.ok(!js.includes('FamilyPilot · SOS Birra'), 'o título da entrada não é mais só SOS Birra')
+    assert.ok(/<span class="selo" hidden>/.test((await cliente().pagina('/entrar')).texto), 'o selo do topo só aparece dentro do app')
+  }
+
   // logout
   await rec('POST', '/api/auth/sair', {}); assert.equal((await rec('GET', '/api/conteudo')).status, 401)
   console.log('OK: todos os testes passaram'); fim(0)

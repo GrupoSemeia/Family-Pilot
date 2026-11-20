@@ -414,7 +414,7 @@ window.FamilyPilot = { _on: false, start: function (C, conta) {
     if (!D && r !== '/' && r !== '/modulos' && r !== '/admin' && r !== '/ajuda' && r !== '/comecar' && !r.startsWith('/m/')) { location.hash = '#/'; return; }
     $('#app').innerHTML = htmlDaRota(r);
     const selo = document.querySelector('.selo'), cm = r.startsWith('/m/') && CAT.find((x) => x.id === r.split('/')[2]);
-    if (selo) selo.textContent = cm ? cm.nome : D ? 'SOS Birra' : 'FamilyPilot';
+    if (selo) { selo.textContent = cm ? cm.nome : D ? 'SOS Birra' : 'FamilyPilot'; selo.hidden = false; }
     document.querySelectorAll('.tabs a').forEach((a) => a.classList.toggle('on', a.getAttribute('href') === '#' + (r === '/' ? '/' : r.startsWith('/diario') ? '/diario' : r.startsWith('/m/') ? '/modulos' : r)));
     window.scrollTo(0, 0);
     $('#app').focus({ preventScroll: true });
