@@ -4,7 +4,10 @@
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const CK = 'familypilot.cache';
   const brl = (c) => (c / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-  let modo = /criar=1/.test(location.search) ? 'criar' : 'entrar';
+  // Neste aparelho já houve login? Então o link de cadastro da landing (?criar=1) abre em "Entrar": quem volta não precisa procurar.
+  const JA = 'familypilot.ja_entrou';
+  const jaEntrou = () => { try { return localStorage.getItem(JA) === '1'; } catch (e) { return false; } };
+  let modo = /criar=1/.test(location.search) && !jaEntrou() ? 'criar' : 'entrar';
   let me = null;
   let atual = null; // módulo em compra (tela de pagamento)
 
@@ -50,7 +53,7 @@
       </form>
       ${criar ? '' : '<button class="voltar" id="esqueci" style="margin-top:14px">Esqueci minha senha</button><br>'}
       <div id="g-area" hidden><p class="ou">ou</p><div id="g-btn"></div>${criar ? '' : '<p class="nota" style="text-align:center">Se for o seu primeiro acesso com o Google, você concorda com os <a href="/termos" target="_blank" rel="noopener">Termos de Uso</a> e a <a href="/privacidade" target="_blank" rel="noopener">Política de Privacidade</a>.</p>'}</div>
-      <button class="voltar" id="troca" style="margin-top:6px">${criar ? 'Já tenho conta. Entrar' : 'Ainda não tenho conta. Criar agora'}</button>
+      <button type="button" class="btn claro" id="troca" style="margin-top:14px">${criar ? 'Já tenho conta · Entrar' : 'Ainda não tenho conta · Criar agora'}</button>
       <p class="nota">Um produto Grupo Semeia Digital. Orientações educativas para pais e responsáveis.</p>`);
     $('#troca').onclick = () => { modo = criar ? 'entrar' : 'criar'; telaEntrar(); };
     if (!criar) $('#esqueci').onclick = telaEsqueci;
@@ -196,6 +199,7 @@
   /* ---------- fluxo ---------- */
   async function seguir() {
     if (!me.usuario) return telaEntrar();
+    try { localStorage.setItem(JA, '1'); } catch (e) { /* sem armazenamento */ }
     // veio da landing pelo botão do Pacote Família: vai direto para o pagamento do pacote
     if (/[?&]comprar=pacote/.test(location.search) && me.precos && me.precos.pacote) {
       const todos = Object.values((me.acesso && me.acesso.modulos) || {});

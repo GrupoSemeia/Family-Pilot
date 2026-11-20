@@ -70,6 +70,9 @@ Diário, radar e ferramentas dos módulos ficam na conta (tabela `dados`, migra�
 - Ao sair da conta, a cópia dos registros é retirada do aparelho (se houver algo sem enviar, o app avisa antes).
 - Texto jurídico atualizado em `app/privacidade.html` e `app/termos.html` (versão 2026-10-16, `VERSAO_TERMOS`): revisar com advogado, em especial o consentimento do responsável sobre dados de crianças (art. 14).
 
+### Entrar / Criar conta
+O botão de trocar de tela é secundário (com borda): "Já tenho conta · Entrar" no cadastro e "Ainda não tenho conta · Criar agora" no login. Em aparelho onde já houve login (`familypilot.ja_entrou`, gravado no aparelho), o link de cadastro da landing (`?criar=1`) abre em "Entrar"; sem login anterior, abre no cadastro.
+
 ### Avisos em janela
 Erros, avisos, confirmações e perguntas do app aparecem em janela (`app/js/aviso.js`, `FPAviso.erro/aviso/ok/info/confirmar/perguntar`), uma de cada vez, com foco preso na janela, Esc e Enter. O app não usa `alert()`, `confirm()` nem `prompt()` do navegador (o teste e2e confere). Confirmações rápidas ("Copiado!", "Registro salvo", "Desfazer") continuam como aviso curto no rodapé. Nos formulários dos diários, a janela lista o que falta e os avisos junto de cada campo continuam. Sem marcar os Termos no cadastro, a janela aparece e a caixa ganha foco e destaque.
 
