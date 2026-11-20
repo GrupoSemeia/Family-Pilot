@@ -530,6 +530,23 @@ try {
     }
   }
 
+  // atalho no celular: nome FamilyPilot e ícone do coração (Android e iPhone)
+  {
+    const man = await (await fetch(BASE + '/manifest.webmanifest')).json()
+    assert.deepEqual([man.name, man.short_name], ['FamilyPilot', 'FamilyPilot'], 'nome do atalho')
+    const png = async (url) => { const r = await fetch(BASE + url); const b = Buffer.from(await r.arrayBuffer()); return { status: r.status, tipo: r.headers.get('content-type'), assinatura: b.subarray(1, 4).toString(), larg: b.readUInt32BE(16), alt: b.readUInt32BE(20), cor: b[25] } }
+    const maior = man.icons.filter(i => i.type === 'image/png')
+    assert.ok(maior.some(i => i.sizes === '192x192' && i.purpose === 'any') && maior.some(i => i.sizes === '512x512' && i.purpose === 'any') && maior.some(i => i.sizes === '512x512' && i.purpose === 'maskable'), 'ícones 192, 512 e maskable no manifesto')
+    for (const i of maior) { const n = parseInt(i.sizes); const f = await png(i.src); assert.deepEqual([f.status, f.assinatura, f.larg, f.alt], [200, 'PNG', n, n], 'ícone ' + i.src); assert.match(f.tipo || '', /image\/png/) }
+    const maskable = await png('/icons/icon-maskable-512.png'); assert.equal(maskable.cor, 2, 'o ícone maskable não tem transparência')
+    const apple = await png('/icons/apple-touch-icon.png'); assert.deepEqual([apple.status, apple.larg, apple.alt, apple.cor], [200, 180, 180, 2], 'ícone do iPhone: 180x180 sem transparência')
+    for (const url of ['/entrar', '/', '/termos', '/privacidade']) {
+      const h = (await cliente().pagina(url)).texto
+      assert.ok(/rel="apple-touch-icon" href="\/icons\/apple-touch-icon\.png"/.test(h) && /apple-mobile-web-app-title" content="FamilyPilot"/.test(h) && /rel="manifest" href="\/manifest\.webmanifest"/.test(h), `${url}: nome e ícone para o atalho no iPhone e no Android`)
+    }
+    assert.ok(/<title>FamilyPilot<\/title>/.test((await cliente().pagina('/entrar')).texto), 'título do app sem "SOS Birra"')
+  }
+
   // logout
   await rec('POST', '/api/auth/sair', {}); assert.equal((await rec('GET', '/api/conteudo')).status, 401)
   console.log('OK: todos os testes passaram'); fim(0)

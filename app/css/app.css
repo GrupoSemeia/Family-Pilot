@@ -207,3 +207,5 @@ body.modal-aberto{overflow:hidden}
 /* destaque da caixa de aceite quando falta marcar */
 .aceite.destaque{outline:3px solid #b3213f;outline-offset:4px;border-radius:10px;animation:aviso-pulso .6s ease-in-out 3}
 @keyframes aviso-pulso{50%{outline-color:transparent}}
+
+.centro{text-align:center}

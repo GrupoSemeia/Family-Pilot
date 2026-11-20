@@ -1,12 +1,37 @@
 {
-  "name": "FamilyPilot — SOS Birra",
-  "short_name": "SOS Birra",
-  "description": "Orientações práticas para lidar com birras, por idade.",
+  "name": "FamilyPilot",
+  "short_name": "FamilyPilot",
+  "description": "Orientações práticas para pais e responsáveis, por idade.",
   "lang": "pt-BR",
   "start_url": "/entrar",
   "scope": "/",
   "display": "standalone",
   "background_color": "#fff8f4",
   "theme_color": "#fff8f4",
-  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
 }

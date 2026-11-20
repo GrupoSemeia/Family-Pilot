@@ -31,7 +31,7 @@
     $('#faixa-txt').textContent = 'Visão de usuário: ' + lista + (v.oferta ? ' + oferta de boas-vindas' : '');
   }
   /** Rodapé de confiança: quem vende, CNPJ e site. */
-  const rodapeEmpresa = () => `<p class="nota">Um produto <b>Grupo Semeia Digital</b>. Orientações educativas para pais e responsáveis.<br>Semeia Digital Consultoria em TI LTDA · CNPJ 69.290.380/0001-42<br><a href="https://www.gruposemeiadigital.com.br" target="_blank" rel="noopener">www.gruposemeiadigital.com.br</a></p>`;
+  const rodapeEmpresa = () => `<p class="nota centro">Um produto <b>Grupo Semeia Digital</b>. Orientações educativas para pais e responsáveis.<br>Semeia Digital Consultoria em TI LTDA · CNPJ 69.290.380/0001-42<br><a href="https://www.gruposemeiadigital.com.br" target="_blank" rel="noopener">www.gruposemeiadigital.com.br</a></p>`;
   const tela = (html) => { sairVisivel(!!(me && me.usuario)); faixa(); $('#tabs').hidden = true; $('#app').innerHTML = html; $('#app').focus({ preventScroll: true }); window.scrollTo(0, 0); };
   /** Mensagens do formulário viram janela (popup), para a pessoa não deixar de ver. Texto vazio só limpa. */
   const msg = (t, ok, titulo) => { const e = $('#msg'); if (e) { e.textContent = ''; e.className = 'msg'; } if (t) (ok ? FPAviso.ok : FPAviso.erro)(t, titulo ? { titulo } : undefined); };
@@ -167,7 +167,7 @@
         <button class="btn claro" id="ja-paguei">Já paguei. Liberar meu acesso</button>`
         : '<div class="alerta">O pagamento online ainda não está ativo. Fale com o Grupo Semeia Digital para liberar seu acesso.</div>'}
       <p class="nota">Garantia incondicional de 7 dias: se não gostar, peça o reembolso integral dentro desse prazo.</p>
-      <p class="nota">Problema com o pagamento? Escreva para <a href="mailto:contato@familypilot.com.br">contato@familypilot.com.br</a>.</p>
+      <p class="nota centro">Problema com o pagamento? Escreva para <a href="mailto:contato@familypilot.com.br">contato@familypilot.com.br</a>.</p>
       ${rodapeEmpresa()}
       ${dentro ? '<button class="voltar" id="sair" style="margin-top:10px">← Voltar ao app</button>' : `<button class="voltar" id="sair" style="margin-top:10px">Sair da conta (${esc(me.usuario.email)})</button>`}`);
     $('#sair').onclick = dentro ? () => location.reload() : sair;

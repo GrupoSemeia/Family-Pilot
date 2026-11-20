@@ -70,6 +70,9 @@ Diário, radar e ferramentas dos módulos ficam na conta (tabela `dados`, migra�
 - Ao sair da conta, a cópia dos registros é retirada do aparelho (se houver algo sem enviar, o app avisa antes).
 - Texto jurídico atualizado em `app/privacidade.html` e `app/termos.html` (versão 2026-10-16, `VERSAO_TERMOS`): revisar com advogado, em especial o consentimento do responsável sobre dados de crianças (art. 14).
 
+### Atalho no celular (nome e ícone)
+O atalho (Android e iPhone) se chama **FamilyPilot** e usa o ícone do coração. `app/manifest.webmanifest` (nome e `short_name` "FamilyPilot"; ícones PNG 192 e 512 `any` e 512 `maskable`) e, para o iPhone, `apple-touch-icon` 180×180 sem transparência (o iOS ignora SVG) e `apple-mobile-web-app-title`. Os PNGs ficam em `app/icons/` e foram gerados do `app/icon.svg` (o `maskable` com o coração dentro da zona segura; o do iPhone sem cantos arredondados, porque o iOS arredonda sozinho). As marcas estão no app, na página de vendas, nos Termos e na Privacidade. Se mudar o logo, refaça os PNGs.
+
 ### Entrar / Criar conta
 O botão de trocar de tela é secundário (com borda): "Já tenho conta · Entrar" no cadastro e "Ainda não tenho conta · Criar agora" no login. Em aparelho onde já houve login (`familypilot.ja_entrou`, gravado no aparelho), o link de cadastro da landing (`?criar=1`) abre em "Entrar"; sem login anterior, abre no cadastro.
 
