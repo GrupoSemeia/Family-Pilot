@@ -15,6 +15,7 @@ html,body{margin:0;background:#000;overflow:hidden}
  <clipPath id="janela"><rect x="188" y="520" width="704" height="1074" rx="44"/></clipPath>
  <linearGradient id="fundoFim" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff8f4"/><stop offset="1" stop-color="#ffe3dc"/></linearGradient>
  <linearGradient id="botao" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ee3b64"/><stop offset="1" stop-color="#ff6f5e"/></linearGradient>
+ <radialGradient id="vinheta" cx=".5" cy=".5" r=".75"><stop offset=".55" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".38"/></radialGradient>
  <radialGradient id="brilho"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
 </defs>
 <g id="cena"></g></svg>
@@ -193,7 +194,7 @@ function destaque(nome, chave, t, a, b, rotulo, margem) {
 }
 function cenaApp(t) {
   const entra = easeOut(seg(t, 6.85, 7.35));
-  let s = `<rect width="1080" height="1920" fill="url(#fundoFim)"/><circle cx="960" cy="360" r="260" fill="#ffd9e1" opacity=".55"/><circle cx="100" cy="1500" r="300" fill="#e3defa" opacity=".6"/>`;
+  let s = FOTOS ? fundoFoto('mae-celular', .62) : `<rect width="1080" height="1920" fill="url(#fundoFim)"/><circle cx="960" cy="360" r="260" fill="#ffd9e1" opacity=".55"/><circle cx="100" cy="1500" r="300" fill="#e3defa" opacity=".6"/>`;
   s += `<g transform="translate(540 1057) scale(${.9 + .1 * entra}) translate(-540 -1057)" opacity="${entra}"><rect x="${WX - 18}" y="${WY - 18}" width="${WW + 36}" height="${WH + 36}" rx="62" fill="${PAL.marinho}" filter="url(#sombra)"/><g clip-path="url(#janela)"><rect x="${WX}" y="${WY}" width="${WW}" height="${WH}" fill="#fff8f4"/>`;
   const slideH = (de, para, p) => tela(de, -ease(p) * WW, 0, 1) + tela(para, (1 - ease(p)) * WW, 0, 1);
   const scroll = (de, para, p) => { const q = ease(p); return tela(de, 0, -q * 120, 1 - q) + tela(para, 0, (1 - q) * 120, q); };
@@ -243,7 +244,7 @@ function cena5(u) {
 /* ===================== cena 6 (21–25 s): cartão final ===================== */
 function cenaFim(u) {
   const p = (a, b) => easeOut(seg(u, a, b));
-  let s = `<rect width="1080" height="1920" fill="url(#fundoFim)"/><circle cx="930" cy="330" r="300" fill="#ffd9e1" opacity=".6"/><circle cx="120" cy="1560" r="330" fill="#e3defa" opacity=".6"/><circle cx="900" cy="1500" r="150" fill="#cdeee6" opacity=".7"/>`;
+  let s = FOTOS ? fundoFoto('sofa', .8) : `<rect width="1080" height="1920" fill="url(#fundoFim)"/><circle cx="930" cy="330" r="300" fill="#ffd9e1" opacity=".6"/><circle cx="120" cy="1560" r="330" fill="#e3defa" opacity=".6"/><circle cx="900" cy="1500" r="150" fill="#cdeee6" opacity=".7"/>`;
   s += `<g transform="translate(540 700) scale(${.7 + .3 * mola(seg(u, .0, .6))})" opacity="${seg(u, 0, .3)}"><g filter="url(#sombra)"><rect x="-130" y="-130" width="260" height="260" rx="62" fill="${PAL.rosa}"/></g><circle cx="-48" cy="-48" r="26" fill="${PAL.roxo}"/><circle cx="56" cy="-62" r="20" fill="${PAL.verde}"/><path d="M0 98 L-82 16 C-106 -10 -88 -48 -56 -48 C-34 -48 -14 -30 0 -8 C14 -30 34 -48 56 -48 C88 -48 106 -10 82 16 Z" fill="#fff"/></g>`;
   s += `<text x="540" y="930" text-anchor="middle" font-size="96" font-weight="900" fill="${PAL.marinho}" font-family="Inter Display, Inter, sans-serif" opacity="${p(.3, .8)}" letter-spacing="-2">FamilyPilot</text>`;
   s += `<g transform="translate(540 1030)" opacity="${p(.5, 1)}"><rect x="-190" y="-48" width="380" height="96" rx="48" fill="${PAL.rosa}"/><text x="0" y="22" text-anchor="middle" font-size="58" font-weight="900" fill="#fff" font-family="Inter Display, Inter, sans-serif">SOS Birra</text></g>`;
@@ -256,8 +257,36 @@ function cenaFim(u) {
   s += `<text x="540" y="1745" text-anchor="middle" font-size="40" font-weight="700" fill="${PAL.marinho}" opacity="${.75 * p(2, 2.6)}" font-family="Inter Display, Inter, sans-serif">www.familypilot.com.br</text>`;
   return s;
 }
+/* ===================== versão com fotos (estilo=fotos) ===================== */
+const FOTOS = new URLSearchParams(location.search).get('estilo') === 'fotos';
+const FOTO = (n) => `../quadros/fotos/${n}-2x.jpg`;
+/** Foto em tela cheia com movimento de câmera: aproxima em torno do ponto (fx,fy) de z0 a z1. Devolve o SVG e a função que leva um ponto da foto para a tela. */
+function kb(nome, fx, fy, z0, z1, p, dx, dy) {
+  const z = z0 + (z1 - z0) * ease(clamp(p)), ox = fx + (dx || 0), oy = fy + (dy || 0);
+  return { z, svg: `<g transform="translate(${ox} ${oy}) scale(${z}) translate(${-fx} ${-fy})"><image href="${FOTO(nome)}" x="0" y="0" width="1080" height="1920" preserveAspectRatio="none"/></g><rect width="1080" height="1920" fill="url(#vinheta)"/>`, ponto: (px, py) => [ox + z * (px - fx), oy + z * (py - fy)] };
+}
+function cena1f(t) {
+  const k = kb('choro', 780, 960, 1.02, 1.24, t / 4, Math.sin(t * 9) * 2.4, Math.cos(t * 7) * 2.4);
+  return k.svg;
+}
+function cena2f(u) {
+  const respira = Math.sin(u * 2.4) * .012 + (u > .9 && u < 1.7 ? .016 * seg(u, .9, 1.7) : 0);
+  const k = kb('mae-celular', 560, 800, 1.0 + respira, 1.34 + respira, u / 3, Math.sin(u * 5) * 1.5, 0);
+  let s = k.svg;
+  // o ícone do FamilyPilot "brota" do celular e leva ao app
+  const q = seg(u, 1.6, 2.2);
+  if (q > 0) { const [x, y] = k.ponto(600, 930); const sc = mola(q); s += `<g transform="translate(${x + 40} ${y - 190}) scale(${sc})"><circle r="${86 + Math.sin(u * 8) * 6}" fill="url(#brilho)" opacity=".8"/><g filter="url(#sombra)"><rect x="-78" y="-78" width="156" height="156" rx="38" fill="${PAL.rosa}"/></g><circle cx="-28" cy="-28" r="15" fill="${PAL.roxo}"/><circle cx="32" cy="-36" r="12" fill="${PAL.verde}"/><path d="M0 56 L-48 8 C-62 -8 -50 -30 -32 -30 C-20 -30 -9 -18 0 -4 C9 -18 20 -30 32 -30 C50 -30 62 -8 48 8 Z" fill="#fff"/></g>`; }
+  return s;
+}
+function cena5f(u) {
+  const k = kb('mercado-acolhendo', 570, 820, 1.0, 1.2, u / 3, Math.sin(u * 4) * 1.2, 0);
+  let s = k.svg;
+  if (u > 1.2) for (let i = 0; i < 4; i++) { const p = seg(u, 1.2 + i * .22, 2.6 + i * .22), [x, y] = k.ponto(560 + i * 70, 600); s += coracao(x + Math.sin(p * 6 + i) * 22, y - p * 380, 1.7 - i * .15, i % 2 ? PAL.rosa : PAL.verde, Math.sin(p * Math.PI) * .95); }
+  return s;
+}
+const fundoFoto = (nome, veu) => `<image href="${FOTO(nome)}" x="0" y="0" width="1080" height="1920" preserveAspectRatio="none" filter="url(#blur)" transform="translate(540 960) scale(1.12) translate(-540 -960)"/><rect width="1080" height="1920" fill="#fff8f4" opacity="${veu}"/>`;
 /* ===================== montagem ===================== */
-const CENAS = [[0, 4, (t) => cena1(t)], [4, 7, (t) => cena2(t - 4)], [7, 18, (t) => cenaApp(t)], [18, 21, (t) => cena5(t - 18)], [21, 25, (t) => cenaFim(t - 21)]];
+const CENAS = [[0, 4, (t) => FOTOS ? cena1f(t) : cena1(t)], [4, 7, (t) => FOTOS ? cena2f(t - 4) : cena2(t - 4)], [7, 18, (t) => cenaApp(t)], [18, 21, (t) => FOTOS ? cena5f(t - 18) : cena5(t - 18)], [21, 25, (t) => cenaFim(t - 21)]];
 function render(t) {
   let s = '';
   CENAS.forEach(([a, b, f], i) => {
@@ -268,6 +297,8 @@ function render(t) {
   document.getElementById('cena').innerHTML = s;
   const leg = document.getElementById('leg');
   const l = LEGENDAS.find(([a, b]) => t >= a && t <= b);
+  // nas cenas com foto a legenda desce, para não cobrir o rosto de ninguém
+  leg.style.top = (FOTOS && (t < 7 || (t >= 18 && t < 21.5)) ? 1290 : 262) + 'px';
   if (l) { leg.innerHTML = l[2]; const a = l[0], b = l[1]; leg.style.opacity = Math.min(seg(t, a, a + .25), 1 - seg(t, b - .2, b)); leg.style.transform = `translateY(${(1 - easeOut(seg(t, a, a + .3))) * 24}px)`; } else leg.style.opacity = 0;
 }
 window.render = render; render(0);

@@ -11,13 +11,14 @@ const ws = new WebSocket(tabs.find(t => t.type === 'page').webSocketDebuggerUrl)
 let id = 0; const pend = new Map(); ws.onmessage = e => { const m = JSON.parse(e.data); if (m.id && pend.has(m.id)) { pend.get(m.id)(m); pend.delete(m.id) } }
 const send = (method, params = {}) => new Promise(r => { const i = ++id; pend.set(i, r); ws.send(JSON.stringify({ id: i, method, params })) })
 await send('Page.enable'); await send('Emulation.setDeviceMetricsOverride', { width: 1080, height: 1920, deviceScaleFactor: 1, mobile: false })
-await send('Page.navigate', { url: 'file://' + AQUI + 'anuncio.html' }); await sleep(2500)
+const ESTILO = process.env.ESTILO || ''
+await send('Page.navigate', { url: 'file://' + AQUI + 'anuncio.html' + (ESTILO ? '?estilo=' + ESTILO : '') }); await sleep(2500)
 const ev = async ex => { const r = await send('Runtime.evaluate', { expression: ex, awaitPromise: true, returnByValue: true }); if (r.result.exceptionDetails) throw new Error(JSON.stringify(r.result.exceptionDetails.exception && r.result.exceptionDetails.exception.description)); return r.result.result?.value }
 await ev('document.fonts.ready.then(() => 1)')
-const pasta = AQUI + '../quadros/video/'
+const pasta = AQUI + '../quadros/video' + (ESTILO ? '-' + ESTILO : '') + '/'
 if (modo === 'amostra') {
-  fs.mkdirSync(AQUI + '../quadros/amostras/', { recursive: true })
-  for (const t of resto.map(Number)) { await ev('render(' + t + ')'); await sleep(120); fs.writeFileSync(AQUI + '../quadros/amostras/t' + String(t).replace('.', '_') + '.png', Buffer.from((await send('Page.captureScreenshot', { format: 'png' })).result.data, 'base64')) }
+  fs.mkdirSync(AQUI + '../quadros/amostras' + (ESTILO ? '-' + ESTILO : '') + '/', { recursive: true })
+  for (const t of resto.map(Number)) { await ev('render(' + t + ')'); await sleep(120); fs.writeFileSync(AQUI + '../quadros/amostras' + (ESTILO ? '-' + ESTILO : '') + '/t' + String(t).replace('.', '_') + '.png', Buffer.from((await send('Page.captureScreenshot', { format: 'png' })).result.data, 'base64')) }
 } else {
   fs.rmSync(pasta, { recursive: true, force: true }); fs.mkdirSync(pasta, { recursive: true })
   const QPS = 30, N = 25 * QPS

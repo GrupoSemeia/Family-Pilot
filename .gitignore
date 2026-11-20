@@ -8,3 +8,7 @@ anuncio/*.mp4
 anuncio/capa.png
 anuncio/quadros/video/
 anuncio/quadros/amostras/
+anuncio/quadros/fotos/*-2x.jpg
+anuncio/quadros/video-fotos/
+anuncio/quadros/amostras-fotos/
+anuncio/capa-fotos.png
