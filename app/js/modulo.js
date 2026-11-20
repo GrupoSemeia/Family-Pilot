@@ -235,10 +235,10 @@
       return `<label class="campo">${E(c.rotulo)}<input type="${tipo}" data-m="rvin" data-id="${c.id}" value="${E(v)}"${inv} ${c.tipo === 'numero' ? 'min="0" max="1440" inputmode="numeric"' : ''} ${c.tipo === 'texto' ? 'maxlength="300"' : ''}></label>${aviso(c)}`;
     };
     return `<h1>${E(f.nome)}</h1><p class="lead">${E(f.descricao)}</p>
-    <form id="m-form" class="form card" novalidate>${s.editando ? '<p class="msg ok" role="status">Editando um registro. Salve as alterações ou cancele.</p>' : ''}${FPFilhos.todos().length ? `<p class="rotulo">Qual filho? <small>(opcional)</small></p><div class="chips" role="group" aria-label="Qual filho">${FPFilhos.todos().map((x) => chip('rv', 'filho', x.id, x.apelido, s.v.filho === x.id)).join('')}</div>` : ''}${f.campos.map(campo).join('')}<button class="btn" type="submit">${s.editando ? 'Salvar alterações' : 'Salvar registro'}</button>${s.editando ? ' <button class="mini" type="button" data-m="rcancel">Cancelar edição</button>' : ''}</form>
+    <form id="m-form" class="form card" novalidate>${s.editando ? '<p class="msg ok" role="status">Editando um registro. Salve as alterações ou cancele.</p>' : ''}${FPFilhos.todos().length ? `<p class="rotulo">Para qual filho é este registro?</p><div class="chips" role="group" aria-label="Para qual filho é este registro">${FPFilhos.todos().map((x) => chip('rv', 'filho', x.id, x.apelido, s.v.filho === x.id)).join('')}${chip('rv', 'filho', '', 'Sem vincular', !s.v.filho)}</div>` : ''}${f.campos.map(campo).join('')}<button class="btn" type="submit">${s.editando ? 'Salvar alterações' : 'Salvar registro'}</button>${s.editando ? ' <button class="mini" type="button" data-m="rcancel">Cancelar edição</button>' : ''}</form>
     ${resumo.length ? `<div class="card"><b>O que seus registros mostram</b>${lista_(resumo)}<p class="nota">Baseado só no que você anotou. Não é diagnóstico.</p></div>` : ''}
     ${FPFilhos.chipsFiltro(E, 'data-m="filtro"')}
-    ${lista.length ? `<h2 class="sec">Histórico (${lista.length})</h2><ul class="hist">${lista.slice(0, 40).map((r) => `<li><div><b>${fmtDia(r.v.data)}</b>${r.v.filho && FPFilhos.nome(r.v.filho) ? `<small>Filho(a): ${E(FPFilhos.nome(r.v.filho))}</small>` : ''}${f.campos.filter((c) => c.id !== 'data' && r.v[c.id] !== '' && r.v[c.id] != null).map((c) => `<small>${E(c.rotulo)}: ${E(rotuloValor(c, r.v[c.id]))}</small>`).join('')}</div>
+    ${lista.length ? `<h2 class="sec">Histórico (${lista.length})</h2><ul class="hist">${lista.slice(0, 40).map((r) => `<li><div><b>${fmtDia(r.v.data)}</b>${FPFilhos.todos().length ? (r.v.filho && FPFilhos.nome(r.v.filho) ? `<small class="de-quem">Filho(a): <b>${E(FPFilhos.nome(r.v.filho))}</b></small>` : '<small class="de-quem sem">Sem vínculo com um filho</small>') : ''}${f.campos.filter((c) => c.id !== 'data' && r.v[c.id] !== '' && r.v[c.id] != null).map((c) => `<small>${E(c.rotulo)}: ${E(rotuloValor(c, r.v[c.id]))}</small>`).join('')}</div>
       <button class="mini" data-m="redit" data-id="${r.id}" aria-label="Editar registro">Editar</button> <button class="mini perigo" data-m="rdel" data-id="${r.id}" aria-label="Apagar registro">Apagar</button></li>`).join('')}</ul>` : '<p class="vazio">Nenhum registro ainda.</p>'}${X.aviso}`;
   }
   const lista_ = (itens) => lista(itens);
@@ -283,7 +283,7 @@
       case 'sit-voltar': s.step = s.step === 2 ? 1 : 0; break;
       case 'cat': s.cat = el.dataset.v; break;
       case 'mod': s.id = el.dataset.v; break;
-      case 'rv': s.v[el.dataset.k] = s.v[el.dataset.k] === el.dataset.v ? '' : el.dataset.v; if (s.erros) delete s.erros[el.dataset.k]; break;
+      case 'rv': s.v[el.dataset.k] = el.dataset.k === 'filho' ? el.dataset.v : (s.v[el.dataset.k] === el.dataset.v ? '' : el.dataset.v); if (s.erros) delete s.erros[el.dataset.k]; break;
       case 'rdel': {
         // apaga na hora e oferece "Desfazer" por alguns segundos
         const l = regs(m, f), i = l.findIndex((r) => r.id === el.dataset.id); if (i < 0) return;

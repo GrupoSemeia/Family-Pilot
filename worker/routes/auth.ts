@@ -83,7 +83,9 @@ auth.post('/esqueci', async c => {
   const b = await c.req.json<any>().catch(() => ({}))
   const email = limpar(b.email, 160).toLowerCase()
   const neutra = c.json({ ok: true })
-  if (!emailValido(email) || !emailAtivo(c.env)) return neutra
+  // e-mail mal escrito é erro de formato (não revela se a conta existe); só para e-mail bem formado a resposta é sempre a mesma
+  if (!emailValido(email)) throw erro(400, 'Informe um e-mail válido, como nome@exemplo.com.')
+  if (!emailAtivo(c.env)) return neutra
   const db = c.env.DB
   const u = await db.prepare('SELECT id, nome FROM usuarios WHERE email=?').bind(email).first<any>()
   if (!u) return neutra

@@ -209,8 +209,16 @@ window.FamilyPilot = { _on: false, start: function (C, conta) {
     return `<div class="card oferta"><b>🎁 Oferta de boas-vindas</b><p>${esc(m.nome)} por <b>${brl(OFERTA.preco)}</b> <s>${brl(OFERTA.precoNormal)}</s>, só até ${ate}.</p>
       <button class="btn mini-btn" data-act="comprar-oferta">Quero o ${esc(m.nome)}</button></div>`;
   }
+  /** Pacote Família já liberado: mostra até quando vale (e não um link para um "módulo" que não existe). */
+  function pacoteAtivoCard() {
+    const p = CAT.find((m) => m.id === 'pacote');
+    if (!p || p.estado !== 'liberado') return '';
+    const quando = p.ate ? `ativo até <b>${new Date(p.ate).toLocaleDateString('pt-BR')}</b>` : p.livre ? 'acesso total (administrador)' : 'todos os módulos liberados';
+    return `<div class="card pacote-ativo"><b>🎁 Pacote Família</b><p>Seus 7 módulos estão liberados: ${quando}.</p></div>`;
+  }
   function pacoteCard() {
     const p = CAT.find((m) => m.id === 'pacote');
+    if (p && p.estado === 'liberado') return pacoteAtivoCard();
     if (!p || p.estado !== 'a-venda') return '';
     return `<div class="card pacote"><b>🎁 Pacote Família: todos os 7 módulos</b>
       <p>${brl(p.preco)} <small>em vez de ${p.somaSeparados ? brl(p.somaSeparados) : 'comprar um a um'}${p.somaSeparados ? ' se comprados separados' : ''}. Pagamento único, 12 meses de acesso.</small></p>
@@ -219,9 +227,9 @@ window.FamilyPilot = { _on: false, start: function (C, conta) {
   }
 
   function meusModulos() {
-    const ok = CAT.filter((m) => m.estado === 'liberado' && m.id !== 'birra');
+    const ok = CAT.filter((m) => m.estado === 'liberado' && m.id !== 'birra' && m.id !== 'pacote');   // o pacote não é um módulo: tem cartão próprio
     if (!ok.length) return '';
-    return `<h2 class="sec">Seus outros módulos</h2><div class="grid">${ok.map((m) => `<a class="tool" href="#/m/${m.id}"><b>${m.icone} ${esc(m.nome)}</b><span>${esc(m.frase)}</span></a>`).join('')}</div>`;
+    return `${pacoteAtivoCard()}<h2 class="sec">Seus outros módulos</h2><div class="grid">${ok.map((m) => `<a class="tool" href="#/m/${m.id}"><b>${m.icone} ${esc(m.nome)}</b><span>${esc(m.frase)}</span></a>`).join('')}</div>`;
   }
   function homeGeral() {
     return `<section class="hero-app"><p class="eyebrow">FamilyPilot</p><h1>Olá, ${esc(conta.usuario.nome.split(' ')[0])}</h1><p>Escolha por onde começar hoje.</p></section>
@@ -308,8 +316,10 @@ window.FamilyPilot = { _on: false, start: function (C, conta) {
   /* ---------- Radar e Diário: dados ---------- */
   /** Registros do filho em foco (ou todos). */
   const doFoco = (arr) => { const f = FPFilhos.filtro(); return f ? arr.filter((e) => e.filho === f) : arr; };
-  const rotuloFilho = (e) => { const n = e.filho ? FPFilhos.nome(e.filho) : ''; return n ? `<small>Filho(a): ${esc(n)}</small>` : ''; };
-  const escolhaFilho = (atual, acao) => { const t = FPFilhos.todos(); return t.length ? `<p class="rotulo">Qual filho? (opcional)</p><div class="chips">${t.map((f) => chip(acao, 'filho', f.id, f.apelido, atual === f.id)).join('')}</div>` : ''; };
+  // com filhos cadastrados, todo registro mostra de quem é, ou "Sem vínculo"
+  const rotuloFilho = (e) => { if (!FPFilhos.todos().length) return ''; const n = e.filho ? FPFilhos.nome(e.filho) : ''; return n ? `<small class="de-quem">Filho(a): <b>${esc(n)}</b></small>` : '<small class="de-quem sem">Sem vínculo com um filho</small>'; };
+  // uma escolha só (como botões de rádio): um filho ou "Sem vincular"; o escolhido fica bem marcado
+  const escolhaFilho = (atual, acao) => { const t = FPFilhos.todos(); return t.length ? `<p class="rotulo">Para qual filho é este registro?</p><div class="chips" role="group" aria-label="Para qual filho é este registro">${t.map((f) => chip(acao, 'filho', f.id, f.apelido, atual === f.id)).join('')}${chip(acao, 'filho', '', 'Sem vincular', !atual)}</div>` : ''; };
 
   function eventosRadar() {
     const doDiario = doFoco(db.diario).map((e) => {
@@ -494,8 +504,8 @@ window.FamilyPilot = { _on: false, start: function (C, conta) {
       case 'res': syncDraft(); DRAFT.res = DRAFT.res === v ? '' : v; reRender(); break;
       case 'diario-apagar': apagarComDesfazer('diario', el.dataset.id, 'Episódio apagado'); break;
       case 'filtro': FPFilhos.definirFiltro(v); reRender(); break;
-      case 'dfilho': syncDraft(); DRAFT.filho = DRAFT.filho === v ? '' : v; reRender(); break;
-      case 'rfilho': { const q = $('#r-quando'); if (q) R.quando = q.value; const at = R.filho === undefined ? FPFilhos.padrao() : R.filho; R.filho = at === v ? '' : v; reRender(); break; }
+      case 'dfilho': syncDraft(); DRAFT.filho = v; reRender(); break;
+      case 'rfilho': { const q = $('#r-quando'); if (q) R.quando = q.value; const at = R.filho === undefined ? FPFilhos.padrao() : R.filho; R.filho = v; reRender(); break; }
       case 'filho-ren': {
         const n = await FPAviso.perguntar('Use um apelido curto, sem sobrenome.', { titulo: 'Novo apelido', valor: FPFilhos.nome(el.dataset.id), maxlength: FPFilhos.maxLen, ok: 'Salvar' });
         if (n === null) break;

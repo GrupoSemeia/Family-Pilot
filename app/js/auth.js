@@ -38,6 +38,26 @@
   const tela = (html) => { sairVisivel(!!(me && me.usuario)); faixa(); const sl = document.querySelector('.selo'); if (sl) sl.hidden = true; $('#tabs').hidden = true; $('#app').innerHTML = html; $('#app').focus({ preventScroll: true }); window.scrollTo(0, 0); };
   /** Mensagens do formulário viram janela (popup), para a pessoa não deixar de ver. Texto vazio só limpa. */
   const msg = (t, ok, titulo) => { const e = $('#msg'); if (e) { e.textContent = ''; e.className = 'msg'; } if (t) (ok ? FPAviso.ok : FPAviso.erro)(t, titulo ? { titulo } : undefined); };
+  const emailOk = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(e).trim()) && String(e).length <= 160;
+  const regraEmail = (id) => { const v = $('#' + id).value.trim(); return { id, ok: !!v && emailOk(v), msg: v ? 'Informe um e-mail válido, como nome@exemplo.com.' : 'Informe o seu e-mail.' }; };
+  /** Confere os campos antes de enviar: aviso junto de cada campo com problema, janela com a lista e foco no primeiro. true = tudo certo. */
+  function validar(regras) {
+    document.querySelectorAll('.campo-erro').forEach((e) => e.remove());
+    document.querySelectorAll('#app [aria-invalid]').forEach((e) => e.removeAttribute('aria-invalid'));
+    const falhas = regras.filter((r) => !r.ok);
+    if (!falhas.length) return true;
+    falhas.forEach((r) => {
+      const el = $('#' + r.id); if (!el) return;
+      el.setAttribute('aria-invalid', 'true');
+      const p = document.createElement('p'); p.className = 'campo-erro'; p.setAttribute('role', 'alert'); p.textContent = r.msg;
+      (el.closest('.campo') || el.closest('.aceite') || el).insertAdjacentElement('afterend', p);
+      el.addEventListener('input', () => { p.remove(); el.removeAttribute('aria-invalid'); }, { once: true });
+    });
+    const soAceite = falhas.length === 1 && falhas[0].id === 'aceite';
+    if (soAceite) { avisoAceite(); return false; }
+    FPAviso.aviso(falhas.map((r) => '• ' + r.msg).join('\n'), { titulo: falhas.length > 1 ? 'Confira os campos' : 'Confira o campo', aoFechar: () => { const el = $('#' + falhas[0].id); if (el) el.focus(); } });
+    return false;
+  }
   const avisoAceite = () => FPAviso.aviso('Para criar a conta, marque que leu e aceita os Termos de Uso e a Política de Privacidade.', { titulo: 'Falta aceitar os termos', aoFechar: () => {
     const c = $('#aceite'); if (!c) return; c.focus(); const l = c.closest('.aceite'); if (l) { l.classList.remove('destaque'); void l.offsetWidth; l.classList.add('destaque'); }
   } });
@@ -46,8 +66,14 @@
   /* ---------- telas ---------- */
   function telaEntrar() {
     const criar = modo === 'criar';
-    tela(`<section class="hero-app"><p class="eyebrow">FamilyPilot</p><h1>${criar ? 'Crie sua conta' : 'Entrar'}</h1>
-      <p>${criar ? 'Em seguida você escolhe como pagar.' : 'Use o e-mail e a senha da sua conta.'}</p>${modulosLinha()}</section>
+    // veio do botão do Pacote Família: o cadastro mostra o produto e o preço escolhidos
+    const pacote = /[?&]comprar=pacote/.test(location.search) && me && me.precos && me.precos.pacote ? { preco: me.precos.pacote, cheio: me.precosCheios && me.precosCheios.pacote } : null;
+    const resumoPacote = pacote ? `<div class="card preco pacote-resumo"><b>🎁 Pacote Família: todos os 7 módulos</b>
+      ${pacote.cheio && pacote.cheio > pacote.preco ? `<div class="de"><s>de ${brl(pacote.cheio)}</s> <span class="selo-lanc">preço de lançamento</span></div>` : ''}
+      <div class="valor">${brl(pacote.preco)}</div>
+      <p>Pagamento único. Acesso por 12 meses a partir da confirmação do pagamento. Pix, boleto ou cartão.</p></div>` : '';
+    tela(`<section class="hero-app"><p class="eyebrow">${pacote ? 'FamilyPilot · Pacote Família' : 'FamilyPilot'}</p><h1>${criar ? 'Crie sua conta' : 'Entrar'}</h1>
+      <p>${pacote ? (criar ? 'Você escolheu o Pacote Família. Crie sua conta e, em seguida, escolha como pagar.' : 'Entre para continuar com o Pacote Família.') : criar ? 'Em seguida você escolhe como pagar.' : 'Use o e-mail e a senha da sua conta.'}</p>${modulosLinha()}</section>${resumoPacote}
       <form id="f-auth" class="form" novalidate>
         ${criar ? '<label class="campo">Seu nome<input id="a-nome" autocomplete="name" maxlength="80" required></label>' : ''}
         <label class="campo">E-mail<input id="a-email" type="email" inputmode="email" autocomplete="email" maxlength="160" required></label>
@@ -66,13 +92,14 @@
     $('#f-auth').onsubmit = async (ev) => {
       ev.preventDefault();
       const btn = ev.target.querySelector('button[type=submit]'), t = btn.textContent;
+      const regras = criar
+        ? [{ id: 'a-nome', ok: $('#a-nome').value.trim().length >= 2, msg: 'Informe o seu nome.' }, regraEmail('a-email'), { id: 'a-senha', ok: $('#a-senha').value.length >= 8, msg: 'A senha precisa ter pelo menos 8 caracteres.' }, { id: 'aceite', ok: $('#aceite').checked, msg: 'Marque que leu e aceita os Termos de Uso e a Política de Privacidade.' }]
+        : [regraEmail('a-email'), { id: 'a-senha', ok: $('#a-senha').value.length > 0, msg: 'Informe a sua senha.' }];
+      if (!validar(regras)) return;
       ocupado(btn, true, 'Aguarde…'); msg('');
       try {
         const corpo = { email: $('#a-email').value, senha: $('#a-senha').value };
-        if (criar) {
-          if (!$('#aceite').checked) { avisoAceite(); return ocupado(btn, false, t); }
-          corpo.nome = $('#a-nome').value; corpo.aceite = true;
-        }
+        if (criar) { corpo.nome = $('#a-nome').value; corpo.aceite = true; }
         me = await api('POST', criar ? '/api/auth/cadastro' : '/api/auth/entrar', corpo);
         seguir();
       } catch (e) { msg(e.message); ocupado(btn, false, t); }
@@ -121,6 +148,7 @@
     $('#f-esq').onsubmit = async (ev) => {
       ev.preventDefault();
       const btn = ev.target.querySelector('button[type=submit]'), t = btn.textContent;
+      if (!validar([regraEmail('e-email')])) return;
       ocupado(btn, true, 'Enviando…'); msg('');
       try {
         await api('POST', '/api/auth/esqueci', { email: $('#e-email').value });
@@ -140,7 +168,7 @@
     $('#f-nova').onsubmit = async (ev) => {
       ev.preventDefault();
       const s1 = $('#n-senha').value;
-      if (s1 !== $('#n-senha2').value) return msg('As duas senhas precisam ser iguais.', false, 'Senhas diferentes');
+      if (!validar([{ id: 'n-senha', ok: s1.length >= 8, msg: 'A nova senha precisa ter pelo menos 8 caracteres.' }, { id: 'n-senha2', ok: s1 === $('#n-senha2').value, msg: 'As duas senhas precisam ser iguais.' }])) return;
       const btn = ev.target.querySelector('button[type=submit]'), t = btn.textContent;
       ocupado(btn, true, 'Salvando…'); msg('');
       try { me = await api('POST', '/api/auth/nova-senha', { token, senha: s1 }); seguir(); }

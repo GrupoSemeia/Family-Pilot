@@ -71,6 +71,13 @@ Diário, radar e ferramentas dos módulos ficam na conta (tabela `dados`, migra�
 - Ao sair da conta, a cópia dos registros é retirada do aparelho (se houver algo sem enviar, o app avisa antes).
 - Texto jurídico atualizado em `app/privacidade.html` e `app/termos.html` (versão 2026-10-16, `VERSAO_TERMOS`): revisar com advogado, em especial o consentimento do responsável sobre dados de crianças (art. 14).
 
+### Pacote Família na tela e no cadastro
+- O pacote **não é um módulo**: quem tem o Pacote Família vê o cartão "Pacote Família: ativo até dd/mm/aaaa" (ou "acesso total (administrador)") e não há mais link para um módulo "pacote". O catálogo (`/api/conteudo`) traz `ate` e `livre` do pacote.
+- O cadastro (e o login) aberto pelo botão do pacote da landing (`?comprar=pacote`) mostra "FamilyPilot · Pacote Família", o resumo e o preço, e depois do cadastro a tela de pagamento continua no pacote.
+
+### Validação nos formulários de entrada
+Entrar, criar conta, esqueci a senha e nova senha conferem os campos antes de enviar (`validar` em `app/js/auth.js`): aviso junto de cada campo, janela com a lista e foco no primeiro com problema. `POST /api/auth/esqueci` devolve erro de formato (400) para e-mail mal escrito e a mesma resposta para qualquer e-mail bem escrito, exista a conta ou não.
+
 ### Atalho no celular (nome e ícone)
 O atalho (Android e iPhone) se chama **FamilyPilot** e usa o ícone do coração. `app/manifest.webmanifest` (nome e `short_name` "FamilyPilot"; ícones PNG 192 e 512 `any` e 512 `maskable`) e, para o iPhone, `apple-touch-icon` 180×180 sem transparência (o iOS ignora SVG) e `apple-mobile-web-app-title`. Os PNGs ficam em `app/icons/` e foram gerados do `app/icon.svg` (o `maskable` com o coração dentro da zona segura; o do iPhone sem cantos arredondados, porque o iOS arredonda sozinho). As marcas estão no app, na página de vendas, nos Termos e na Privacidade. Se mudar o logo, refaça os PNGs.
 
@@ -86,7 +93,7 @@ Erros, avisos, confirmações e perguntas do app aparecem em janela (`app/js/avi
 Na primeira abertura da conta (sem registros e com `guiado` falso) o app abre `#/comecar` (`app/js/guia.js`): tema (só se a conta tem mais de um módulo) → idade → situação, e termina na orientação pronta (no SOS Birra, no Plano SOS que já existia, com a idade já escolhida). "Estou em crise agora" (só com o SOS Birra) e "Pular e explorar sozinho" ficam sempre à vista. Depois do primeiro plano aparece, no fim da tela e uma vez só, um cartão: guardar o app na tela inicial e, se quiser, cadastrar o apelido do filho. O guia é marcado como concluído em `guiado` (junto dos registros) e pode ser refeito em "Refazer a orientação rápida". Preferências (idade escolhida, guia concluído) não abrem a janela de autorização dos registros; só salvar um registro de verdade abre.
 
 ### Filhos (apelidos)
-Em Módulos → "Meus filhos" a pessoa cadastra um **apelido** por filho (até 6, até 20 letras, sem sobrenome; o app não pede o nome completo). O apelido aparece como "Filho(a)" nos episódios do Diário SOS, no Radar e nos diários dos módulos, e há filtro "Todos | apelidos" (o filho em foco fica só no aparelho). A lista é o bloco `filhos` da sincronização (cifrado na conta, como os demais; `app/js/filhos.js`). Remover um filho não apaga os registros.
+Em Módulos → "Meus filhos" a pessoa cadastra um **apelido** por filho (até 6, até 20 letras, sem sobrenome; o app não pede o nome completo). Cada registro tem a escolha "Para qual filho é este registro?" (um filho ou "Sem vincular", sempre uma opção marcada, sem desmarcar ao tocar de novo) e o histórico mostra "Filho(a): …" ou "Sem vínculo com um filho". O apelido aparece como "Filho(a)" nos episódios do Diário SOS, no Radar e nos diários dos módulos, e há filtro "Todos | apelidos" (o filho em foco fica só no aparelho). A lista é o bloco `filhos` da sincronização (cifrado na conta, como os demais; `app/js/filhos.js`). Remover um filho não apaga os registros.
 
 ### Editar e desfazer
 Nos diários (Birra e dos outros módulos) há **Editar** (volta ao formulário com os dados, mantém o mesmo registro e marca `editado`). **Apagar** não pergunta: apaga na hora e mostra "Desfazer" por 9 segundos (o Radar também desfaz). Para o desfazer e a edição valerem entre aparelhos, a junção da sincronização (`juntar` em `app/js/sync.js`) usa o carimbo mais novo de cada item (editado, restaurado ou criado) e só deixa a lápide apagar se for mais nova que o último "restaurado".

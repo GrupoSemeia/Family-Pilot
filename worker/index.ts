@@ -1,5 +1,5 @@
 import { Hono } from 'hono'
-import { type App, ErroApp, exigirLogin, exigirAcesso, lerSessao, acessoDaSessao, visaoValida, precosDe, precosCheios, ofertaDe, ofertaSimulada, precoPacote, MODULOS_IDS, PACOTE } from './lib'
+import { type App, ErroApp, exigirLogin, exigirAcesso, lerSessao, acessoDaSessao, visaoValida, precosDe, precosCheios, ofertaDe, ofertaSimulada, precoPacote, agoraBanco, paraISO, MODULOS_IDS, PACOTE } from './lib'
 import { auth } from './routes/auth'
 import { pagamento, pedidos, asaasWebhook } from './routes/pagamento'
 import { admin } from './routes/admin'
@@ -49,8 +49,9 @@ app.get('/api/conteudo', exigirLogin, exigirAcesso, async c => {
   }))
   // Pacote Família: aparece como "a venda" enquanto faltar algum módulo. "somaSeparados" é o que custaria comprar um a um.
   const pac = visao ? null : await precoPacote(c.env, s.usuarioId)
+  const atePac = visao ? null : await c.env.DB.prepare(`SELECT MAX(acesso_ate) AS ate FROM pedidos WHERE usuario_id=? AND modulo=? AND status='pago'`).bind(s.usuarioId, PACOTE).first<{ ate: string | null }>()
   const soma = MODULOS_IDS.every(id => precos[id]) ? MODULOS_IDS.reduce((t, id) => t + precos[id], 0) : null
-  catalogo.push({ id: PACOTE, ...CATALOGO[PACOTE], estado: MODULOS_IDS.every(liberado) ? 'liberado' : precos[PACOTE] ? 'a-venda' : 'em-breve', preco: pac ? pac.preco : precos[PACOTE] ?? null, precoCheio: cheios[PACOTE] ?? null, desconto: pac ? pac.credito : 0, precoSemDesconto: precos[PACOTE] ?? null, somaSeparados: soma, ate: null })
+  catalogo.push({ id: PACOTE, ...CATALOGO[PACOTE], estado: MODULOS_IDS.every(liberado) ? 'liberado' : precos[PACOTE] ? 'a-venda' : 'em-breve', preco: pac ? pac.preco : precos[PACOTE] ?? null, precoCheio: cheios[PACOTE] ?? null, desconto: pac ? pac.credito : 0, precoSemDesconto: precos[PACOTE] ?? null, somaSeparados: soma, ate: atePac?.ate && atePac.ate > agoraBanco() ? paraISO(atePac.ate) : null, livre: !!ac.livre })
   return c.json({
     birra: liberado('birra') ? CONTEUDO : null,
     modulos: Object.fromEntries(Object.entries(MODULOS).filter(([id]) => liberado(id))),

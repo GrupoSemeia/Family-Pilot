@@ -170,7 +170,10 @@ try {
   const pedir = async (email) => { const antes = emails.length; const x = await cliente()('POST', '/api/auth/esqueci', { email }); await new Promise(r => setTimeout(r, 400)); return { status: x.status, d: x.d, novos: emails.length - antes } }
   let x = await pedir(`ninguem${S}@teste.com`)
   assert.deepEqual([x.status, x.d.ok, x.novos], [200, true, 0], 'conta inexistente: mesma resposta, nenhum e-mail')
-  x = await pedir('isto-nao-e-email'); assert.deepEqual([x.status, x.novos], [200, 0])
+  x = await pedir('isto-nao-e-email'); assert.deepEqual([x.status, x.novos], [400, 0], 'e-mail mal escrito: erro de formato, nenhum e-mail')
+  assert.match(x.d.erro, /e-mail válido/); x = await pedir(''); assert.equal(x.status, 400, 'e-mail vazio: erro de formato')
+  const comConta = await pedir(quem); const semConta = await pedir(`nao-existe${S}@teste.com`)
+  assert.deepEqual([comConta.status, semConta.status, comConta.d, semConta.d], [200, 200, { ok: true }, { ok: true }], 'e-mail bem formado: a resposta é a mesma exista a conta ou não')
   x = await pedir(quem.toUpperCase())
   assert.deepEqual([x.status, x.novos], [200, 1], 'conta existente recebe o e-mail')
   const msg = emails.at(-1)
