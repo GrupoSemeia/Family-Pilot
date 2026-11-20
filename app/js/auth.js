@@ -30,6 +30,8 @@
     const lista = v.modulos.length ? v.modulos.map((m) => NOMES[m] || m).join(', ') : 'nenhum módulo';
     $('#faixa-txt').textContent = 'Visão de usuário: ' + lista + (v.oferta ? ' + oferta de boas-vindas' : '');
   }
+  /** Rodapé de confiança: quem vende, CNPJ e site. */
+  const rodapeEmpresa = () => `<p class="nota">Um produto <b>Grupo Semeia Digital</b>. Orientações educativas para pais e responsáveis.<br>Semeia Digital Consultoria em TI LTDA · CNPJ 69.290.380/0001-42<br><a href="https://www.gruposemeiadigital.com.br" target="_blank" rel="noopener">www.gruposemeiadigital.com.br</a></p>`;
   const tela = (html) => { sairVisivel(!!(me && me.usuario)); faixa(); $('#tabs').hidden = true; $('#app').innerHTML = html; $('#app').focus({ preventScroll: true }); window.scrollTo(0, 0); };
   /** Mensagens do formulário viram janela (popup), para a pessoa não deixar de ver. Texto vazio só limpa. */
   const msg = (t, ok, titulo) => { const e = $('#msg'); if (e) { e.textContent = ''; e.className = 'msg'; } if (t) (ok ? FPAviso.ok : FPAviso.erro)(t, titulo ? { titulo } : undefined); };
@@ -54,7 +56,7 @@
       ${criar ? '' : '<button class="voltar" id="esqueci" style="margin-top:14px">Esqueci minha senha</button><br>'}
       <div id="g-area" hidden><p class="ou">ou</p><div id="g-btn"></div>${criar ? '' : '<p class="nota" style="text-align:center">Se for o seu primeiro acesso com o Google, você concorda com os <a href="/termos" target="_blank" rel="noopener">Termos de Uso</a> e a <a href="/privacidade" target="_blank" rel="noopener">Política de Privacidade</a>.</p>'}</div>
       <button type="button" class="btn claro" id="troca" style="margin-top:14px">${criar ? 'Já tenho conta · Entrar' : 'Ainda não tenho conta · Criar agora'}</button>
-      <p class="nota">Um produto Grupo Semeia Digital. Orientações educativas para pais e responsáveis.</p>`);
+      ${rodapeEmpresa()}`);
     $('#troca').onclick = () => { modo = criar ? 'entrar' : 'criar'; telaEntrar(); };
     if (!criar) $('#esqueci').onclick = telaEsqueci;
     botaoGoogle(criar);
@@ -166,6 +168,7 @@
         : '<div class="alerta">O pagamento online ainda não está ativo. Fale com o Grupo Semeia Digital para liberar seu acesso.</div>'}
       <p class="nota">Garantia incondicional de 7 dias: se não gostar, peça o reembolso integral dentro desse prazo.</p>
       <p class="nota">Problema com o pagamento? Escreva para <a href="mailto:contato@familypilot.com.br">contato@familypilot.com.br</a>.</p>
+      ${rodapeEmpresa()}
       ${dentro ? '<button class="voltar" id="sair" style="margin-top:10px">← Voltar ao app</button>' : `<button class="voltar" id="sair" style="margin-top:10px">Sair da conta (${esc(me.usuario.email)})</button>`}`);
     $('#sair').onclick = dentro ? () => location.reload() : sair;
     if (!me.pagamentoOnline) return;

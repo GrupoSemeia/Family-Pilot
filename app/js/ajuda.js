@@ -34,7 +34,8 @@
       <div class="card"><b>Garantia e reembolso</b><p>Você tem 7 dias corridos, a partir da compra, para pedir o reembolso integral. Escreva para ${CONTATO} com o e-mail da sua conta e o módulo comprado.</p></div>
       <div class="card"><b>Meus registros e privacidade</b><p>Em <a href="#/modulos">Módulos</a> → "Seus dados" você baixa, apaga ou exclui tudo. Veja também os <a href="/termos" target="_blank" rel="noopener">Termos</a> e a <a href="/privacidade" target="_blank" rel="noopener">Política de Privacidade</a>.</p></div>
       <a class="btn" href="${mail}">Falar com o suporte</a>
-      <p class="nota">Respondemos por e-mail, em até 1 dia útil. Endereço: ${CONTATO}</p>`;
+      <p class="nota">Respondemos por e-mail, em até 1 dia útil. Endereço: ${CONTATO}</p>
+      <p class="nota">Semeia Digital Consultoria em TI LTDA · CNPJ 69.290.380/0001-42 · <a href="https://www.gruposemeiadigital.com.br" target="_blank" rel="noopener">www.gruposemeiadigital.com.br</a></p>`;
   }
   document.addEventListener('click', async (ev) => {
     const el = ev.target.closest('[data-aj]');

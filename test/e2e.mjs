@@ -522,6 +522,14 @@ try {
     }
   }
 
+  // CNPJ e site da empresa nos rodapés
+  {
+    for (const [nome, url] of [['landing', '/'], ['termos', '/termos'], ['privacidade', '/privacidade'], ['tela de entrada (auth.js)', '/js/auth.js'], ['compras e ajuda', '/js/ajuda.js']]) {
+      const t = (await cliente().pagina(url)).texto
+      assert.ok(t.includes('69.290.380/0001-42') && t.includes('www.gruposemeiadigital.com.br'), `${nome}: CNPJ e site da empresa`)
+    }
+  }
+
   // logout
   await rec('POST', '/api/auth/sair', {}); assert.equal((await rec('GET', '/api/conteudo')).status, 401)
   console.log('OK: todos os testes passaram'); fim(0)
