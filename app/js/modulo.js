@@ -235,7 +235,7 @@
       return `<label class="campo">${E(c.rotulo)}<input type="${tipo}" data-m="rvin" data-id="${c.id}" value="${E(v)}"${inv} ${c.tipo === 'numero' ? 'min="0" max="1440" inputmode="numeric"' : ''} ${c.tipo === 'texto' ? 'maxlength="300"' : ''}></label>${aviso(c)}`;
     };
     return `<h1>${E(f.nome)}</h1><p class="lead">${E(f.descricao)}</p>
-    <form id="m-form" class="form card" novalidate>${s.editando ? '<p class="msg ok" role="status">Editando um registro. Salve as alterações ou cancele.</p>' : ''}${FPFilhos.todos().length ? `<p class="rotulo">Qual filho? <small>(opcional)</small></p><div class="chips" role="group" aria-label="Qual filho">${FPFilhos.todos().map((x) => chip('rv', 'filho', x.id, x.apelido, s.v.filho === x.id)).join('')}</div>` : ''}${Object.keys(er).length ? '<p class="msg" role="alert">Falta preencher alguns campos para salvar. Veja os avisos abaixo.</p>' : ''}${f.campos.map(campo).join('')}<button class="btn" type="submit">${s.editando ? 'Salvar alterações' : 'Salvar registro'}</button>${s.editando ? ' <button class="mini" type="button" data-m="rcancel">Cancelar edição</button>' : ''}</form>
+    <form id="m-form" class="form card" novalidate>${s.editando ? '<p class="msg ok" role="status">Editando um registro. Salve as alterações ou cancele.</p>' : ''}${FPFilhos.todos().length ? `<p class="rotulo">Qual filho? <small>(opcional)</small></p><div class="chips" role="group" aria-label="Qual filho">${FPFilhos.todos().map((x) => chip('rv', 'filho', x.id, x.apelido, s.v.filho === x.id)).join('')}</div>` : ''}${f.campos.map(campo).join('')}<button class="btn" type="submit">${s.editando ? 'Salvar alterações' : 'Salvar registro'}</button>${s.editando ? ' <button class="mini" type="button" data-m="rcancel">Cancelar edição</button>' : ''}</form>
     ${resumo.length ? `<div class="card"><b>O que seus registros mostram</b>${lista_(resumo)}<p class="nota">Baseado só no que você anotou. Não é diagnóstico.</p></div>` : ''}
     ${FPFilhos.chipsFiltro(E, 'data-m="filtro"')}
     ${lista.length ? `<h2 class="sec">Histórico (${lista.length})</h2><ul class="hist">${lista.slice(0, 40).map((r) => `<li><div><b>${fmtDia(r.v.data)}</b>${r.v.filho && FPFilhos.nome(r.v.filho) ? `<small>Filho(a): ${E(FPFilhos.nome(r.v.filho))}</small>` : ''}${f.campos.filter((c) => c.id !== 'data' && r.v[c.id] !== '' && r.v[c.id] != null).map((c) => `<small>${E(c.rotulo)}: ${E(rotuloValor(c, r.v[c.id]))}</small>`).join('')}</div>
@@ -334,8 +334,11 @@
     const erros = validarRegistro(f, v);
     if (Object.keys(erros).length) {
       s.erros = erros; X.reRender();
-      const primeiro = document.querySelector('[aria-invalid="true"], .campo-erro:not(:empty)');
-      if (primeiro) primeiro.scrollIntoView({ block: 'center' });
+      const lista = f.campos.filter((c) => erros[c.id]).map((c) => '• ' + c.rotulo).join('\n');
+      FPAviso.aviso('Preencha o que falta para salvar:\n' + lista, { titulo: 'Faltam informações', aoFechar: () => {
+        const primeiro = document.querySelector('[aria-invalid="true"], .campo-erro:not(:empty)');
+        if (primeiro) primeiro.scrollIntoView({ block: 'center' });
+      } });
       return;
     }
     delete s.erros;

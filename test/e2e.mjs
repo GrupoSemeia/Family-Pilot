@@ -512,6 +512,16 @@ try {
     assert.ok(!/Não usamos cookies de publicidade ou de rastreamento/.test(pol), 'a política não afirma mais o contrário')
   }
 
+  // avisos em janela: o app não usa mais alert(), confirm() nem prompt() do navegador
+  {
+    const idx = (await cliente().pagina('/entrar')).texto
+    assert.ok(idx.includes('/js/aviso.js'), 'a janela de avisos é carregada pelo app')
+    for (const arq of ['app', 'auth', 'modulo', 'sync', 'ajuda', 'admin', 'guia', 'filhos']) {
+      const js = (await cliente().pagina(`/js/${arq}.js`)).texto
+      assert.ok(!/(^|[^.\w$])(alert|confirm|prompt)\(/.test(js), `${arq}.js sem alert/confirm/prompt nativos`)
+    }
+  }
+
   // logout
   await rec('POST', '/api/auth/sair', {}); assert.equal((await rec('GET', '/api/conteudo')).status, 401)
   console.log('OK: todos os testes passaram'); fim(0)

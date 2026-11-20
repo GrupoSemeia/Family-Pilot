@@ -435,7 +435,7 @@ window.FamilyPilot = { _on: false, start: function (C, conta) {
   });
 
   /* ---------- ações ---------- */
-  document.addEventListener('click', (ev) => {
+  document.addEventListener('click', async (ev) => {
     const el = ev.target.closest('[data-act]');
     if (!el) return;
     const act = el.dataset.act, v = el.dataset.v, k = el.dataset.k;
@@ -454,15 +454,23 @@ window.FamilyPilot = { _on: false, start: function (C, conta) {
       case 'adm-preset': { const v = el.dataset.v; document.querySelectorAll('.adm-mod').forEach((c) => { c.checked = v === 'todos' || (v === 'birra' && c.value === 'birra'); }); break; }
       case 'adm-ver': window.FamilyAuth.verComo([...document.querySelectorAll('.adm-mod:checked')].map((c) => c.value), $('#adm-oferta').checked); break;
       case 'dados-autorizar': FamilySync.pedir(() => location.reload()); break;
-      case 'dados-revogar': if (confirm('Revogar a autorização? Os registros guardados na sua conta serão apagados da nuvem. Os que estão neste aparelho continuam aqui.')) FamilySync.revogar().then(() => location.reload()).catch((e) => alert(e.message)); break;
-      case 'dados-baixar': FamilySync.baixar().catch((e) => alert(e.message)); break;
-      case 'dados-apagar': if (confirm('Apagar todos os seus registros (diário, radar e anotações das ferramentas)? Isso não pode ser desfeito.')) FamilySync.apagarRegistros().then(() => { alert('Registros apagados.'); location.reload(); }).catch((e) => alert(e.message)); break;
+      case 'dados-revogar':
+        if (await FPAviso.confirmar('Os registros guardados na sua conta serão apagados da nuvem. Os que estão neste aparelho continuam aqui.', { titulo: 'Revogar a autorização?', ok: 'Revogar e apagar da nuvem', perigo: true })) {
+          try { await FamilySync.revogar(); location.reload(); } catch (e) { FPAviso.erro(e.message); }
+        }
+        break;
+      case 'dados-baixar': try { await FamilySync.baixar(); } catch (e) { FPAviso.erro(e.message); } break;
+      case 'dados-apagar':
+        if (await FPAviso.confirmar('Todos os seus registros (diário, radar e anotações das ferramentas) serão apagados. Isso não pode ser desfeito.', { titulo: 'Apagar todos os registros?', ok: 'Apagar tudo', perigo: true })) {
+          try { await FamilySync.apagarRegistros(); await FPAviso.ok('Seus registros foram apagados.'); location.reload(); } catch (e) { FPAviso.erro(e.message); }
+        }
+        break;
       case 'dados-excluir': {
-        if (!confirm('Excluir sua conta? Seus registros e acessos serão apagados e não podem ser recuperados. Só guardamos o que a lei fiscal exige sobre compras já pagas.')) break;
+        if (!(await FPAviso.confirmar('Seus registros e acessos serão apagados e não podem ser recuperados. Só guardamos o que a lei fiscal exige sobre compras já pagas.', { titulo: 'Excluir sua conta?', ok: 'Continuar', perigo: true }))) break;
         const semSenha = !!conta.usuario.semSenha;
-        const v = prompt(semSenha ? 'Para confirmar, digite EXCLUIR' : 'Para confirmar, digite a sua senha');
+        const v = await FPAviso.perguntar(semSenha ? 'Para confirmar, digite EXCLUIR.' : 'Para confirmar, digite a sua senha.', { titulo: 'Confirmar exclusão', tipo: semSenha ? 'text' : 'password', ok: 'Excluir minha conta' });
         if (!v) break;
-        FamilySync.excluirConta(semSenha ? { confirmar: v } : { senha: v }).then(() => { alert('Conta excluída.'); location.href = '/'; }).catch((e) => alert(e.message));
+        try { await FamilySync.excluirConta(semSenha ? { confirmar: v } : { senha: v }); await FPAviso.ok('Sua conta foi excluída.'); location.href = '/'; } catch (e) { FPAviso.erro(e.message); }
         break;
       }
       case 'adm-sair': window.FamilyAuth.sairVisao(); break;
@@ -474,7 +482,7 @@ window.FamilyPilot = { _on: false, start: function (C, conta) {
       case 'radar-salvar': {
         const q = $('#r-quando').value || agoraLocal();
         const igual = db.radar.some((e) => e.quando === q && e.tags.length === R.tags.length && R.tags.every((t) => e.tags.includes(t)));
-        if (igual && !confirm('Já existe um registro igual neste mesmo horário. Salvar de novo mesmo assim?')) break;
+        if (igual && !(await FPAviso.confirmar('Já existe um registro igual neste mesmo horário.', { titulo: 'Registro repetido', ok: 'Salvar mesmo assim', cancelar: 'Não salvar' }))) break;
         db.radar.push({ id: uid(), quando: q, tags: R.tags.slice(), filho: R.filho === undefined ? FPFilhos.padrao() : R.filho }); salvar();
         R = { tags: [], quando: null }; toast('Salvo no Radar'); reRender(); break;
       }
@@ -488,8 +496,13 @@ window.FamilyPilot = { _on: false, start: function (C, conta) {
       case 'filtro': FPFilhos.definirFiltro(v); reRender(); break;
       case 'dfilho': syncDraft(); DRAFT.filho = DRAFT.filho === v ? '' : v; reRender(); break;
       case 'rfilho': { const q = $('#r-quando'); if (q) R.quando = q.value; const at = R.filho === undefined ? FPFilhos.padrao() : R.filho; R.filho = at === v ? '' : v; reRender(); break; }
-      case 'filho-ren': { const at = FPFilhos.nome(el.dataset.id); const n = prompt('Novo apelido (curto, sem sobrenome):', at); if (n === null) break; try { FPFilhos.renomear(el.dataset.id, n); reRender(); } catch (e) { alert(e.message); } break; }
-      case 'filho-rem': if (confirm('Remover este filho da lista? Os registros continuam, só sem o apelido.')) { FPFilhos.remover(el.dataset.id); reRender(); } break;
+      case 'filho-ren': {
+        const n = await FPAviso.perguntar('Use um apelido curto, sem sobrenome.', { titulo: 'Novo apelido', valor: FPFilhos.nome(el.dataset.id), maxlength: FPFilhos.maxLen, ok: 'Salvar' });
+        if (n === null) break;
+        try { FPFilhos.renomear(el.dataset.id, n); reRender(); } catch (e) { FPAviso.erro(e.message, { titulo: 'Apelido não aceito' }); }
+        break;
+      }
+      case 'filho-rem': if (await FPAviso.confirmar('Os registros continuam, só sem o apelido.', { titulo: 'Remover este filho da lista?', ok: 'Remover', perigo: true })) { FPFilhos.remover(el.dataset.id); reRender(); } break;
       case 'diario-editar': {
         const e = byId(db.diario, el.dataset.id); if (!e) break;
         DRAFT = Object.assign({}, e, { est: (e.est || []).slice(), editId: e.id, nota: e.nota || '' }); location.hash = '#/diario/novo'; break;
@@ -512,7 +525,7 @@ window.FamilyPilot = { _on: false, start: function (C, conta) {
   document.addEventListener('submit', (ev) => {
     if (ev.target.id === 'form-filho') {
       ev.preventDefault();
-      try { FPFilhos.adicionar($('#filho-novo').value); reRender(); } catch (e) { const m = $('#filho-msg'); if (m) m.textContent = e.message; }
+      try { FPFilhos.adicionar($('#filho-novo').value); reRender(); } catch (e) { FPAviso.erro(e.message, { titulo: 'Apelido não aceito', aoFechar: () => { const i = $('#filho-novo'); if (i) i.focus(); } }); }
       return;
     }
     if (ev.target.id !== 'form-diario') return;

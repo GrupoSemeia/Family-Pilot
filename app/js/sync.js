@@ -135,7 +135,7 @@
     sim.onclick = async () => {
       sim.disabled = true;
       try { await autorizar(); f.remove(); if (aoFim) aoFim(); }
-      catch (e) { f.querySelector('#cs-msg').textContent = e.message; sim.disabled = !ok.checked; }
+      catch (e) { FPAviso.erro(e.message); sim.disabled = !ok.checked; }
     };
     ok.focus();
   }

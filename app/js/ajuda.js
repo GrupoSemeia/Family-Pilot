@@ -11,7 +11,7 @@
   async function carregar() {
     S.erro = '';
     try { const r = await fetch('/api/pedidos', { credentials: 'same-origin' }); const d = await r.json().catch(() => ({})); if (!r.ok) throw new Error(d.erro || 'Não foi possível carregar suas compras.'); S.dados = d.pedidos; }
-    catch (e) { S.erro = e.message; S.dados = S.dados || []; }
+    catch (e) { S.erro = e.message; S.dados = S.dados || []; FPAviso.erro(e.message); }
     X.reRender();
   }
   function pedido(p) {
@@ -44,9 +44,10 @@
       try {
         const r = await window.FamilyAuth.api('POST', '/api/pagamento/verificar');
         const ativos = Object.values((r.acesso && r.acesso.modulos) || {}).filter((m) => m.ativo).length;
-        S.aviso = 'Conferimos seus pagamentos. ' + (ativos ? 'Seu acesso está liberado.' : 'Ainda não recebemos a confirmação.');
-        S.dados = null; if (ativos) setTimeout(() => location.reload(), 1200);
-      } catch (e) { S.aviso = e.message; }
+        S.dados = null;
+        if (ativos) { await FPAviso.ok('Seu acesso está liberado.', { titulo: 'Pagamento confirmado' }); location.reload(); return; }
+        FPAviso.info('Ainda não recebemos a confirmação do pagamento. Pix costuma levar segundos e boleto 1 a 2 dias úteis.', { titulo: 'Conferimos seus pagamentos' });
+      } catch (e) { FPAviso.erro(e.message); }
       X.reRender();
     }
   });
