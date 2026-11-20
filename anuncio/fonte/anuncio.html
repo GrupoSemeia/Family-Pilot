@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="pt-BR"><meta charset="utf-8">
+<title>Anúncio SOS Birra FamilyPilot (25 s, 9:16)</title>
+<style>
+html,body{margin:0;background:#000;overflow:hidden}
+#palco{position:relative;width:1080px;height:1920px;overflow:hidden;font-family:"Inter Display","Inter",sans-serif}
+#v{position:absolute;inset:0}
+#leg{position:absolute;left:60px;width:960px;top:262px;box-sizing:border-box;text-align:center;color:#fff;font-weight:800;font-size:56px;line-height:1.16;background:rgba(31,42,74,.92);padding:24px 30px;border-radius:44px;box-shadow:0 14px 40px rgba(0,0,0,.25);opacity:0;letter-spacing:-.5px}
+#leg b{color:#ffc9d6;font-weight:900}
+</style>
+<div id="palco"><svg id="v" width="1080" height="1920" viewBox="0 0 1080 1920" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<defs>
+ <filter id="blur"><feGaussianBlur stdDeviation="16"/></filter>
+ <filter id="sombra" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="16" stdDeviation="22" flood-color="#1f2a4a" flood-opacity=".28"/></filter>
+ <clipPath id="janela"><rect x="188" y="520" width="704" height="1074" rx="44"/></clipPath>
+ <linearGradient id="fundoFim" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff8f4"/><stop offset="1" stop-color="#ffe3dc"/></linearGradient>
+ <linearGradient id="botao" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ee3b64"/><stop offset="1" stop-color="#ff6f5e"/></linearGradient>
+ <radialGradient id="brilho"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+</defs>
+<g id="cena"></g></svg>
+<div id="leg"></div></div>
+<script src="../quadros/retangulos.js"></script>
+<script>
+/* ===================== utilidades ===================== */
+const PAL = { rosa: '#ee3b64', roxo: '#7c6fd6', verde: '#35c3a5', marinho: '#1f2a4a', creme: '#fff8f4', ouro: '#ffd700', pele1: '#c98b5e', pele2: '#dca877', cabelo1: '#2e1f1a', cabelo2: '#3a2a22', calca: '#2b3a67' };
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const seg = (t, a, b) => clamp((t - a) / (b - a));
+const ease = (p) => p < .5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
+const easeOut = (p) => 1 - Math.pow(1 - p, 3);
+const trap = (t, a, b, c, d) => t < a || t > d ? 0 : t < b ? seg(t, a, b) : t > c ? 1 - seg(t, c, d) : 1;
+const mola = (p) => p <= 0 ? 0 : p >= 1 ? 1 : 1 - Math.pow(1 - p, 3) * Math.cos(p * 9) * .55 * (1 - p) * 2;
+function rng(seed) { let s = seed; return () => (s = (s * 16807) % 2147483647) / 2147483647; }
+
+/* ===================== legendas (a mesma frase da locução) ===================== */
+const LEGENDAS = [
+  [0.3, 3.8, 'Birra em público. <b>Todo mundo olhando.</b> E agora?'],
+  [4.2, 6.8, 'Na hora do aperto, <b>tenha um plano à mão.</b>'],
+  [7.2, 12.8, 'No SOS Birra, escolha a <b>idade</b>, o <b>motivo</b> e o <b>local</b>.'],
+  [13.2, 17.8, 'Veja o que fazer <b>primeiro</b>, o que <b>evitar</b> e uma <b>frase</b> para usar.'],
+  [18.2, 20.8, 'Mais <b>clareza</b> para conduzir esse momento.'],
+  [21.7, 25, 'SOS Birra FamilyPilot.<br>Na próxima birra, <b>tenha um plano.</b>'],
+];
+
+/* ===================== cenário do mercado ===================== */
+function mercado(calmo) {
+  const r = rng(7); let s = '';
+  s += `<rect width="1080" height="1320" fill="${calmo ? '#FFF1E8' : '#FFE9DF'}"/><rect width="1080" height="170" fill="${calmo ? '#FBE3D6' : '#F6D5C8'}"/>`;
+  for (let i = 0; i < 4; i++) s += `<rect x="${60 + i * 270}" y="60" width="180" height="26" rx="13" fill="#FFF7D6"/>`;
+  const cores = [PAL.rosa, PAL.roxo, PAL.verde, '#ffb84d', '#5aa9ff', '#ff8fa8', '#8fd694', '#f5e2b8'];
+  [610, 870, 1130].forEach((y) => {
+    let x = -10;
+    while (x < 1090) { const w = 46 + r() * 46, h = 70 + r() * 70, c = cores[Math.floor(r() * cores.length)]; s += `<rect x="${x}" y="${y - h}" width="${w}" height="${h}" rx="9" fill="${c}" opacity=".92"/><rect x="${x + 7}" y="${y - h + 14}" width="${w - 14}" height="12" rx="6" fill="#fff" opacity=".55"/>`; x += w + 8; }
+    s += `<rect x="0" y="${y}" width="1080" height="22" fill="#D9A98F"/><rect x="0" y="${y + 22}" width="1080" height="10" fill="#C48E74"/>`;
+  });
+  s += `<rect y="1320" width="1080" height="600" fill="${calmo ? '#F6EBE3' : '#F1E6DE'}"/>`;
+  for (let i = 0; i < 9; i++) s += `<line x1="${i * 135 - 60}" y1="1320" x2="${i * 170 - 380}" y2="1920" stroke="#E4D6CB" stroke-width="3"/>`;
+  for (let j = 0; j < 4; j++) s += `<line x1="0" y1="${1400 + j * 150}" x2="1080" y2="${1400 + j * 150}" stroke="#E4D6CB" stroke-width="3"/>`;
+  return s;
+}
+/* ===================== personagens ===================== */
+function olhos(dx, dy, fechados, calmos) {
+  if (fechados) return `<path d="M-42 -4 Q-26 -20 -10 -4" stroke="${PAL.marinho}" stroke-width="6" fill="none" stroke-linecap="round"/><path d="M10 -4 Q26 -20 42 -4" stroke="${PAL.marinho}" stroke-width="6" fill="none" stroke-linecap="round"/>`;
+  return [-27, 27].map((x) => `<ellipse cx="${x}" cy="-4" rx="15" ry="${calmos ? 13 : 17}" fill="#fff"/><circle cx="${x + dx}" cy="${-4 + dy}" r="8" fill="${PAL.marinho}"/>`).join('');
+}
+function bocaAdulto(tipo, k) {
+  if (tipo === 'o') return `<ellipse cx="0" cy="40" rx="${11 + (k || 0) * 5}" ry="${13 + (k || 0) * 6}" fill="#6b2a2f"/>`;
+  if (tipo === 'sorriso') return `<path d="M-24 30 Q0 54 24 30" stroke="#6b2a2f" stroke-width="7" fill="none" stroke-linecap="round"/>`;
+  if (tipo === 'fala') return `<ellipse cx="0" cy="38" rx="16" ry="${6 + (k || 0) * 10}" fill="#6b2a2f"/>`;
+  return `<path d="M-20 42 Q0 30 20 42" stroke="#6b2a2f" stroke-width="7" fill="none" stroke-linecap="round"/>`;   // preocupado
+}
+function sobrancelhas(tipo) {
+  if (tipo === 'preocupado') return `<path d="M-46 -26 L-14 -40" stroke="${PAL.cabelo1}" stroke-width="8" stroke-linecap="round"/><path d="M14 -40 L46 -26" stroke="${PAL.cabelo1}" stroke-width="8" stroke-linecap="round"/>`;
+  if (tipo === 'suave') return `<path d="M-46 -34 Q-30 -42 -14 -34" stroke="${PAL.cabelo1}" stroke-width="7" fill="none" stroke-linecap="round"/><path d="M14 -34 Q30 -42 46 -34" stroke="${PAL.cabelo1}" stroke-width="7" fill="none" stroke-linecap="round"/>`;
+  return `<path d="M-46 -34 L-14 -36" stroke="${PAL.cabelo1}" stroke-width="7" stroke-linecap="round"/><path d="M14 -36 L46 -34" stroke="${PAL.cabelo1}" stroke-width="7" stroke-linecap="round"/>`;
+}
+/** Adulto em pé, de frente. Origem nos pés. st: olho{dx,dy,fechados}, boca, sobr, braco{e:[x,y], d:[x,y]}, inclina, respira, bochechas */
+function adulto(cx, by, s, st) {
+  st = st || {};
+  const e = st.braco && st.braco.e || [-150, -260], d = st.braco && st.braco.d || [150, -260];
+  const respira = st.respira || 0;
+  return `<g transform="translate(${cx} ${by}) scale(${s})">
+    <rect x="-62" y="-262" width="54" height="250" rx="16" fill="${PAL.calca}"/><rect x="8" y="-262" width="54" height="250" rx="16" fill="${PAL.calca}"/>
+    <rect x="-84" y="-30" width="84" height="30" rx="15" fill="${PAL.marinho}"/><rect x="0" y="-30" width="84" height="30" rx="15" fill="${PAL.marinho}"/>
+    <line x1="-92" y1="${-470 - respira}" x2="${e[0]}" y2="${e[1]}" stroke="${PAL.verde}" stroke-width="44" stroke-linecap="round"/><circle cx="${e[0]}" cy="${e[1]}" r="25" fill="${PAL.pele1}"/>
+    <line x1="92" y1="${-470 - respira}" x2="${d[0]}" y2="${d[1]}" stroke="${PAL.verde}" stroke-width="44" stroke-linecap="round"/><circle cx="${d[0]}" cy="${d[1]}" r="25" fill="${PAL.pele1}"/>
+    <rect x="-96" y="${-524 - respira}" width="192" height="${300 + respira}" rx="64" fill="${PAL.verde}"/>
+    <rect x="-22" y="${-566 - respira}" width="44" height="48" fill="${PAL.pele1}"/>
+    <g transform="translate(0 ${-606 - respira}) rotate(${st.inclina || 0})">
+      <circle cx="0" cy="-84" r="27" fill="${PAL.cabelo1}"/><circle cx="-76" cy="2" r="12" fill="${PAL.pele1}"/><circle cx="76" cy="2" r="12" fill="${PAL.pele1}"/>
+      <circle r="76" fill="${PAL.pele1}"/><path d="M-79 -6 A79 79 0 0 1 79 -6 C52 -56 -52 -56 -79 -6 Z" fill="${PAL.cabelo1}"/>
+      ${st.bochechas ? `<ellipse cx="-58" cy="30" rx="${14 + st.bochechas * 14}" ry="${12 + st.bochechas * 12}" fill="#d99a6b"/><ellipse cx="58" cy="30" rx="${14 + st.bochechas * 14}" ry="${12 + st.bochechas * 12}" fill="#d99a6b"/>` : ''}
+      ${olhos(st.olho ? st.olho.dx : 0, st.olho ? st.olho.dy : 0, st.olho && st.olho.fechados)}${sobrancelhas(st.sobr)}${bocaAdulto(st.boca, st.bocaK)}
+    </g></g>`;
+}
+function silhueta(cx, by, s, cor) {
+  return `<g transform="translate(${cx} ${by}) scale(${s})" opacity=".85"><rect x="-58" y="-262" width="50" height="250" rx="16" fill="${cor}"/><rect x="8" y="-262" width="50" height="250" rx="16" fill="${cor}"/><rect x="-90" y="-520" width="180" height="290" rx="60" fill="${cor}"/><circle cy="-596" r="70" fill="${cor}"/></g>`;
+}
+function olhinhos(cx, cy, s, dx, dy, escala) {
+  const e = (x) => `<ellipse cx="${x}" cy="0" rx="26" ry="32" fill="#fff" stroke="${PAL.marinho}" stroke-width="5"/><circle cx="${x + dx}" cy="${dy}" r="12" fill="${PAL.marinho}"/>`;
+  return `<g transform="translate(${cx} ${cy}) scale(${s * escala})"><rect x="-82" y="-52" width="164" height="104" rx="52" fill="#fff" opacity=".96" stroke="${PAL.rosa}" stroke-width="6"/>${e(-32)}${e(32)}</g>`;
+}
+/** Criança em pé. st: choro (0..1), tremor (px), bracos (ângulo), calma (0..1) */
+function crianca(cx, by, s, st) {
+  const choro = st.choro, calma = st.calma || 0, t = st.t || 0;
+  const tremor = choro * Math.sin(t * 34) * 5;
+  const ang = Math.sin(t * 12) * 32 * choro;
+  const lagrimas = (x) => { let g = ''; for (let i = 0; i < 3; i++) { const p = ((t * 1.7) + i / 3) % 1; g += `<ellipse cx="${x + (x < 0 ? -1 : 1) * (6 + p * 16)}" cy="${6 + p * 120}" rx="9" ry="14" fill="#6ec3ff" opacity="${(1 - p) * choro}"/>`; } return g; };
+  const olhosC = choro > .3 ? `<path d="M-40 -4 Q-24 -22 -8 -2" stroke="${PAL.marinho}" stroke-width="6" fill="none" stroke-linecap="round"/><path d="M8 -2 Q24 -22 40 -4" stroke="${PAL.marinho}" stroke-width="6" fill="none" stroke-linecap="round"/>`
+    : `<ellipse cx="-24" cy="-4" rx="14" ry="${15 - calma * 3}" fill="#fff"/><circle cx="${-24 + (st.olharX || 0)}" cy="-3" r="8" fill="${PAL.marinho}"/><ellipse cx="24" cy="-4" rx="14" ry="${15 - calma * 3}" fill="#fff"/><circle cx="${24 + (st.olharX || 0)}" cy="-3" r="8" fill="${PAL.marinho}"/>`;
+  const boca = choro > .55 ? `<path d="M-30 26 Q0 84 30 26 Z" fill="#7a1f2b"/><ellipse cx="0" cy="52" rx="16" ry="9" fill="#e86b7c"/>`
+    : choro > .15 ? `<path d="M-22 40 Q0 24 22 40" stroke="#7a1f2b" stroke-width="7" fill="none" stroke-linecap="round"/>`
+    : `<path d="M-22 28 Q0 ${34 + calma * 22} 22 28" stroke="#7a1f2b" stroke-width="7" fill="none" stroke-linecap="round"/>`;
+  const sobr = choro > .3 ? `<path d="M-46 -26 L-14 -40" stroke="${PAL.cabelo2}" stroke-width="7" stroke-linecap="round"/><path d="M14 -40 L46 -26" stroke="${PAL.cabelo2}" stroke-width="7" stroke-linecap="round"/>` : `<path d="M-44 -32 Q-28 -40 -12 -32" stroke="${PAL.cabelo2}" stroke-width="6" fill="none" stroke-linecap="round"/><path d="M12 -32 Q28 -40 44 -32" stroke="${PAL.cabelo2}" stroke-width="6" fill="none" stroke-linecap="round"/>`;
+  const braco = (lado, extra) => { const a = (lado * (40 + ang) + extra) * Math.PI / 180; const ex = lado * 62 + Math.sin(a) * 120 * lado, ey = -228 - Math.cos(a) * 60 + 40; return `<line x1="${lado * 60}" y1="-232" x2="${ex}" y2="${ey}" stroke="${PAL.roxo}" stroke-width="32" stroke-linecap="round"/><circle cx="${ex}" cy="${ey}" r="19" fill="${PAL.pele2}"/>`; };
+  return `<g transform="translate(${cx + tremor} ${by}) scale(${s})">
+    <rect x="-42" y="-112" width="34" height="110" rx="12" fill="${PAL.pele2}"/><rect x="8" y="-112" width="34" height="110" rx="12" fill="${PAL.pele2}"/>
+    <rect x="-52" y="-24" width="46" height="24" rx="12" fill="${PAL.rosa}"/><rect x="6" y="-24" width="46" height="24" rx="12" fill="${PAL.rosa}"/>
+    ${braco(-1, 0)}${braco(1, 0)}
+    <rect x="-58" y="-170" width="116" height="62" rx="16" fill="${PAL.rosa}"/><rect x="-66" y="-268" width="132" height="152" rx="46" fill="${PAL.roxo}"/>
+    <g transform="translate(0 -330)"><circle r="70" fill="${PAL.pele2}"/><path d="M-72 -10 A72 72 0 0 1 72 -10 C46 -52 -46 -52 -72 -10 Z" fill="${PAL.cabelo2}"/><circle cx="-62" cy="28" r="16" fill="#f4a4a0" opacity=".75"/><circle cx="62" cy="28" r="16" fill="#f4a4a0" opacity=".75"/>
+    ${olhosC}${sobr}${boca}${lagrimas(-30)}${lagrimas(30)}</g></g>`;
+}
+function carrinho(cx, by, s) {
+  return `<g transform="translate(${cx} ${by}) scale(${s})"><path d="M-130 -190 L130 -190 L100 -70 L-100 -70 Z" fill="#dfe6f2" stroke="#8d9bb8" stroke-width="8" stroke-linejoin="round"/>
+   ${[-70, -20, 30, 80].map((x) => `<line x1="${x}" y1="-188" x2="${x * .8}" y2="-72" stroke="#8d9bb8" stroke-width="5"/>`).join('')}<line x1="-120" y1="-130" x2="118" y2="-130" stroke="#8d9bb8" stroke-width="5"/>
+   <path d="M130 -190 L178 -280 L228 -280" fill="none" stroke="#8d9bb8" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+   <circle cx="-60" cy="-218" r="30" fill="#e04b4b"/><rect x="-20" y="-250" width="62" height="62" rx="10" fill="${PAL.verde}"/><rect x="50" y="-238" width="52" height="50" rx="10" fill="#ffb84d"/>
+   <circle cx="-70" cy="-38" r="20" fill="${PAL.marinho}"/><circle cx="70" cy="-38" r="20" fill="${PAL.marinho}"/></g>`;
+}
+function coracao(x, y, s, cor, op) {
+  return `<path transform="translate(${x} ${y}) scale(${s})" d="M0 28 L-30 -2 C-38 -12 -32 -26 -20 -26 C-10 -26 -4 -20 0 -12 C4 -20 10 -26 20 -26 C32 -26 38 -12 30 -2 Z" fill="${cor}" opacity="${op}"/>`;
+}
+/* ===================== cena 1 (0–4 s): birra no mercado ===================== */
+function cena1(t) {
+  let s = mercado(false);
+  s += silhueta(120, 1290, .42, '#a7b1cc') + silhueta(560, 1240, .36, '#b4bdd6') + silhueta(975, 1280, .44, '#a7b1cc');
+  s += carrinho(880, 1590, 1.05);
+  const cho = 1;
+  // ondas de choro saindo da criança
+  for (let i = 0; i < 3; i++) { const p = (t * 1.3 + i / 3) % 1; s += `<path d="M ${430 + p * 40} ${1330 - p * 90} Q ${470 + p * 90} ${1290} ${430 + p * 40} ${1250 + p * 90}" stroke="${PAL.roxo}" stroke-width="9" fill="none" stroke-linecap="round" opacity="${(1 - p) * .8}"/>`; }
+  s += crianca(330, 1650, 1.45, { choro: cho, t, calma: 0 });
+  const olhaX = Math.sin(t * 2.6) * 8, olhaY = Math.cos(t * 2.1) * 3;
+  s += adulto(650, 1650, 1.05, { olho: { dx: olhaX, dy: olhaY }, boca: 'preocupado', sobr: 'preocupado', inclina: Math.sin(t * 2.6) * 4, braco: { e: [-135, -300], d: [140, -250 + Math.sin(t * 3) * 14] } });
+  // "todo mundo olhando": olhos aparecem sobre os outros clientes
+  [[120, 780, 1.2, .0], [560, 740, 1.8, .0], [975, 790, 2.4, .0]].forEach(([x, y, quando], i) => {
+    const p = seg(t, quando, quando + .35); if (p <= 0) return;
+    const dx = (330 - x) / 120 * 4, dy = 3;
+    s += olhinhos(x, y, 1, Math.max(-12, Math.min(12, dx * 3)), dy, mola(p) * (.9 + .1 * Math.sin(t * 8 + i)));
+  });
+  return s;
+}
+/* ===================== cena 2 (4–7 s): respira e pega o celular ===================== */
+function cena2(u) {
+  let s = `<g filter="url(#blur)">${mercado(false)}</g><rect width="1080" height="1920" fill="#FFE9DF" opacity=".45"/>`;
+  const insp = seg(u, .9, 1.7), exp = seg(u, 1.7, 2.3), relax = seg(u, 2.3, 3);
+  const respira = Math.sin(u * 2.2) * 5 + insp * 16 - exp * 16;
+  let st = { respira, olho: { dx: Math.sin(u * 5) * 9, dy: 2 }, boca: 'preocupado', sobr: 'preocupado', inclina: Math.sin(u * 2) * 2 };
+  if (u >= .9 && u < 1.7) st = { respira, olho: { fechados: true }, boca: 'preocupado', sobr: 'suave', bochechas: insp, inclina: -3 };
+  else if (u >= 1.7 && u < 2.3) st = { respira, olho: { fechados: true }, boca: 'o', bocaK: exp, sobr: 'suave', inclina: 2 };
+  else if (u >= 2.3) st = { respira, olho: { dx: 0, dy: 10 }, boca: 'sorriso', sobr: 'suave', inclina: 2 };
+  const baseY = 2330;
+  s += adulto(540, baseY, 2.25, Object.assign(st, { braco: { e: [-165, -150], d: [165, -150] } }));
+  // sopro
+  if (u > 1.8 && u < 2.9) for (let i = 0; i < 3; i++) { const p = seg(u, 1.8 + i * .12, 2.8 + i * .12); s += `<path d="M ${610 + p * 190} ${1040 - i * 24 - p * 40} q 40 -26 80 0" stroke="#bfe3ff" stroke-width="10" fill="none" stroke-linecap="round" opacity="${(1 - p) * .9}"/>`; }
+  // mão com o celular subindo
+  const sobe = ease(seg(u, 1.7, 2.9));
+  const py = 2150 - sobe * 650, px = 620 - sobe * 40;
+  s += `<g transform="translate(${px} ${py}) rotate(-6)"><rect x="-140" y="-240" width="280" height="500" rx="44" fill="#1b2340"/><rect x="-124" y="-224" width="248" height="468" rx="34" fill="#10162d"/>
+    <rect x="-124" y="-224" width="248" height="468" rx="34" fill="url(#botao)" opacity=".35"/>
+    <g transform="translate(0 -20)"><rect x="-70" y="-70" width="140" height="140" rx="34" fill="${PAL.rosa}"/><circle cx="-26" cy="-26" r="14" fill="${PAL.roxo}"/><circle cx="30" cy="-34" r="11" fill="${PAL.verde}"/><path d="M0 52 L-44 8 C-56 -6 -46 -26 -30 -26 C-18 -26 -8 -16 0 -4 C8 -16 18 -26 30 -26 C46 -26 56 -6 44 8 Z" fill="#fff"/></g>
+    <text x="0" y="150" text-anchor="middle" font-size="34" font-weight="800" fill="#fff" font-family="Inter Display, Inter, sans-serif">FamilyPilot</text>
+    <rect x="-120" y="150" width="240" height="140" rx="60" fill="${PAL.pele1}" transform="translate(0 40)"/><ellipse cx="-124" cy="70" rx="26" ry="64" fill="${PAL.pele1}" transform="rotate(8 -124 70)"/></g>`;
+  if (sobe > .5) s += `<ellipse cx="${px}" cy="${py - 60}" rx="420" ry="360" fill="url(#brilho)" opacity="${(sobe - .5) * .9}"/>`;
+  return s;
+}
+/* ===================== cenas do app (7–18 s) ===================== */
+const WX = 188, WY = 520, WW = 704, WH = 1074, K = 704 / 390;
+const IMG = (n) => `../quadros/${n}.png`;
+function tela(nome, dx, dy, op) { return `<image href="${IMG(nome)}" x="${WX + dx}" y="${WY + dy}" width="${390 * K}" height="${700 * K}" opacity="${op}" preserveAspectRatio="none"/>`; }
+function pos(nome, chave) { const r = RET[nome][chave]; return { x: WX + r.x * K, y: WY + r.y * K, w: r.w * K, h: r.h * K }; }
+function toque(nome, chave, t, ini) {
+  const p = seg(t, ini, ini + .55); if (p <= 0 || p >= 1) return '';
+  const r = pos(nome, chave), cx = r.x + r.w / 2, cy = r.y + r.h / 2;
+  return `<circle cx="${cx}" cy="${cy}" r="${24 + p * 90}" fill="rgba(238,59,100,${.35 * (1 - p)})" stroke="rgba(255,255,255,${1 - p})" stroke-width="8"/><circle cx="${cx}" cy="${cy}" r="${p < .4 ? 30 : 30 * (1 - (p - .4) / .6)}" fill="rgba(31,42,74,.6)"/>`;
+}
+function destaque(nome, chave, t, a, b, rotulo, margem) {
+  const q = trap(t, a, a + .25, b - .25, b); if (q <= 0) return '';
+  const r = pos(nome, chave), m = margem == null ? 10 : margem, pulso = 1 + Math.sin(t * 9) * .012;
+  const cx = r.x + r.w / 2, cy = r.y + r.h / 2, w = (r.w + m * 2) * pulso, h = (r.h + m * 2) * pulso;
+  const lw = rotulo.length * 27 + 60;
+  return `<g opacity="${q}"><rect x="${cx - w / 2}" y="${cy - h / 2}" width="${w}" height="${h}" rx="26" fill="rgba(255,215,0,.14)" stroke="${PAL.ouro}" stroke-width="10"/>
+   <g transform="translate(${Math.max(WX + 20, cx - w / 2)} ${cy - h / 2 - 78}) scale(${.9 + .1 * easeOut(seg(t, a, a + .3))})"><rect width="${lw}" height="66" rx="33" fill="${PAL.ouro}"/><text x="${lw / 2}" y="46" text-anchor="middle" font-size="40" font-weight="900" fill="${PAL.marinho}" font-family="Inter Display, Inter, sans-serif">${rotulo}</text></g></g>`;
+}
+function cenaApp(t) {
+  const entra = easeOut(seg(t, 6.85, 7.35));
+  let s = `<rect width="1080" height="1920" fill="url(#fundoFim)"/><circle cx="960" cy="360" r="260" fill="#ffd9e1" opacity=".55"/><circle cx="100" cy="1500" r="300" fill="#e3defa" opacity=".6"/>`;
+  s += `<g transform="translate(540 1057) scale(${.9 + .1 * entra}) translate(-540 -1057)" opacity="${entra}"><rect x="${WX - 18}" y="${WY - 18}" width="${WW + 36}" height="${WH + 36}" rx="62" fill="${PAL.marinho}" filter="url(#sombra)"/><g clip-path="url(#janela)"><rect x="${WX}" y="${WY}" width="${WW}" height="${WH}" fill="#fff8f4"/>`;
+  const slideH = (de, para, p) => tela(de, -ease(p) * WW, 0, 1) + tela(para, (1 - ease(p)) * WW, 0, 1);
+  const scroll = (de, para, p) => { const q = ease(p); return tela(de, 0, -q * 120, 1 - q) + tela(para, 0, (1 - q) * 120, q); };
+  const sw = (a, b, quando) => (t < quando ? a : b);
+  if (t < 8.5) s += tela(sw('a1-idade', 'a2-idade-escolhida', 7.9), 0, 0, 1);
+  else if (t < 8.9) s += slideH('a2-idade-escolhida', 'b1-motivo', seg(t, 8.5, 8.9));
+  else if (t < 10.2) s += tela(sw('b1-motivo', 'b2-motivo-escolhido', 9.6), 0, 0, 1);
+  else if (t < 10.6) s += slideH('b2-motivo-escolhido', 'c1-local', seg(t, 10.2, 10.6));
+  else if (t < 12.45) s += tela(sw('c1-local', 'c2-local-escolhido', 11.25), 0, 0, 1);
+  else if (t < 13.0) s += scroll('c2-local-escolhido', 'r1-plano-topo', seg(t, 12.45, 13.0));
+  else if (t < 13.9) s += tela('r1-plano-topo', 0, 0, 1);
+  else if (t < 14.3) s += scroll('r1-plano-topo', 'r2-primeiros-passos', seg(t, 13.9, 14.3));
+  else if (t < 15.5) s += tela('r2-primeiros-passos', 0, 0, 1);
+  else if (t < 15.9) s += scroll('r2-primeiros-passos', 'r3-evitar', seg(t, 15.5, 15.9));
+  else if (t < 16.9) s += tela('r3-evitar', 0, 0, 1);
+  else if (t < 17.3) s += scroll('r3-evitar', 'r4-frase', seg(t, 16.9, 17.3));
+  else s += tela('r4-frase', 0, 0, 1);
+  s += `</g></g>`;
+  if (t >= 7.3 && t < 12.9) {
+    s += toque('a1-idade', 'chip', t, 7.7) + toque('b1-motivo', 'opcao', t, 9.4) + toque('c1-local', 'opcao', t, 11.05) + toque('c2-local-escolhido', 'botao', t, 12.0);
+  }
+  s += destaque('r2-primeiros-passos', 'passo1', t, 14.4, 15.5, '1º passo', 12) + destaque('r3-evitar', 'evitar', t, 15.9, 16.9, 'O que evitar', 8) + destaque('r4-frase', 'frase', t, 17.3, 18.0, 'Frase sugerida', 10);
+  return s;
+}
+/* ===================== cena 5 (18–21 s): conversa abaixado ===================== */
+function ajoelhado(cx, by, s, st) {
+  return `<g transform="translate(${cx} ${by}) scale(${s})">
+   <rect x="-250" y="-62" width="300" height="54" rx="22" fill="${PAL.calca}"/><rect x="-282" y="-52" width="70" height="44" rx="20" fill="${PAL.marinho}"/>
+   <rect x="-44" y="-292" width="96" height="260" rx="30" fill="${PAL.calca}"/>
+   <g transform="rotate(${st.inclina || 8} 0 -250)">
+    <line x1="92" y1="-470" x2="${st.mao[0]}" y2="${st.mao[1]}" stroke="${PAL.verde}" stroke-width="44" stroke-linecap="round"/><circle cx="${st.mao[0]}" cy="${st.mao[1]}" r="25" fill="${PAL.pele1}"/>
+    <line x1="-92" y1="-470" x2="-110" y2="-300" stroke="${PAL.verde}" stroke-width="44" stroke-linecap="round"/><circle cx="-110" cy="-290" r="25" fill="${PAL.pele1}"/>
+    <rect x="-96" y="-524" width="192" height="300" rx="64" fill="${PAL.verde}"/><rect x="-22" y="-566" width="44" height="48" fill="${PAL.pele1}"/>
+    <g transform="translate(0 -606)"><circle cx="0" cy="-84" r="27" fill="${PAL.cabelo1}"/><circle cx="-76" cy="2" r="12" fill="${PAL.pele1}"/><circle cx="76" cy="2" r="12" fill="${PAL.pele1}"/><circle r="76" fill="${PAL.pele1}"/><path d="M-79 -6 A79 79 0 0 1 79 -6 C52 -56 -52 -56 -79 -6 Z" fill="${PAL.cabelo1}"/>
+    ${olhos(8, 2, false, true)}${sobrancelhas('suave')}${bocaAdulto(st.boca, st.k)}</g></g></g>`;
+}
+function cena5(u) {
+  let s = mercado(true) + `<ellipse cx="540" cy="1000" rx="620" ry="520" fill="url(#brilho)" opacity=".55"/>`;
+  const calma = seg(u, .5, 1.7), lag = 1 - seg(u, .1, 1.3);
+  const fala = u < 2.0 ? (Math.floor(u * 7) % 2 ? 'fala' : 'sorriso') : 'sorriso';
+  const kidX = 770, kidY = 1650, kidS = 1.5;
+  s += crianca(kidX, kidY, kidS, { choro: Math.max(0, lag) * (1 - calma * .0), t: u + 3, calma, olharX: -6 });
+  s += ajoelhado(330, 1650, 1.0, { boca: fala, k: Math.abs(Math.sin(u * 14)), mao: [330, -330 + Math.sin(u * 3) * 6], inclina: 10 });
+  if (u > 1.3) for (let i = 0; i < 4; i++) { const p = seg(u, 1.3 + i * .22, 2.7 + i * .22); s += coracao(520 + i * 70 + Math.sin(p * 6 + i) * 22, 1180 - p * 420, 1.9 - i * .15, i % 2 ? PAL.rosa : PAL.verde, Math.sin(p * Math.PI)); }
+  return s;
+}
+/* ===================== cena 6 (21–25 s): cartão final ===================== */
+function cenaFim(u) {
+  const p = (a, b) => easeOut(seg(u, a, b));
+  let s = `<rect width="1080" height="1920" fill="url(#fundoFim)"/><circle cx="930" cy="330" r="300" fill="#ffd9e1" opacity=".6"/><circle cx="120" cy="1560" r="330" fill="#e3defa" opacity=".6"/><circle cx="900" cy="1500" r="150" fill="#cdeee6" opacity=".7"/>`;
+  s += `<g transform="translate(540 700) scale(${.7 + .3 * mola(seg(u, .0, .6))})" opacity="${seg(u, 0, .3)}"><g filter="url(#sombra)"><rect x="-130" y="-130" width="260" height="260" rx="62" fill="${PAL.rosa}"/></g><circle cx="-48" cy="-48" r="26" fill="${PAL.roxo}"/><circle cx="56" cy="-62" r="20" fill="${PAL.verde}"/><path d="M0 98 L-82 16 C-106 -10 -88 -48 -56 -48 C-34 -48 -14 -30 0 -8 C14 -30 34 -48 56 -48 C88 -48 106 -10 82 16 Z" fill="#fff"/></g>`;
+  s += `<text x="540" y="930" text-anchor="middle" font-size="96" font-weight="900" fill="${PAL.marinho}" font-family="Inter Display, Inter, sans-serif" opacity="${p(.3, .8)}" letter-spacing="-2">FamilyPilot</text>`;
+  s += `<g transform="translate(540 1030)" opacity="${p(.5, 1)}"><rect x="-190" y="-48" width="380" height="96" rx="48" fill="${PAL.rosa}"/><text x="0" y="22" text-anchor="middle" font-size="58" font-weight="900" fill="#fff" font-family="Inter Display, Inter, sans-serif">SOS Birra</text></g>`;
+  s += `<g transform="translate(540 1235) translate(0 ${(1 - p(.9, 1.5)) * 60})" opacity="${p(.9, 1.5)}"><g filter="url(#sombra)"><rect x="-420" y="-110" width="840" height="220" rx="48" fill="#fff"/></g>
+    <text x="-300" y="30" font-size="120" font-weight="900" fill="${PAL.rosa}" font-family="Inter Display, Inter, sans-serif" letter-spacing="-3">R$ 47</text>
+    <text x="70" y="-6" font-size="44" font-weight="800" fill="${PAL.marinho}" font-family="Inter Display, Inter, sans-serif">Pagamento único</text><text x="70" y="52" font-size="44" font-weight="800" fill="${PAL.marinho}" font-family="Inter Display, Inter, sans-serif">Sem mensalidade</text></g>`;
+  s += `<g transform="translate(540 1448)" opacity="${p(1.3, 1.9)}"><rect x="-290" y="-44" width="580" height="88" rx="44" fill="#d8f3ec"/><circle cx="-232" cy="0" r="26" fill="${PAL.verde}"/><path d="M-244 0 l9 10 l18 -20" stroke="#fff" stroke-width="7" fill="none" stroke-linecap="round" stroke-linejoin="round"/><text x="20" y="14" text-anchor="middle" font-size="44" font-weight="900" fill="#0f6b57" font-family="Inter Display, Inter, sans-serif">Garantia de 7 dias</text></g>`;
+  const pulso = 1 + Math.sin(u * 7) * .02 * seg(u, 2, 2.4);
+  s += `<g transform="translate(540 1600) scale(${pulso})" opacity="${p(1.7, 2.3)}"><rect x="-250" y="-62" width="500" height="124" rx="62" fill="url(#botao)" filter="url(#sombra)"/><text x="0" y="22" text-anchor="middle" font-size="58" font-weight="900" fill="#fff" font-family="Inter Display, Inter, sans-serif">Saiba mais</text></g>`;
+  s += `<text x="540" y="1745" text-anchor="middle" font-size="40" font-weight="700" fill="${PAL.marinho}" opacity="${.75 * p(2, 2.6)}" font-family="Inter Display, Inter, sans-serif">www.familypilot.com.br</text>`;
+  return s;
+}
+/* ===================== montagem ===================== */
+const CENAS = [[0, 4, (t) => cena1(t)], [4, 7, (t) => cena2(t - 4)], [7, 18, (t) => cenaApp(t)], [18, 21, (t) => cena5(t - 18)], [21, 25, (t) => cenaFim(t - 21)]];
+function render(t) {
+  let s = '';
+  CENAS.forEach(([a, b, f], i) => {
+    if (t < a - .3 || t > b + .3) return;
+    const op = i === 0 ? 1 : seg(t, a - .3, a);   // a cena nova entra por cima da anterior, que só sai depois
+    s += `<g opacity="${op}">${f(Math.min(Math.max(t, a), b))}</g>`;
+  });
+  document.getElementById('cena').innerHTML = s;
+  const leg = document.getElementById('leg');
+  const l = LEGENDAS.find(([a, b]) => t >= a && t <= b);
+  if (l) { leg.innerHTML = l[2]; const a = l[0], b = l[1]; leg.style.opacity = Math.min(seg(t, a, a + .25), 1 - seg(t, b - .2, b)); leg.style.transform = `translateY(${(1 - easeOut(seg(t, a, a + .3))) * 24}px)`; } else leg.style.opacity = 0;
+}
+window.render = render; render(0);
+</script></html>

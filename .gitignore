@@ -2,3 +2,9 @@ node_modules/
 .wrangler/
 .dev.vars
 dist/
+
+# anúncio em vídeo: só a fonte e as telas gravadas ficam no repositório (o MP4 e os quadros são gerados)
+anuncio/*.mp4
+anuncio/capa.png
+anuncio/quadros/video/
+anuncio/quadros/amostras/
