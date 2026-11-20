@@ -19,6 +19,9 @@ export type Env = {
   GOOGLE_CLIENT_ID?: string; GOOGLE_CERTS_URL?: string
   /** Segredo (npx wrangler secret put DADOS_CHAVE) que cifra os registros dos pais no banco. Sem ele a sincronização fica desligada. Nunca troque nem perca. */
   DADOS_CHAVE?: string
+  /** Medição de anúncios (API de Conversões da Meta): ID do Pixel (público), token (segredo: npx wrangler secret put META_CAPI_TOKEN),
+   *  código da aba "Eventos de teste" (opcional, só para testar), versão da API e endereço (só para testes). Sem ID e token, nada é enviado. */
+  META_PIXEL_ID?: string; META_CAPI_TOKEN?: string; META_TEST_EVENT_CODE?: string; META_GRAPH_VERSION?: string; META_URL?: string
 }
 /** Visão de administrador: ver o app como um usuário com só estes módulos (e, se pedido, com a oferta de boas-vindas). */
 export type Visao = { modulos: string[]; oferta: boolean }

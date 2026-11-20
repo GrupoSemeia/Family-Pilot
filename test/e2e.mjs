@@ -3,7 +3,7 @@
 import { createServer, request as httpRequest } from 'node:http'
 import { execFileSync, spawn } from 'node:child_process'
 import assert from 'node:assert/strict'
-import { generateKeyPairSync, sign as assinar } from 'node:crypto'
+import { generateKeyPairSync, sign as assinar, createHash } from 'node:crypto'
 
 const PORTA = 8791, MOCK = 8792, BASE = `http://127.0.0.1:${PORTA}`, TOKEN = 'segredo-teste'
 const pagamentos = new Map() // id → { status, value }
@@ -19,6 +19,7 @@ function tokenGoogle(extra = {}, { chave = par.privateKey, kid = 'k' + S, alg = 
   return `${h}.${p}.${alg === 'RS256' ? assinar('RSA-SHA256', Buffer.from(h + '.' + p), chave).toString('base64url') : ''}`
 }
 const emails = [] // e-mails "enviados" ao Resend falso
+const metaEventos = []; let metaFalha = false // eventos recebidos pela API de Conversões falsa
 const S = Date.now() // e-mails novos a cada execução (o banco local guarda os de antes)
 
 const mock = createServer((req, res) => {
@@ -27,6 +28,7 @@ const mock = createServer((req, res) => {
     const u = req.url
     if (req.method === 'GET' && u === '/certs') { res.setHeader?.('cache-control', 'max-age=3600'); return send({ keys: [{ ...par.publicKey.export({ format: 'jwk' }), kid: 'k' + S, alg: 'RS256', use: 'sig' }] }) }
     if (req.method === 'POST' && u === '/emails') { emails.push(j); return send({ id: 'em_' + emails.length }) }
+    if (req.method === 'POST' && /^\/v25\.0\/2185385712085277\/events\?/.test(u)) { if (metaFalha) return send({ error: { message: 'falha simulada' } }, 500); metaEventos.push({ url: u, corpo: j }); return send({ events_received: 1 }) }
     if (req.method === 'POST' && u === '/customers') return send({ id: 'cus_' + S + '_' + seq++ })
     if (req.method === 'POST' && u.startsWith('/customers/')) return send({ id: u.split('/')[2] })
     if (req.method === 'POST' && u === '/payments') { const id = 'pay_' + S + '_' + ++seq; pagamentos.set(id, { status: 'PENDING', value: j.value }); return send({ id, invoiceUrl: 'https://asaas.test/i/' + id, value: j.value }) }
@@ -35,7 +37,7 @@ const mock = createServer((req, res) => {
   })
 }).listen(MOCK)
 
-const wr = spawn('npx', ['wrangler', 'dev', '--port', String(PORTA), '--var', `ASAAS_URL:http://127.0.0.1:${MOCK}`, '--var', 'ASAAS_API_KEY:chave-teste', '--var', `ASAAS_WEBHOOK_TOKEN:${TOKEN}`, '--var', `ACESSO_LIVRE:super${S}@gmail.com, equipe${S}@teste.com`, '--var', 'DADOS_CHAVE:chave-de-teste-com-mais-de-16-caracteres', '--var', 'APP_URL:https://www.teste.local', '--var', `GOOGLE_CLIENT_ID:${GOOGLE_ID}`, '--var', `GOOGLE_CERTS_URL:http://127.0.0.1:${MOCK}/certs`, '--var', 'RESEND_API_KEY:rk-teste', '--var', 'EMAIL_DE:FamilyPilot <nao-responda@teste.com>', '--var', `RESEND_URL:http://127.0.0.1:${MOCK}`, '--var', 'PRECOS_MODULOS:{"sono":3700,"adolescencia":4700,"pacote":9900}', '--var', 'PRECOS_DE:{"sono":7700,"telas":100}', '--var', 'OFERTA_POS_COMPRA:{"modulo":"sono","preco":2700,"horas":72}'], { stdio: 'pipe', detached: true })
+const wr = spawn('npx', ['wrangler', 'dev', '--port', String(PORTA), '--var', `ASAAS_URL:http://127.0.0.1:${MOCK}`, '--var', 'ASAAS_API_KEY:chave-teste', '--var', `ASAAS_WEBHOOK_TOKEN:${TOKEN}`, '--var', `ACESSO_LIVRE:super${S}@gmail.com, equipe${S}@teste.com`, '--var', 'DADOS_CHAVE:chave-de-teste-com-mais-de-16-caracteres', '--var', 'APP_URL:https://www.teste.local', '--var', `GOOGLE_CLIENT_ID:${GOOGLE_ID}`, '--var', `GOOGLE_CERTS_URL:http://127.0.0.1:${MOCK}/certs`, '--var', 'RESEND_API_KEY:rk-teste', '--var', 'EMAIL_DE:FamilyPilot <nao-responda@teste.com>', '--var', `RESEND_URL:http://127.0.0.1:${MOCK}`, '--var', 'PRECOS_MODULOS:{"sono":3700,"adolescencia":4700,"pacote":9900}', '--var', 'PRECOS_DE:{"sono":7700,"telas":100}', '--var', 'OFERTA_POS_COMPRA:{"modulo":"sono","preco":2700,"horas":72}', '--var', 'META_CAPI_TOKEN:token-meta-teste', '--var', `META_URL:http://127.0.0.1:${MOCK}`], { stdio: 'pipe', detached: true })
 let log = ''; wr.stdout.on('data', d => (log += d)); wr.stderr.on('data', d => (log += d))
 const fim = (cod) => { try { process.kill(-wr.pid, 'SIGTERM') } catch { wr.kill('SIGTERM') }; mock.close(); process.exit(cod) }
 
@@ -47,7 +49,7 @@ function cliente() {
     // o wrangler dev às vezes reinicia o Worker logo depois de um "d1 execute"; tenta de novo antes de dar a conexão como perdida
     let r
     for (let t = 0; ; t++) {
-      try { r = await fetch(BASE + url, { method: metodo, headers: { 'content-type': 'application/json', ...(cookie ? { cookie } : {}), ...extra }, body: corpo === undefined ? undefined : JSON.stringify(corpo) }); break }
+      try { r = await fetch(BASE + url, { method: metodo, headers: { 'content-type': 'application/json', ...((cookie || f.ck) ? { cookie: [cookie, f.ck].filter(Boolean).join('; ') } : {}), ...extra }, body: corpo === undefined ? undefined : JSON.stringify(corpo) }); break }
       catch (e) { if (t >= 6) throw e; await new Promise(r => setTimeout(r, 1000)) }
     }
     const sc = r.headers.get('set-cookie'); if (sc) cookie = sc.split(';')[0]
@@ -510,6 +512,56 @@ try {
     const pol = (await cliente().pagina('/privacidade')).texto
     assert.ok(/Pixel da Meta/.test(pol) && /Meta Platforms/.test(pol) && /só se você aceitar/.test(pol), 'a política explica o Pixel e o consentimento')
     assert.ok(!/Não usamos cookies de publicidade ou de rastreamento/.test(pol), 'a política não afirma mais o contrário')
+  }
+
+  // Medição de anúncios: a compra vai à Meta pelo servidor, só com o consentimento (cookies _fbp/_fbc) e nunca atrapalha o pagamento
+  {
+    const FBP = 'fb.1.1700000000000.1234567890', FBC = 'fb.1.1700000000000.AbCd_ef-12'
+    const sha = (t) => createHash('sha256').update(t).digest('hex')
+    const pagarCom = async (nome, cookies, valor = 47) => {
+      const c = cliente(); const email = `${nome}${S}@Teste.com`
+      await c('POST', '/api/auth/cadastro', { nome, email, senha: 'senha-forte-1', aceite: true })
+      c.ck = cookies
+      const id = (await c('POST', '/api/pagamento', { cpfCnpj: '52998224725' })).d.url.split('/').pop()
+      const antes = metaEventos.length
+      assert.equal((await webhook(c, 'PAYMENT_CONFIRMED', id, 'CONFIRMED', valor)).status, 200)
+      return { c, id, email, novos: metaEventos.slice(antes) }
+    }
+    // aceitou o aviso (tem _fbp/_fbc): o Purchase sai uma vez, com valor, moeda, e-mail em hash e os dois cookies
+    const com = await pagarCom('mia', `_fbp=${FBP}; _fbc=${FBC}`)
+    assert.equal(com.novos.length, 1, 'com consentimento, um Purchase vai à Meta')
+    const ev = com.novos[0].corpo.data[0]
+    assert.equal(ev.event_name, 'Purchase'); assert.equal(ev.action_source, 'website')
+    assert.deepEqual([ev.custom_data.value, ev.custom_data.currency], [47, 'BRL'])
+    assert.deepEqual(ev.user_data.em, [sha(com.email.toLowerCase())], 'e-mail normalizado e em hash')
+    assert.equal(ev.user_data.fbp, FBP); assert.equal(ev.user_data.fbc, FBC)
+    assert.ok(typeof ev.event_id === 'string' && ev.event_id.length > 8 && ev.custom_data.order_id === ev.event_id, 'event_id = id do pedido')
+    assert.ok(com.novos[0].url.includes('access_token=token-meta-teste'), 'o token vai na chamada')
+    assert.ok(!JSON.stringify(com.novos[0].corpo).toLowerCase().includes('teste.com'), 'o e-mail nunca vai em texto puro')
+    // webhook repetido não conta a compra de novo
+    const antes = metaEventos.length
+    await webhook(com.c, 'PAYMENT_RECEIVED', com.id, 'RECEIVED', 47)
+    assert.equal(metaEventos.length, antes, 'webhook repetido não reenvia')
+    // recusou o aviso (sem cookies): nada sai
+    const sem = await pagarCom('noe', '')
+    assert.equal(sem.novos.length, 0, 'sem consentimento, nada vai à Meta')
+    assert.equal((await sem.c('GET', '/api/auth/eu')).d.acesso.ativo, true, 'e o acesso é liberado do mesmo jeito')
+    // cookie com formato estranho é descartado (não vira dado nosso)
+    const lixo = await pagarCom('ivo', '_fbp=<script>alert(1)</script>; _fbc=qualquer')
+    assert.equal(lixo.novos.length, 0, 'cookies fora do formato da Meta são ignorados')
+    // a Meta fora do ar não atrapalha o pagamento
+    metaFalha = true
+    const falha = await pagarCom('uma', `_fbp=${FBP}`)
+    metaFalha = false
+    assert.equal(falha.novos.length, 0)
+    assert.equal((await falha.c('GET', '/api/auth/eu')).d.acesso.ativo, true, 'falha na Meta não impede o acesso')
+    // pacote de R$ 147: o valor enviado é o da cobrança
+    const pac = cliente(); await pac('POST', '/api/auth/cadastro', { nome: 'Pat', email: `pat${S}@teste.com`, senha: 'senha-forte-1', aceite: true })
+    pac.ck = `_fbp=${FBP}`
+    const idPac = (await pac('POST', '/api/pagamento', { cpfCnpj: '52998224725', modulo: 'pacote' })).d.url.split('/').pop()
+    const n0 = metaEventos.length
+    await webhook(pac, 'PAYMENT_CONFIRMED', idPac, 'CONFIRMED', 99)
+    assert.equal(metaEventos[n0].corpo.data[0].custom_data.value, 99); assert.deepEqual(metaEventos[n0].corpo.data[0].custom_data.content_ids, ['pacote'])
   }
 
   // avisos em janela: o app não usa mais alert(), confirm() nem prompt() do navegador
